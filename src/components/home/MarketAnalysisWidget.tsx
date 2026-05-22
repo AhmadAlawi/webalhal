@@ -2,12 +2,11 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
-import { motion } from "framer-motion";
 import { BarChart3, ArrowLeft, Map } from "lucide-react";
 import { PageContainer } from "@/components/layout/PageContainer";
 import { KpiCardView } from "@/components/analysis/KpiCardView";
 import { MiniSparkline } from "@/components/analysis/MiniSparkline";
-import { FadeIn, FadeInStagger, staggerItem } from "@/components/motion/FadeIn";
+import { FadeIn } from "@/components/motion/FadeIn";
 import { SyriaMarketMapDynamic } from "@/components/maps/SyriaMarketMapDynamic";
 import { getDashboardSummary, getVolumeByGovernorate } from "@/services/market-analysis";
 import { toMapVolumePoints } from "@/lib/syria-governorates";
@@ -33,6 +32,7 @@ export function MarketAnalysisWidget() {
       })
       .finally(() => setLoading(false));
   }, []);
+
   return (
     <section className="relative overflow-hidden border-y border-emerald-100 bg-gradient-to-l from-emerald-50 via-white to-emerald-50/30 py-10 lg:py-14">
       <div
@@ -42,13 +42,9 @@ export function MarketAnalysisWidget() {
       <PageContainer className="relative">
         <FadeIn className="mb-8 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
           <div className="flex items-center gap-3">
-            <motion.span
-              whileHover={{ rotate: [0, -8, 8, 0] }}
-              transition={{ duration: 0.5 }}
-              className="flex h-12 w-12 items-center justify-center rounded-xl bg-emerald-600 text-white shadow-lg shadow-emerald-600/25"
-            >
+            <span className="flex h-12 w-12 items-center justify-center rounded-xl bg-gradient-to-br from-emerald-500 to-emerald-700 text-white shadow-lg shadow-emerald-600/25">
               <BarChart3 className="h-6 w-6" />
-            </motion.span>
+            </span>
             <div>
               <h2 className="text-xl font-bold text-slate-900">تحليلات السوق</h2>
               <p className="text-sm text-slate-600">
@@ -56,15 +52,13 @@ export function MarketAnalysisWidget() {
               </p>
             </div>
           </div>
-          <motion.div whileHover={{ scale: 1.03 }} whileTap={{ scale: 0.98 }}>
-            <Link
-              href="/market-analysis"
-              className="inline-flex items-center justify-center gap-2 rounded-xl bg-emerald-600 px-6 py-3 text-sm font-semibold text-white shadow-md shadow-emerald-600/20 transition-colors hover:bg-emerald-700"
-            >
-              مخطط الشموع التفاعلي
-              <ArrowLeft className="h-4 w-4" />
-            </Link>
-          </motion.div>
+          <Link
+            href="/market-analysis"
+            className="inline-flex items-center justify-center gap-2 rounded-xl bg-emerald-600 px-6 py-3 text-sm font-semibold text-white shadow-md shadow-emerald-600/20 transition-colors hover:bg-emerald-700"
+          >
+            مخطط الشموع التفاعلي
+            <ArrowLeft className="h-4 w-4" />
+          </Link>
         </FadeIn>
 
         {loading ? (
@@ -79,29 +73,21 @@ export function MarketAnalysisWidget() {
         ) : summary ? (
           <div className="grid gap-8 lg:grid-cols-2">
             <div>
-              <FadeInStagger className="grid gap-4 sm:grid-cols-2">
-                <motion.div variants={staggerItem}>
-                  <KpiCardView kpi={summary.totalRevenue} isCurrency />
-                </motion.div>
-                <motion.div variants={staggerItem}>
-                  <KpiCardView kpi={summary.totalVolume} />
-                </motion.div>
-                <motion.div variants={staggerItem}>
-                  <KpiCardView kpi={summary.totalTransactions} />
-                </motion.div>
-                <motion.div variants={staggerItem}>
-                  <KpiCardView kpi={summary.averagePrice} isCurrency />
-                </motion.div>
-              </FadeInStagger>
+              <div className="grid gap-4 sm:grid-cols-2">
+                <KpiCardView kpi={summary.totalRevenue} isCurrency />
+                <KpiCardView kpi={summary.totalVolume} />
+                <KpiCardView kpi={summary.totalTransactions} />
+                <KpiCardView kpi={summary.averagePrice} isCurrency />
+              </div>
               {summary.revenueSparkline && summary.revenueSparkline.length > 0 && (
-                <FadeIn delay={0.15} className="mt-6 rounded-2xl border border-gray-100 bg-white p-5 shadow-sm">
-                  <p className="mb-3 text-sm font-medium text-slate-600">اتجاه الإيرادات (تفاعلي)</p>
+                <FadeIn delay={0.15} className="card mt-6 p-5">
+                  <p className="mb-3 text-sm font-medium text-slate-600">اتجاه الإيرادات</p>
                   <MiniSparkline points={summary.revenueSparkline} isCurrency />
                 </FadeIn>
               )}
             </div>
             <FadeIn delay={0.1}>
-              <div className="rounded-2xl border border-gray-100 bg-white p-4 shadow-sm">
+              <div className="card p-4">
                 <div className="mb-3 flex items-center gap-2 text-sm font-semibold text-slate-800">
                   <Map className="h-4 w-4 text-emerald-600" />
                   خريطة سوريا — الحجم حسب المحافظة

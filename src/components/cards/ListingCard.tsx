@@ -5,6 +5,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { MapPin, Clock } from "lucide-react";
 import { formatPrice } from "@/lib/auctionPricing";
+import { formatDateAr } from "@/lib/format";
 
 interface ListingCardProps {
   href: string;
@@ -30,7 +31,7 @@ export const ListingCard = memo(function ListingCard({
   return (
     <Link
       href={href}
-      className="block overflow-hidden rounded-3xl border border-gray-100 bg-white shadow-sm transition-all duration-200 hover:-translate-y-1 hover:shadow-lg"
+      className="card card-hover block overflow-hidden p-0"
     >
       <div className="relative aspect-[4/3] w-full overflow-hidden bg-emerald-50">
         <Image
@@ -63,7 +64,7 @@ export const ListingCard = memo(function ListingCard({
           {endTime && (
             <span className="flex items-center gap-1">
               <Clock className="h-3.5 w-3.5" />
-              {new Date(endTime).toLocaleDateString("ar-SY")}
+              {formatDateAr(endTime)}
             </span>
           )}
         </div>

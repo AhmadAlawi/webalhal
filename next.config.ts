@@ -13,10 +13,15 @@ const nextConfig: NextConfig = {
         hostname: "imagesalhal.awnak.net",
         pathname: "/**",
       },
+      {
+        protocol: "https",
+        hostname: "**.awnak.net",
+        pathname: "/**",
+      },
     ],
   },
   experimental: {
-    optimizePackageImports: ["lucide-react", "recharts", "framer-motion"],
+    optimizePackageImports: ["lucide-react", "recharts"],
   },
 };
 

@@ -1,6 +1,5 @@
 "use client";
 
-import { motion } from "framer-motion";
 import { TrendingDown, TrendingUp, Minus } from "lucide-react";
 import { clsx } from "clsx";
 import type { KpiCard } from "@/types/market-analysis";
@@ -18,20 +17,9 @@ export function KpiCardView({ kpi, isCurrency }: { kpi?: KpiCard; isCurrency?: b
     kpi.trend === "up" ? TrendingUp : kpi.trend === "down" ? TrendingDown : Minus;
 
   return (
-    <motion.article
-      whileHover={{ y: -4, scale: 1.02 }}
-      transition={{ type: "spring", stiffness: 400, damping: 22 }}
-      className="rounded-2xl border border-gray-100 bg-white p-5 shadow-sm transition-shadow hover:shadow-md"
-    >
+    <article className="card card-hover p-5">
       <p className="text-sm font-medium text-slate-500">{kpi.title ?? "—"}</p>
-      <motion.p
-        key={display}
-        initial={{ opacity: 0, y: 8 }}
-        animate={{ opacity: 1, y: 0 }}
-        className="mt-2 text-2xl font-bold text-slate-900"
-      >
-        {display}
-      </motion.p>
+      <p className="mt-2 text-2xl font-bold text-slate-900">{display}</p>
       {kpi.changePercentage != null && (
         <p
           className={clsx(
@@ -45,10 +33,10 @@ export function KpiCardView({ kpi, isCurrency }: { kpi?: KpiCard; isCurrency?: b
           <TrendIcon className="h-4 w-4" />
           {formatPercent(kpi.changePercentage)}
           {kpi.comparisonPeriod && (
-            <span className="text-slate-400 font-normal">· {kpi.comparisonPeriod}</span>
+            <span className="font-normal text-slate-400">· {kpi.comparisonPeriod}</span>
           )}
         </p>
       )}
-    </motion.article>
+    </article>
   );
 }

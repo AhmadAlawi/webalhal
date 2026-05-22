@@ -76,6 +76,11 @@ export function SiteFooter() {
                   التسجيل كناقل
                 </Link>
               </li>
+              <li>
+                <Link href="/transport/prices" className="transition-colors hover:text-emerald-400">
+                  حاسبة أسعار النقل
+                </Link>
+              </li>
             </ul>
           </section>
         </div>

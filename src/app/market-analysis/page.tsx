@@ -12,7 +12,6 @@ import {
 } from "@/services/market-chart.api";
 import type { ChartGroupBy, FilterGovernorate, FilterProduct } from "@/types/market-chart";
 import Link from "next/link";
-import { motion } from "framer-motion";
 import { FadeIn } from "@/components/motion/FadeIn";
 
 const CandleVolumeChart = dynamic(
@@ -152,12 +151,7 @@ export default function MarketChartPage() {
         )}
 
         {productId && !loading && data && data.candles.length > 0 && (
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            transition={{ duration: 0.4 }}
-          >
-            <FadeIn>
+          <FadeIn>
             <section className="mb-2 overflow-hidden rounded-xl border border-[#2a2e39] bg-[#1e222d]">
               <CandleVolumeChart candles={data.candles} volume={data.volume} height={400} />
             </section>
@@ -170,8 +164,7 @@ export default function MarketChartPage() {
               </h2>
               <SupplyDemandStrip data={data.supplyDemand} />
             </section>
-            </FadeIn>
-          </motion.div>
+          </FadeIn>
         )}
       </main>
     </div>

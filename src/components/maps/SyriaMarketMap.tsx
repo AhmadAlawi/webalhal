@@ -10,7 +10,7 @@ import {
   mergeGovernorateMapPoints,
 } from "@/lib/syria-governorates";
 import { formatNumber } from "@/lib/format";
-import syriaOutline from "@/data/syria-outline.geojson";
+import syriaOutline from "@/data/syria-outline.json";
 import "leaflet/dist/leaflet.css";
 
 function SyriaMapView({ hasVolumeData }: { hasVolumeData: boolean }) {

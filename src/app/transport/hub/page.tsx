@@ -12,7 +12,7 @@ import {
 } from "@/services/transport";
 import { useAuth } from "@/context/AuthContext";
 import { UserRole } from "@/types";
-import { Route, Truck, Car, Inbox } from "lucide-react";
+import { Route, Truck, Car, Inbox, Calculator } from "lucide-react";
 
 export default function TransportHubPage() {
   const { user, requireAuth } = useAuth();
@@ -85,6 +85,7 @@ export default function TransportHubPage() {
           <HubLink href="/transport/vehicles" icon={Car} title="المركبات" desc="إدارة أسطولك" />
           <HubLink href="/transport/inbox" icon={Inbox} title="وارد الطلبات" desc="طلبات وعروض" />
           <HubLink href="/transport/requests" icon={Truck} title="طلباتي كمشتري" desc="شحن مشترياتك" />
+          <HubLink href="/transport/prices" icon={Calculator} title="حاسبة الأسعار" desc="السعر الرسمي وأرخص عرض" />
         </div>
       </PageContainer>
     </>

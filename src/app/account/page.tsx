@@ -28,6 +28,7 @@ const MENU = [
   { href: "/direct", label: "البيع المباشر", icon: ShoppingBag, desc: "شراء وبيع فوري" },
   { href: "/orders/direct", label: "طلباتي", icon: ShoppingBag, desc: "متابعة الطلبات", auth: true },
   { href: "/transport/requests", label: "طلبات النقل", icon: Truck, desc: "شحن المحاصيل", auth: true },
+  { href: "/transport/prices", label: "حاسبة أسعار النقل", icon: Truck, desc: "تقدير تكلفة الشحن" },
   { href: "/transport/hub", label: "مركز النقل", icon: Truck, desc: "إدارة حساب الناقل", roles: [UserRole.Transport] },
   { href: "/transport/register", label: "تسجيل كناقل", icon: Truck, desc: "إنشاء حساب مزود نقل", roles: [UserRole.Transport] },
   { href: "/transport/inbox", label: "وارد النقل", icon: Truck, desc: "طلبات وعروض", roles: [UserRole.Transport] },
