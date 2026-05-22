@@ -20,6 +20,9 @@
 # production
 /build
 
+# mobile app (Expo — reference only, not part of web repo)
+/MobileApp/
+
 # misc
 .DS_Store
 *.pem
