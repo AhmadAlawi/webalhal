@@ -1,36 +1,40 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# رزق (Rizik) — Souq Al Hal Web
 
-## Getting Started
+نسخة ويب RTL لمنصة السوق الزراعي السوري، متصلة بـ `https://alhal.awnak.net`.
 
-First, run the development server:
+## التشغيل
 
 ```bash
+npm install
+cp .env.example .env.local   # أو استخدم .env.local الموجود
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+افتح [http://localhost:3000](http://localhost:3000)
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+## المتغيرات
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+| المتغير | الوصف |
+|---------|--------|
+| `NEXT_PUBLIC_API_URL` | عنوان API (افتراضي: https://alhal.awnak.net) |
 
-## Learn More
+## المكدس
 
-To learn more about Next.js, take a look at the following resources:
+- Next.js App Router + TypeScript + Tailwind CSS v4
+- خط Cairo (RTL)
+- `@microsoft/signalr` للمزادات والشات
+- JWT في `localStorage`
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+## المسارات الرئيسية
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+- `/` — الرئيسية (مزادات / مناقصات / بيع مباشر)
+- `/login`, `/register` — المصادقة والتسجيل متعدد الخطوات
+- `/auctions`, `/auctions/[id]/join` — المزادات والمزايدة الحية
+- `/tenders`, `/direct` — المناقصات والبيع المباشر
+- `/transport/inbox`, `/transport/requests` — النقل
+- `/chat`, `/notifications`, `/account`
 
-## Deploy on Vercel
+## المراجع
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+- `docs/WEB_APP_SPEC.md`
+- `docs/SOUQ_ALHAL_API_COMPLETE_GUIDE.md`

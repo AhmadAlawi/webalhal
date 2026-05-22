@@ -1,65 +1,137 @@
+"use client";
+
+import dynamic from "next/dynamic";
+import { useEffect, useState } from "react";
+import { Search } from "lucide-react";
+import { BannerCarousel } from "@/components/home/BannerCarousel";
+import { MarketTabs, type MarketTab } from "@/components/home/MarketTabs";
+import { MarketListings } from "@/components/home/MarketListings";
+import { ServicesSection } from "@/components/home/ServicesSection";
+import { PageContainer } from "@/components/layout/PageContainer";
+import { useCategories } from "@/hooks/useCategories";
+import { getAppAds, getBottomAds } from "@/services/catalog";
+import type { Advertisement } from "@/types";
+import { resolveMediaUrl } from "@/lib/media";
 import Image from "next/image";
 
-export default function Home() {
+const MarketAnalysisWidget = dynamic(
+  () =>
+    import("@/components/home/MarketAnalysisWidget").then((m) => m.MarketAnalysisWidget),
+  {
+    ssr: false,
+    loading: () => (
+      <section className="mx-auto max-w-7xl px-4 py-10">
+        <div className="h-64 animate-pulse rounded-2xl bg-slate-100" />
+      </section>
+    ),
+  },
+);
+
+export default function HomePage() {
+  const [tab, setTab] = useState<MarketTab>("auctions");
+  const [search, setSearch] = useState("");
+  const [categoryId, setCategoryId] = useState<number | undefined>();
+  const [topAds, setTopAds] = useState<Advertisement[]>([]);
+  const [bottomAds, setBottomAds] = useState<Advertisement[]>([]);
+  const [adsLoading, setAdsLoading] = useState(true);
+  const { data: categories = [] } = useCategories();
+
+  useEffect(() => {
+    Promise.all([
+      getAppAds().then(setTopAds).catch(() => setTopAds([])),
+      getBottomAds().then(setBottomAds).catch(() => setBottomAds([])),
+    ]).finally(() => setAdsLoading(false));
+  }, []);
+
   return (
-    <div className="flex flex-col flex-1 items-center justify-center bg-zinc-50 font-sans dark:bg-black">
-      <main className="flex flex-1 w-full max-w-3xl flex-col items-center justify-between py-32 px-16 bg-white dark:bg-black sm:items-start">
-        <Image
-          className="dark:invert"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={100}
-          height={20}
-          priority
-        />
-        <div className="flex flex-col items-center gap-6 text-center sm:items-start sm:text-left">
-          <h1 className="max-w-xs text-3xl font-semibold leading-10 tracking-tight text-black dark:text-zinc-50">
-            To get started, edit the page.tsx file.
-          </h1>
-          <p className="max-w-md text-lg leading-8 text-zinc-600 dark:text-zinc-400">
-            Looking for a starting point or more instructions? Head over to{" "}
-            <a
-              href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Templates
-            </a>{" "}
-            or the{" "}
-            <a
-              href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Learning
-            </a>{" "}
-            center.
-          </p>
-        </div>
-        <div className="flex flex-col gap-4 text-base font-medium sm:flex-row">
-          <a
-            className="flex h-12 w-full items-center justify-center gap-2 rounded-full bg-foreground px-5 text-background transition-colors hover:bg-[#383838] dark:hover:bg-[#ccc] md:w-[158px]"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <Image
-              className="dark:invert"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={16}
-              height={16}
+    <>
+      <BannerCarousel ads={topAds} loading={adsLoading} />
+
+      <section className="border-b border-slate-200/60 bg-white py-6">
+        <PageContainer>
+          <div className="relative w-full">
+            <Search className="absolute top-1/2 end-4 h-5 w-5 -translate-y-1/2 text-slate-400" />
+            <input
+              type="search"
+              placeholder="ابحث عن محصول، مزاد، أو مناقصة..."
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              className="input-field w-full py-3.5 pe-12 ps-4"
             />
-            Deploy Now
-          </a>
-          <a
-            className="flex h-12 w-full items-center justify-center rounded-full border border-solid border-black/[.08] px-5 transition-colors hover:border-transparent hover:bg-black/[.04] dark:border-white/[.145] dark:hover:bg-[#1a1a1a] md:w-[158px]"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Documentation
-          </a>
-        </div>
-      </main>
-    </div>
+          </div>
+        </PageContainer>
+      </section>
+
+      {categories.length > 0 && (
+        <section className="py-8">
+          <PageContainer>
+            <p className="section-eyebrow mb-2">التصنيفات</p>
+            <h2 className="mb-5 text-lg font-bold text-slate-800">تصفح حسب القسم</h2>
+            <div className="flex flex-wrap gap-2">
+              <button
+                type="button"
+                onClick={() => setCategoryId(undefined)}
+                className={`chip ${!categoryId ? "chip-active" : "chip-inactive"}`}
+              >
+                الكل
+              </button>
+              {categories.map((c) => (
+                <button
+                  key={c.categoryId}
+                  type="button"
+                  onClick={() => setCategoryId(c.categoryId)}
+                  className={`chip ${
+                    categoryId === c.categoryId ? "chip-active" : "chip-inactive"
+                  }`}
+                >
+                  {c.nameAr || c.name}
+                </button>
+              ))}
+            </div>
+          </PageContainer>
+        </section>
+      )}
+
+      <ServicesSection />
+
+      <MarketAnalysisWidget />
+
+      <section className="py-10">
+        <PageContainer>
+          <div className="mb-6 flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
+            <div>
+              <h2 className="text-xl font-bold text-slate-900">عروض السوق</h2>
+              <p className="text-slate-500">أحدث المزادات والمناقصات والبيع المباشر</p>
+            </div>
+            <MarketTabs active={tab} onChange={setTab} />
+          </div>
+          <MarketListings tab={tab} searchQuery={search} categoryId={categoryId} />
+        </PageContainer>
+      </section>
+
+      {bottomAds.length > 0 && (
+        <section className="border-t border-gray-100 bg-slate-50 py-10">
+          <PageContainer>
+            <h2 className="mb-4 text-lg font-bold text-slate-800">شركاؤنا</h2>
+            <div className="grid grid-cols-2 gap-4 sm:grid-cols-4 lg:grid-cols-6">
+              {bottomAds.map((ad) => (
+                <div
+                  key={ad.advertisementId}
+                  className="relative aspect-[3/2] overflow-hidden rounded-xl border border-gray-100 bg-white"
+                >
+                  <Image
+                    src={resolveMediaUrl(ad.imageUrl)}
+                    alt={ad.title ?? ""}
+                    fill
+                    sizes="(max-width: 640px) 50vw, 16vw"
+                    className="object-contain p-2"
+                  />
+                </div>
+              ))}
+            </div>
+          </PageContainer>
+        </section>
+      )}
+    </>
   );
 }
