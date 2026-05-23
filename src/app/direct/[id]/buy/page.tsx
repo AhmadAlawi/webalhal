@@ -19,19 +19,19 @@ export default function BuyDirectPage() {
   const router = useRouter();
   const { user, requireAuth } = useAuth();
   const [listing, setListing] = useState<MarketplaceListing | null>(null);
-  const [qty, setQty] = useState("");
   const [address, setAddress] = useState("");
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
 
   useEffect(() => {
     getListing(Number(id))
-      .then((l) => {
-        setListing(l);
-        setQty(String(l.availableQty ?? 1));
-      })
+      .then(setListing)
       .catch(() => setListing(null));
   }, [id]);
+
+  const availQty = Number(listing?.availableQty ?? 0);
+  const unitPrice = Number(listing?.unitPrice ?? 0);
+  const total = unitPrice * availQty;
 
   async function buy() {
     if (!requireAuth() || !user?.userId || !listing) return;
@@ -39,17 +39,25 @@ export default function BuyDirectPage() {
       setError("أدخل عنوان التسليم");
       return;
     }
+    if (availQty <= 0) {
+      setError("الكمية غير متاحة لهذا العرض");
+      return;
+    }
     setLoading(true);
     setError("");
     try {
-      await createOrder({
+      const created = await createOrder({
         listingId: listing.listingId,
         buyerUserId: user.userId,
-        qty: Number(qty),
+        qty: availQty,
         deliveryAddress: address.trim(),
-        paymentMethod: "كاش",
+        paymentMethod: "cash",
       });
-      router.push("/orders/direct");
+      const orderId =
+        (created as { orderId?: number })?.orderId ??
+        (created as { id?: number })?.id;
+      if (orderId) router.push(`/orders/direct/${orderId}`);
+      else router.push("/orders/direct");
     } catch (e) {
       setError(e instanceof Error ? e.message : "فشل إنشاء الطلب");
     } finally {
@@ -65,8 +73,6 @@ export default function BuyDirectPage() {
       </>
     );
   }
-
-  const total = (listing.unitPrice ?? 0) * Number(qty || 0);
 
   return (
     <>
@@ -87,7 +93,12 @@ export default function BuyDirectPage() {
               {listing.title || listing.cropName}
             </h2>
             <p className="mt-2 text-lg font-bold text-emerald-600">
-              {formatPrice(listing.unitPrice ?? 0)} ل.س / {listing.unit}
+              {formatPrice(unitPrice)} ل.س / {listing.unit}
+            </p>
+            <p className="mt-2 text-sm text-slate-600">
+              الكمية: <span className="font-semibold">{availQty}</span> {listing.unit}
+              <span className="mx-2 text-slate-400">·</span>
+              يجب شراء العرض بالكامل
             </p>
             {(listing.farmCity || listing.governorateName) && (
               <p className="mt-2 flex items-center gap-1 text-sm text-slate-500">
@@ -97,23 +108,18 @@ export default function BuyDirectPage() {
             )}
           </div>
           <Input
-            label="الكمية"
-            type="number"
-            value={qty}
-            onChange={(e) => setQty(e.target.value)}
-          />
-          <Input
             label="عنوان التسليم"
             value={address}
             onChange={(e) => setAddress(e.target.value)}
+            placeholder="المدينة، الحي، تفاصيل الوصول..."
           />
           {total > 0 && (
             <p className="text-center text-lg font-bold text-slate-800">
-              الإجمالي التقريبي: {formatPrice(total)} ل.س
+              الإجمالي: {formatPrice(total)} ل.س
             </p>
           )}
           {error && <p className="text-sm text-red-600">{error}</p>}
-          <Button fullWidth onClick={buy} disabled={loading}>
+          <Button fullWidth onClick={buy} disabled={loading || availQty <= 0}>
             {loading ? "جاري التأكيد..." : "تأكيد الطلب"}
           </Button>
         </div>

@@ -4,14 +4,44 @@ import { getApiBaseUrl } from "@/lib/config";
 import type { AuthUser, LoginResponse } from "@/types";
 import { UserRole } from "@/types";
 
-function mapRoleId(raw: unknown): UserRole {
-  if (typeof raw === "number" && raw >= 1 && raw <= 4) return raw as UserRole;
+export function mapRoleId(raw: unknown): UserRole {
+  if (typeof raw === "number") {
+    if (raw === UserRole.Farmer) return UserRole.Farmer;
+    if (raw === UserRole.Trader) return UserRole.Trader;
+    if (raw === UserRole.Transport) return UserRole.Transport;
+    if (raw === UserRole.Government) return UserRole.Government;
+    if (raw === 1) return UserRole.Farmer;
+    if (raw === 2) return UserRole.Trader;
+    if (raw === 3) return UserRole.Transport;
+    if (raw === 4) return UserRole.Government;
+  }
   const s = String(raw ?? "").toLowerCase();
   if (s.includes("farmer") || s === "1") return UserRole.Farmer;
   if (s.includes("transport") || s === "3") return UserRole.Transport;
   if (s.includes("gov") || s.includes("government") || s === "4") return UserRole.Government;
-  if (s.includes("admin") || s.includes("super")) return UserRole.Government;
+  if (s.includes("trader") || s === "2") return UserRole.Trader;
   return UserRole.Trader;
+}
+
+/** يجلب الدور الحقيقي من API بعد الدخول */
+export async function resolveAuthUser(
+  userId: number,
+  partial?: Partial<AuthUser>,
+): Promise<AuthUser> {
+  let roleId = partial?.roleId;
+  try {
+    const type = await getCurrentUserType(userId);
+    if (type?.roleId != null) roleId = mapRoleId(type.roleId);
+  } catch {
+    roleId = mapRoleId(roleId);
+  }
+  return {
+    userId,
+    roleId: roleId ?? UserRole.Trader,
+    fullName: partial?.fullName,
+    email: partial?.email,
+    phone: partial?.phone,
+  };
 }
 
 export async function login(
@@ -65,24 +95,23 @@ export async function login(
   }>(body);
 
   const userId = data.userId ?? data.user?.userId;
-  const roleId = mapRoleId(data.roleId ?? data.user?.roleId);
-
   if (!data.accessToken || userId == null) {
     throw new Error("استجابة غير صالحة من الخادم — لم يُعثر على رمز الدخول");
   }
+
+  const user = await resolveAuthUser(userId, {
+    roleId: mapRoleId(data.roleId ?? data.user?.roleId),
+    fullName: data.fullName ?? data.user?.fullName,
+    email: data.email ?? data.user?.email,
+    phone: data.phone ?? data.user?.phone,
+  });
 
   return {
     accessToken: data.accessToken,
     refreshToken: data.refreshToken,
     userId,
     expiresAt: data.expiresAt,
-    user: {
-      userId,
-      roleId,
-      fullName: data.fullName ?? data.user?.fullName,
-      email: data.email ?? data.user?.email,
-      phone: data.phone ?? data.user?.phone,
-    },
+    user,
   };
 }
 

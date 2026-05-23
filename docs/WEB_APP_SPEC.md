@@ -274,7 +274,7 @@ canJoinTender     = Farmer | Government     // تقديم عرض على مناق
 
 1. `GET /api/auctions/{id}/join?userId=` — تسجيل المشارك  
 2. اتصال SignalR: `{baseUrl}/hubs/auctions` + Bearer  
-3. `invoke("JoinAuction", auctionId, inviteCode?)` — كود للمزادات الخاصة  
+3. `invoke("JoinAuction", auctionId, userId, inviteCode?)` — كود للمزادات الخاصة  
 4. استقبال: `BidPlaced`, `PriceTick`, `GetCurrentPrice`  
 5. مزايدة: `invoke("PlaceBid", payload)`
 
@@ -510,7 +510,7 @@ canJoinTender     = Farmer | Government     // تقديم عرض على مناق
 
 ### 11.2 SignalR
 
-- Hub: `/hubs/chat`
+- Hub: `/hubs/chat` — أحداث: `MessageCreated`, `JoinConversation`, `SendMessage`, `MarkAsRead`
 - أحداث: رسالة جديدة، تحديث حالة المحادثة
 
 ### 11.3 Deep links للإشعارات

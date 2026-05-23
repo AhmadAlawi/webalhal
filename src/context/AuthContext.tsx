@@ -15,8 +15,9 @@ import {
   getStoredUser,
   setAuthSession,
 } from "@/lib/auth-storage";
-import { login as loginApi, getMyProfile } from "@/services/auth";
+import { login as loginApi, getMyProfile, resolveAuthUser, mapRoleId } from "@/services/auth";
 import type { AuthUser } from "@/types";
+import { UserRole } from "@/types";
 
 interface AuthContextValue {
   user: AuthUser | null;
@@ -43,13 +44,16 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
     try {
       const profile = await getMyProfile();
-      const u: AuthUser = {
-        userId: (profile as AuthUser).userId ?? getStoredUser()?.userId ?? 0,
-        roleId: (profile as AuthUser).roleId ?? getStoredUser()?.roleId ?? 2,
+      const userId =
+        (profile as AuthUser).userId ?? getStoredUser()?.userId ?? 0;
+      const u = await resolveAuthUser(userId, {
+        roleId: mapRoleId(
+          (profile as AuthUser).roleId ?? getStoredUser()?.roleId,
+        ),
         fullName: (profile as { fullName?: string }).fullName,
         email: (profile as { email?: string }).email,
         phone: (profile as { phone?: string }).phone,
-      };
+      });
       setUser(u);
       setAuthSession(token, u);
     } catch {
@@ -70,10 +74,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const login = useCallback(
     async (emailOrPhone: string, password: string) => {
       const result = await loginApi(emailOrPhone, password);
-      const authUser: AuthUser = result.user ?? {
-        userId: result.userId,
-        roleId: 2,
-      };
+      const authUser =
+        result.user ??
+        (await resolveAuthUser(result.userId, { roleId: UserRole.Trader }));
       setAuthSession(result.accessToken, authUser, result.refreshToken);
       setUser(authUser);
       await refreshProfile();

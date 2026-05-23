@@ -2,14 +2,25 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useParams, useSearchParams } from "next/navigation";
+import * as signalR from "@microsoft/signalr";
 import type { HubConnection } from "@microsoft/signalr";
 import { PageHeader } from "@/components/ui/PageHeader";
 import { PageContainer } from "@/components/layout/PageContainer";
 import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
 import { useAuth } from "@/context/AuthContext";
-import { joinAuction, getAuction } from "@/services/auctions";
-import { startAuctionHub, stopAuctionHub } from "@/lib/signalr";
+import {
+  getAuction,
+  joinAuction,
+  placeBidHttp,
+  isAuctionJoinAccessError,
+} from "@/services/auctions";
+import {
+  startAuctionHub,
+  stopAuctionHub,
+  parseHubError,
+  invokeHubWhenConnected,
+} from "@/lib/signalr";
 import {
   formatPrice,
   getMinNextBid,
@@ -18,23 +29,28 @@ import {
 } from "@/lib/auctionPricing";
 import type { AuctionPricing } from "@/types";
 
+type ConnState = "idle" | "connecting" | "connected" | "reconnecting" | "error";
+
 export default function AuctionJoinPage() {
   const { id } = useParams();
   const searchParams = useSearchParams();
   const { user, requireAuth, isAuthenticated } = useAuth();
   const auctionId = Number(id);
   const connectionRef = useRef<HubConnection | null>(null);
-  const inviteRef = useRef(searchParams.get("invite") ?? "");
+  const connectingRef = useRef(false);
+  const inviteFromUrl = searchParams.get("invite") ?? "";
 
-  const [connected, setConnected] = useState(false);
-  const [connecting, setConnecting] = useState(false);
+  const [connState, setConnState] = useState<ConnState>("idle");
+  const [bidding, setBidding] = useState(false);
   const [pricing, setPricing] = useState<AuctionPricing | null>(null);
   const [bidInput, setBidInput] = useState("");
-  const [inviteCode, setInviteCode] = useState(inviteRef.current);
+  const [inviteCode, setInviteCode] = useState(inviteFromUrl);
   const [status, setStatus] = useState("");
   const [error, setError] = useState("");
+  const [success, setSuccess] = useState("");
+  const [accessBlocked, setAccessBlocked] = useState(false);
 
-  const onPriceTick = useCallback((data: unknown) => {
+  const applyPricing = useCallback((data: unknown) => {
     const p = parseAuctionPricing(data);
     if (p) {
       setPricing(p);
@@ -42,79 +58,121 @@ export default function AuctionJoinPage() {
     }
   }, []);
 
+  const onPriceTick = useCallback(
+    (data: unknown) => {
+      applyPricing(data);
+    },
+    [applyPricing],
+  );
+
+  const onBidPlaced = useCallback(
+    (data: unknown) => {
+      applyPricing(data);
+      setStatus("تم تسجيل مزايدة جديدة على المزاد");
+      const raw = data as Record<string, unknown> | null;
+      if (raw && Number(raw.userId) === user?.userId) {
+        setSuccess("تم تقديم عرضك بنجاح");
+      }
+    },
+    [applyPricing, user?.userId],
+  );
+
   useEffect(() => {
     if (!requireAuth() || !auctionId) return;
-    getAuction(auctionId).then((a) => {
-      if (!a) return;
-      const p = parseAuctionPricing({
-        bidAmountBasis: "total",
-        currentPriceTotal: a.currentPrice ?? a.startingPrice ?? 0,
-        minIncrementTotal: 1000,
-        quantity: a.quantity ?? 1,
-        unit: a.unit ?? "كغ",
-      });
-      if (p) setPricing(p);
-    });
-  }, [auctionId, requireAuth]);
+    getAuction(auctionId)
+      .then((a) => {
+        if (a) applyPricing(a);
+      })
+      .catch(() => {});
+  }, [auctionId, requireAuth, applyPricing]);
 
   const connectHub = useCallback(async () => {
-    if (!isAuthenticated || !user?.userId || !auctionId || connecting) return;
+    if (!isAuthenticated || !user?.userId || !auctionId || connectingRef.current) {
+      return;
+    }
 
-    inviteRef.current = inviteCode.trim();
-    setConnecting(true);
+    const code = inviteCode.trim() || inviteFromUrl.trim();
+    connectingRef.current = true;
+    setConnState("connecting");
     setError("");
+    setSuccess("");
+    setAccessBlocked(false);
 
     if (connectionRef.current) {
       await stopAuctionHub(connectionRef.current, auctionId);
       connectionRef.current = null;
-      setConnected(false);
     }
 
     try {
-      await joinAuction(auctionId, user.userId);
-      const conn = await startAuctionHub(auctionId, inviteRef.current || null, {
-        onPriceTick,
-        onBidPlaced: () => setStatus("تم تسجيل مزايدة جديدة"),
-      });
-      connectionRef.current = conn;
-
-      const price = await conn.invoke<unknown>("GetCurrentPrice", auctionId);
-      const p = parseAuctionPricing(price);
-      if (p) {
-        setPricing(p);
-        setBidInput(String(getMinNextBid(p)));
+      try {
+        await joinAuction(auctionId, user.userId);
+      } catch (joinErr) {
+        if (isAuctionJoinAccessError(joinErr)) {
+          setAccessBlocked(true);
+          setError("مزاد خاص — اطلب الدخول من صفحة المزاد أو أدخل رمز الدعوة");
+        }
       }
 
-      setConnected(true);
-      setStatus("متصل بالمزاد الحي");
+      const conn = await startAuctionHub(
+        auctionId,
+        user.userId,
+        code || null,
+        {
+          onPriceTick,
+          onBidPlaced,
+          onError: (msg) => setError(msg),
+          onConnectionState: (s) => {
+            if (s === "connected") setConnState("connected");
+            else if (s === "reconnecting") setConnState("reconnecting");
+            else if (s === "disconnected") setConnState("idle");
+          },
+        },
+      );
+      connectionRef.current = conn;
+
+      try {
+        const price = await invokeHubWhenConnected(
+          conn,
+          "GetCurrentPrice",
+          auctionId,
+        );
+        applyPricing(price);
+      } catch {
+        /* optional */
+      }
+
+      setConnState("connected");
+      setStatus("متصل بالمزاد الحي — يمكنك المزايدة");
     } catch (e) {
-      setError((e as Error).message || "فشل الاتصال بالمزاد");
-      setConnected(false);
+      const msg = parseHubError(e);
+      setError(msg || "فشل الاتصال — تحقق من كود الدعوة للمزاد الخاص");
+      setConnState("error");
+      if (isAuctionJoinAccessError(e)) setAccessBlocked(true);
     } finally {
-      setConnecting(false);
+      connectingRef.current = false;
     }
   }, [
     auctionId,
     user?.userId,
     isAuthenticated,
     inviteCode,
-    connecting,
+    inviteFromUrl,
     onPriceTick,
+    onBidPlaced,
+    applyPricing,
   ]);
 
   useEffect(() => {
-    if (!isAuthenticated || !auctionId) return;
+    if (!isAuthenticated || !user?.userId || !auctionId) return;
     void connectHub();
     return () => {
       void stopAuctionHub(connectionRef.current, auctionId);
       connectionRef.current = null;
     };
-    // اتصال مرة واحدة عند الدخول — لا يعاد عند تغيير كود الدعوة
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [auctionId, isAuthenticated, user?.userId]);
+  }, [auctionId, user?.userId, isAuthenticated]); // eslint-disable-line react-hooks/exhaustive-deps -- اتصال عند فتح الصفحة فقط
 
   async function placeBid() {
-    if (!connectionRef.current || !user?.userId || !pricing) return;
+    if (!user?.userId || !pricing) return;
     const amount = Number(bidInput);
     if (!amount || amount <= 0) {
       setError("أدخل مبلغاً صالحاً");
@@ -125,18 +183,36 @@ export default function AuctionJoinPage() {
       setError("تجاوزت السقف الحكومي للسعر");
       return;
     }
+
+    setBidding(true);
+    setError("");
+    setSuccess("");
+
     try {
-      await connectionRef.current.invoke("PlaceBid", {
-        AuctionId: auctionId,
-        BidderUserId: user.userId,
-        bidAmount,
-      });
-      setStatus("تم إرسال مزايدتك");
-      setError("");
+      const conn = connectionRef.current;
+      if (conn?.state === signalR.HubConnectionState.Connected) {
+        await conn.invoke("PlaceBid", {
+          AuctionId: auctionId,
+          BidderUserId: user.userId,
+          bidAmount,
+        });
+        setSuccess("تم إرسال مزايدتك بنجاح");
+        setStatus("مزايدتك قيد المعالجة");
+      } else {
+        await placeBidHttp(auctionId, user.userId, bidAmount);
+        setSuccess("تم إرسال مزايدتك (بدون اتصال حي)");
+        const refreshed = await getAuction(auctionId).catch(() => null);
+        if (refreshed) applyPricing(refreshed);
+      }
     } catch (e) {
-      setError((e as Error).message || "فشل إرسال المزايدة");
+      setError(parseHubError(e));
+    } finally {
+      setBidding(false);
     }
   }
+
+  const connected = connState === "connected";
+  const connecting = connState === "connecting" || connState === "reconnecting";
 
   return (
     <>
@@ -146,10 +222,17 @@ export default function AuctionJoinPage() {
         <div className="space-y-6 rounded-2xl border border-gray-200 bg-white p-8 shadow-sm">
           <div
             className={`rounded-2xl px-4 py-2 text-sm ${
-              connected ? "bg-emerald-50 text-emerald-700" : "bg-slate-100 text-slate-600"
+              connected
+                ? "bg-emerald-50 text-emerald-700"
+                : connState === "reconnecting"
+                  ? "bg-amber-50 text-amber-800"
+                  : "bg-slate-100 text-slate-600"
             }`}
           >
-            {status || (connecting ? "جاري الاتصال..." : connected ? "متصل" : "غير متصل")}
+            {connState === "reconnecting"
+              ? "إعادة الاتصال بالمزاد..."
+              : status ||
+                (connecting ? "جاري الاتصال..." : connected ? "متصل" : "غير متصل")}
           </div>
 
           {!connected && (
@@ -158,6 +241,7 @@ export default function AuctionJoinPage() {
                 label="كود الدعوة (مزاد خاص)"
                 value={inviteCode}
                 onChange={(e) => setInviteCode(e.target.value)}
+                placeholder="أدخل كود الدعوة إن وُجد"
               />
               <Button
                 type="button"
@@ -166,9 +250,16 @@ export default function AuctionJoinPage() {
                 disabled={connecting}
                 onClick={() => void connectHub()}
               >
-                {connecting ? "جاري الاتصال..." : "اتصال بالمزاد"}
+                {connecting ? "جاري الاتصال..." : "إعادة الاتصال"}
               </Button>
             </>
+          )}
+
+          {accessBlocked && (
+            <p className="rounded-xl bg-amber-50 px-4 py-3 text-sm text-amber-800">
+              إذا كان المزاد خاصاً: اطلب الدخول من صفحة تفاصيل المزاد ثم أعد المحاولة برمز
+              الدعوة.
+            </p>
           )}
 
           {pricing && (
@@ -188,13 +279,31 @@ export default function AuctionJoinPage() {
             type="number"
             value={bidInput}
             onChange={(e) => setBidInput(e.target.value)}
+            disabled={!pricing}
           />
 
-          {error && <p className="text-sm text-red-600">{error}</p>}
+          {error && (
+            <p className="rounded-xl bg-red-50 px-4 py-3 text-sm text-red-700">{error}</p>
+          )}
+          {success && (
+            <p className="rounded-xl bg-emerald-50 px-4 py-3 text-sm font-medium text-emerald-800">
+              {success}
+            </p>
+          )}
 
-          <Button fullWidth onClick={placeBid} disabled={!connected || connecting}>
-            تأكيد المزايدة
+          <Button
+            fullWidth
+            onClick={placeBid}
+            disabled={!pricing || connecting || bidding}
+          >
+            {bidding ? "جاري الإرسال..." : "تأكيد المزايدة"}
           </Button>
+
+          {!connected && connState === "error" && (
+            <p className="text-center text-xs text-slate-500">
+              يمكنك إعادة الاتصال أو استخدام المزايدة عبر الخادم عند فشل الاتصال الحي.
+            </p>
+          )}
         </div>
       </PageContainer>
     </>

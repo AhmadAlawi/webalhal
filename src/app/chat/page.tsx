@@ -9,15 +9,15 @@ import { getConversations } from "@/services/chat";
 import { useAuth } from "@/context/AuthContext";
 
 export default function ChatListPage() {
-  const { isAuthenticated, requireAuth } = useAuth();
+  const { user, isAuthenticated, requireAuth } = useAuth();
 
   useEffect(() => {
     requireAuth();
   }, [requireAuth]);
 
   const { data: conversations = [], isLoading } = useSWR(
-    isAuthenticated ? "chat:conversations" : null,
-    getConversations,
+    isAuthenticated && user?.userId ? ["chat:conversations", user.userId] : null,
+    () => getConversations(user!.userId),
     { refreshInterval: 30_000, revalidateOnFocus: true },
   );
 
@@ -31,8 +31,8 @@ export default function ChatListPage() {
           </div>
         ) : (
           <ul className="card divide-y divide-slate-100 overflow-hidden p-0">
-            {conversations.map((c) => (
-              <li key={c.conversationId}>
+            {conversations.map((c, i) => (
+              <li key={c.conversationId ?? i}>
                 <Link
                   href={`/chat/${c.conversationId}`}
                   className="flex items-center justify-between px-6 py-4 hover:bg-slate-50"

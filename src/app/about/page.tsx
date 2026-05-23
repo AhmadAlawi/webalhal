@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { PageHeader } from "@/components/ui/PageHeader";
 import { PageContainer } from "@/components/layout/PageContainer";
+import { RizqLogo } from "@/components/brand/RizqLogo";
 
 export default function AboutPage() {
   return (
@@ -10,7 +11,10 @@ export default function AboutPage() {
       <PageHeader title="عن التطبيق" backHref="/account" />
       <PageContainer narrow className="py-8">
         <article className="prose prose-slate max-w-none rounded-2xl border border-gray-100 bg-white p-8 shadow-sm">
-          <h2 className="text-xl font-bold text-emerald-800">رزق — سوق الحال</h2>
+          <div className="not-prose mb-8 flex flex-col items-center text-center">
+            <RizqLogo size="xl" href={null} className="flex-col gap-4" />
+          </div>
+          <h2 className="text-xl font-bold text-emerald-800">رزق — سوق الهال</h2>
           <p className="mt-4 text-slate-600 leading-relaxed">
             منصة سوق زراعي سورية تربط المزارعين والتجار وناقلي المحاصيل. تدعم المزادات
             الحية، المناقصات، البيع المباشر، النقل، والتحليلات السوقية — نفس تجربة تطبيق

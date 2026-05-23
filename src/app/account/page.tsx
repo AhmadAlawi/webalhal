@@ -34,7 +34,7 @@ const MENU = [
   { href: "/transport/inbox", label: "وارد النقل", icon: Truck, desc: "طلبات وعروض", roles: [UserRole.Transport] },
   { href: "/farms", label: "مزارعي", icon: User, desc: "إدارة المزارع", roles: [UserRole.Farmer] },
   { href: "/tickets", label: "الدعم", icon: Ticket, desc: "مساعدة فنية", auth: true },
-  { href: "/about", label: "عن التطبيق", icon: Info, desc: "رزق — سوق الحال" },
+  { href: "/about", label: "عن التطبيق", icon: Info, desc: "رزق — سوق الهال" },
 ];
 
 export default function AccountPage() {

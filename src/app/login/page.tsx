@@ -38,7 +38,7 @@ export default function LoginPage() {
   return (
     <AuthCard
       title="تسجيل الدخول"
-      subtitle="مرحباً بعودتك إلى سوق الحال"
+      subtitle="مرحباً بعودتك إلى رزق — سوق الهال"
       footer={
         <>
           <p className="mt-6 text-center text-sm">

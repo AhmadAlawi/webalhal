@@ -1,22 +1,67 @@
 import { apiGet, apiPost } from "@/lib/api";
+import { asApiList } from "@/lib/api-list";
 import { API } from "@/lib/api-endpoints";
 import type { NotificationItem } from "@/types";
 
-export async function getNotifications() {
-  const data = await apiGet<NotificationItem[] | { items: NotificationItem[] }>(
-    API.notifications.list,
-  );
-  return Array.isArray(data) ? data : data?.items ?? [];
+function normalizeNotification(raw: unknown): NotificationItem | null {
+  if (!raw || typeof raw !== "object") return null;
+  const r = raw as Record<string, unknown>;
+  const id = Number(r.notificationId ?? r.NotificationId ?? r.id ?? r.Id);
+  if (!Number.isFinite(id) || id <= 0) return null;
+
+  return {
+    notificationId: id,
+    title: String(r.title ?? r.Title ?? r.subject ?? r.Subject ?? ""),
+    body: String(
+      r.body ?? r.Body ?? r.message ?? r.Message ?? r.content ?? r.Content ?? "",
+    ),
+    isRead: Boolean(r.isRead ?? r.IsRead ?? r.read ?? r.Read ?? false),
+    createdAt: (r.createdAt ?? r.CreatedAt) as string | undefined,
+    clickAction: (r.clickAction ??
+      r.ClickAction ??
+      r.actionUrl ??
+      r.ActionUrl ??
+      r.deepLink) as string | undefined,
+  };
+}
+
+function normalizeList(payload: unknown): NotificationItem[] {
+  return asApiList(payload)
+    .map(normalizeNotification)
+    .filter((n): n is NotificationItem => n != null);
+}
+
+export async function getNotifications(): Promise<NotificationItem[]> {
+  try {
+    const data = await apiGet<unknown>(
+      `${API.notifications.list}?page=1&pageSize=50`,
+    );
+    const list = normalizeList(data);
+    if (list.length) return list;
+  } catch {
+    /* fallback */
+  }
+
+  try {
+    const unread = await apiGet<unknown>("/api/notifications/unread");
+    return normalizeList(unread);
+  } catch {
+    return [];
+  }
 }
 
 export async function getUnreadCount(): Promise<number> {
   try {
-    const data = await apiGet<{ count: number }>(API.notifications.unreadCount);
-    return data?.count ?? 0;
+    const data = await apiGet<{ count?: number; Count?: number }>(
+      API.notifications.unreadCount,
+    );
+    const n = data?.count ?? data?.Count;
+    if (typeof n === "number") return n;
   } catch {
-    const list = await getNotifications();
-    return list.filter((n) => !n.isRead).length;
+    /* fallback */
   }
+  const list = await getNotifications();
+  return list.filter((n) => !n.isRead).length;
 }
 
 export async function markNotificationRead(notificationId: number) {

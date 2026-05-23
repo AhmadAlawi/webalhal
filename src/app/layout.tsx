@@ -11,8 +11,12 @@ const cairo = Cairo({
 });
 
 export const metadata: Metadata = {
-  title: "رزق — سوق الحال",
-  description: "منصة سوق زراعي سوري — مزادات، مناقصات، وبيع مباشر",
+  title: "رزق — سوق الهال",
+  description: "رزق — سوق الهال: منصة سوق زراعي سوري — مزادات، مناقصات، وبيع مباشر",
+  icons: {
+    icon: "/rizq-logo.png",
+    apple: "/rizq-logo.png",
+  },
 };
 
 export default function RootLayout({

@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { RizqLogo } from "@/components/brand/RizqLogo";
 
 const FOOTER_LINKS = [
   { href: "/auctions", label: "المزادات" },
@@ -21,15 +22,7 @@ export function SiteFooter() {
       <div className="mx-auto max-w-7xl px-4 py-14 sm:px-6 lg:px-8">
         <div className="grid gap-12 md:grid-cols-2 lg:grid-cols-4">
           <section className="lg:col-span-1">
-            <div className="flex items-center gap-3">
-              <span className="flex h-12 w-12 items-center justify-center rounded-xl bg-gradient-to-br from-emerald-500 to-emerald-700 text-lg font-bold text-white">
-                رز
-              </span>
-              <div>
-                <p className="text-xl font-bold text-white">رزق</p>
-                <p className="text-xs text-emerald-400">سوق الحال الزراعي</p>
-              </div>
-            </div>
+            <RizqLogo size="md" variant="onDark" href={null} />
             <p className="mt-4 text-sm leading-relaxed text-slate-400">
               منصة سوق زراعي سوري تربط المزارعين والتجار وناقلي المحاصيل عبر مزادات ومناقصات وبيع مباشر.
             </p>

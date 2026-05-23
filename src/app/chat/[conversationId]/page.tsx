@@ -4,6 +4,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { useParams } from "next/navigation";
 import { Flag, Truck } from "lucide-react";
+import * as signalR from "@microsoft/signalr";
 import type { HubConnection } from "@microsoft/signalr";
 import { PageHeader } from "@/components/ui/PageHeader";
 import { Button } from "@/components/ui/Button";
@@ -13,6 +14,7 @@ import { ReportConversationDialog } from "@/components/chat/ReportConversationDi
 import { getConversation, getMessages, sendMessage } from "@/services/chat";
 import type { ConversationDetail } from "@/services/chat";
 import { startChatHub, stopChatHub } from "@/lib/signalr";
+import type { NormalizedChatMessage } from "@/lib/hub-utils";
 import { useAuth } from "@/context/AuthContext";
 
 interface Message {
@@ -55,6 +57,15 @@ function appendMessage(prev: Message[], msg: Message): Message[] {
   return [...prev, msg];
 }
 
+function hubMsgToLocal(msg: NormalizedChatMessage): Message {
+  return {
+    messageId: msg.messageId,
+    content: msg.content,
+    senderUserId: msg.senderUserId,
+    createdAt: msg.createdAt,
+  };
+}
+
 export default function ChatConversationPage() {
   const { conversationId } = useParams();
   const { user, requireAuth } = useAuth();
@@ -62,6 +73,7 @@ export default function ChatConversationPage() {
   const [messages, setMessages] = useState<Message[]>([]);
   const [text, setText] = useState("");
   const [hubReady, setHubReady] = useState(false);
+  const [hubError, setHubError] = useState("");
   const [sending, setSending] = useState(false);
   const [showReport, setShowReport] = useState(false);
   const connRef = useRef<HubConnection | null>(null);
@@ -76,10 +88,15 @@ export default function ChatConversationPage() {
       : conversation?.buyerUserId) ??
     messages.find((m) => m.senderUserId && m.senderUserId !== user?.userId)?.senderUserId;
 
-  const onHubMessage = useCallback((raw: unknown) => {
-    const msg = raw as Message;
-    if (!msg?.content) return;
-    setMessages((prev) => appendMessage(prev, msg));
+  const reloadMessages = useCallback(() => {
+    if (!convId) return;
+    getMessages(convId)
+      .then((d) => setMessages(Array.isArray(d) ? (d as Message[]) : []))
+      .catch(() => {});
+  }, [convId]);
+
+  const onHubMessage = useCallback((msg: NormalizedChatMessage) => {
+    setMessages((prev) => appendMessage(prev, hubMsgToLocal(msg)));
   }, []);
 
   useEffect(() => {
@@ -95,15 +112,12 @@ export default function ChatConversationPage() {
         if (!cancelled) setConversation(null);
       });
 
-    getMessages(convId)
-      .then((d) => {
-        if (!cancelled) setMessages(Array.isArray(d) ? (d as Message[]) : []);
-      })
-      .catch(() => {
-        if (!cancelled) setMessages([]);
-      });
+    reloadMessages();
 
-    startChatHub(convId, onHubMessage)
+    startChatHub(convId, {
+      onMessage: onHubMessage,
+      onConversationUpdated: reloadMessages,
+    })
       .then((conn) => {
         if (cancelled) {
           void stopChatHub(conn, convId);
@@ -111,8 +125,14 @@ export default function ChatConversationPage() {
         }
         connRef.current = conn;
         setHubReady(true);
+        setHubError("");
       })
-      .catch(() => setHubReady(false));
+      .catch(() => {
+        if (!cancelled) {
+          setHubReady(false);
+          setHubError("تعذر الاتصال الحي — الرسائل تُرسل عبر الخادم");
+        }
+      });
 
     return () => {
       cancelled = true;
@@ -120,7 +140,7 @@ export default function ChatConversationPage() {
       void stopChatHub(connRef.current, convId);
       connRef.current = null;
     };
-  }, [convId, requireAuth, onHubMessage]);
+  }, [convId, requireAuth, onHubMessage, reloadMessages]);
 
   async function handleSend(e: React.FormEvent) {
     e.preventDefault();
@@ -128,9 +148,34 @@ export default function ChatConversationPage() {
     const content = text.trim();
     setSending(true);
     setText("");
-    try {
+
+    const deliverViaHttp = async () => {
       await sendMessage(convId, { content, senderUserId: user.userId });
-      /* الرسالة تصل عبر SignalR — لا نكررها محلياً */
+      setMessages((prev) =>
+        appendMessage(prev, {
+          messageId: Date.now(),
+          content,
+          senderUserId: user.userId,
+          createdAt: new Date().toISOString(),
+        }),
+      );
+    };
+
+    try {
+      const conn = connRef.current;
+      if (conn?.state === signalR.HubConnectionState.Connected) {
+        try {
+          await conn.invoke("SendMessage", {
+            conversationId: convId,
+            senderUserId: user.userId,
+            body: content,
+          });
+        } catch {
+          await deliverViaHttp();
+        }
+      } else {
+        await deliverViaHttp();
+      }
     } catch {
       setText(content);
     } finally {
@@ -182,7 +227,7 @@ export default function ChatConversationPage() {
         >
           {!hubReady && (
             <p className="border-b border-slate-100 bg-slate-50 px-4 py-2 text-center text-xs text-slate-500">
-              جاري الاتصال بالمحادثة الحية...
+              {hubError || "جاري الاتصال بالمحادثة الحية..."}
             </p>
           )}
           <ul className="flex-1 space-y-3 overflow-y-auto bg-slate-50/50 px-4 py-6">
@@ -210,7 +255,7 @@ export default function ChatConversationPage() {
               disabled={sending}
               className="input-field flex-1"
             />
-            <Button type="submit" size="sm" disabled={sending || !hubReady}>
+            <Button type="submit" size="sm" disabled={sending}>
               إرسال
             </Button>
           </form>

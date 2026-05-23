@@ -19,6 +19,7 @@ import {
 import { useAuth } from "@/context/AuthContext";
 import { showTransportTab, showFab, canCreateAuction, canCreateTender, canCreateDirectListing } from "@/lib/permissions";
 import { clsx } from "clsx";
+import { RizqLogo } from "@/components/brand/RizqLogo";
 
 const MAIN_LINKS = [
   { href: "/", label: "الرئيسية", match: (p: string) => p === "/" },
@@ -49,15 +50,8 @@ export function SiteHeader() {
   return (
     <header className="sticky top-0 z-50 border-b border-slate-200/70 bg-white/90 shadow-sm backdrop-blur-md">
       <div className="mx-auto flex max-w-7xl items-center justify-between gap-4 px-4 py-3 sm:px-6 lg:px-8">
-        <Link href="/" className="flex shrink-0 items-center gap-3">
-          <span className="flex h-11 w-11 items-center justify-center rounded-xl bg-gradient-to-br from-emerald-500 to-emerald-700 text-lg font-bold text-white shadow-sm">
-            رز
-          </span>
-          <span className="hidden sm:block">
-            <span className="block text-lg font-bold text-slate-900 leading-tight">رزق</span>
-            <span className="block text-xs text-emerald-600">سوق الحال الزراعي</span>
-          </span>
-        </Link>
+        <RizqLogo size="md" className="hidden shrink-0 sm:flex" />
+        <RizqLogo size="sm" showText={false} className="shrink-0 sm:hidden" />
 
         <nav className="hidden items-center gap-1 lg:flex">
           {MAIN_LINKS.map((link) => (

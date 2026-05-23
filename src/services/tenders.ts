@@ -26,8 +26,11 @@ export async function getTender(id: number) {
   return apiGet<Tender>(`/api/tenders/${id}`);
 }
 
-export async function createTender(body: Record<string, unknown>) {
-  return apiPost("/api/tenders", body);
+export async function createTender(
+  createdByUserId: number,
+  body: Record<string, unknown>,
+) {
+  return apiPost(`/api/tenders?createdByUserId=${createdByUserId}`, body);
 }
 
 export async function getTenderOffers(tenderId: number) {

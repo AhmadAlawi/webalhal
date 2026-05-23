@@ -71,6 +71,7 @@ export const API = {
     sellerOrders: (userId: number) => `/api/direct/sellers/${userId}/orders`,
   },
   chat: {
+    conversationSummaries: "/api/Chat/conversations/summaries",
     conversations: "/api/Chat/conversations",
     conversation: (id: number) => `/api/Chat/conversations/${id}`,
     messages: (id: number) => `/api/Chat/conversations/${id}/messages`,

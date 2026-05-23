@@ -24,6 +24,7 @@ export default function CreateTenderPage() {
   const [startTime, setStartTime] = useState("");
   const [endTime, setEndTime] = useState("");
   const [error, setError] = useState("");
+  const [submitting, setSubmitting] = useState(false);
 
   if (!requireAuth()) return null;
   if (!canCreateTender(user?.roleId)) {
@@ -35,9 +36,15 @@ export default function CreateTenderPage() {
   }
 
   async function submit() {
-    if (!productId) return;
+    if (!user?.userId || !productId) return;
+    if (!quantity || !deliveryFrom || !deliveryTo || !startTime || !endTime) {
+      setError("أكمل جميع الحقول المطلوبة");
+      return;
+    }
+    setSubmitting(true);
+    setError("");
     try {
-      await createTender({
+      await createTender(user.userId, {
         productId: Number(productId),
         quantity: Number(quantity),
         deliveryFrom: new Date(deliveryFrom).toISOString(),
@@ -51,6 +58,8 @@ export default function CreateTenderPage() {
       router.push("/tenders");
     } catch (e) {
       setError(e instanceof Error ? e.message : "فشل إنشاء المناقصة");
+    } finally {
+      setSubmitting(false);
     }
   }
 
@@ -117,8 +126,8 @@ export default function CreateTenderPage() {
                 onChange={(e) => setEndTime(e.target.value)}
               />
               {error && <p className="text-sm text-red-600">{error}</p>}
-              <Button fullWidth onClick={submit}>
-                نشر المناقصة
+              <Button fullWidth onClick={submit} disabled={submitting}>
+                {submitting ? "جاري النشر..." : "نشر المناقصة"}
               </Button>
             </>
           )}

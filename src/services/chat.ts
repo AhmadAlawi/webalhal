@@ -1,4 +1,5 @@
 import { apiGet, apiPost } from "@/lib/api";
+import { asApiList } from "@/lib/api-list";
 import { API } from "@/lib/api-endpoints";
 import type { Conversation } from "@/types";
 
@@ -18,27 +19,91 @@ export interface ConversationDetail extends Conversation {
   transportStatus?: string;
 }
 
-export async function getConversations() {
-  const data = await apiGet<Conversation[] | { items: Conversation[] }>(
-    API.chat.conversations,
+function normalizeConversation(raw: unknown): Conversation | null {
+  if (!raw || typeof raw !== "object") return null;
+  const r = raw as Record<string, unknown>;
+  const id = Number(
+    r.conversationId ??
+      r.ConversationId ??
+      r.chatConversationId ??
+      r.id ??
+      r.Id,
   );
-  return Array.isArray(data) ? data : data?.items ?? [];
+  if (!Number.isFinite(id) || id <= 0) return null;
+
+  return {
+    conversationId: id,
+    title: (r.title ?? r.Title ?? r.otherPartyName ?? r.OtherPartyName) as
+      | string
+      | undefined,
+    lastMessage: (r.lastMessage ??
+      r.LastMessage ??
+      r.lastMessagePreview ??
+      r.LastMessagePreview) as string | undefined,
+    lastMessageAt: (r.lastMessageAt ?? r.LastMessageAt) as string | undefined,
+    unreadCount: Number(r.unreadCount ?? r.UnreadCount ?? 0) || undefined,
+    contextType: (r.contextType ?? r.ContextType ?? r.orderType ?? r.OrderType) as
+      | string
+      | undefined,
+    contextId: Number(r.contextId ?? r.ContextId ?? r.orderId ?? r.OrderId) || undefined,
+  };
+}
+
+async function fetchConversationList(path: string): Promise<Conversation[]> {
+  const data = await apiGet<unknown>(path);
+  return asApiList(data)
+    .map(normalizeConversation)
+    .filter((c): c is Conversation => c != null);
+}
+
+export async function getConversations(userId?: number) {
+  const uid = userId != null ? `?userId=${userId}&page=1&pageSize=50` : "?page=1&pageSize=50";
+
+  try {
+    const summaries = await fetchConversationList(
+      `/api/Chat/conversations/summaries${uid}`,
+    );
+    if (summaries.length) return summaries;
+  } catch {
+    /* fallback */
+  }
+
+  try {
+    return await fetchConversationList(`${API.chat.conversations}${uid}`);
+  } catch {
+    return [];
+  }
 }
 
 export async function getConversation(conversationId: number) {
-  return apiGet<ConversationDetail>(API.chat.conversation(conversationId));
+  const raw = await apiGet<ConversationDetail>(API.chat.conversation(conversationId));
+  const normalized = normalizeConversation(raw);
+  return { ...raw, ...normalized } as ConversationDetail;
 }
 
 export async function getMessages(conversationId: number) {
   const data = await apiGet<unknown>(API.chat.messages(conversationId));
-  return Array.isArray(data) ? data : (data as { items?: unknown[] })?.items ?? [];
+  const list = asApiList(data);
+  return list.map((m) => {
+    const r = m as Record<string, unknown>;
+    return {
+      messageId: Number(r.messageId ?? r.MessageId ?? r.id),
+      content: String(r.body ?? r.Body ?? r.content ?? r.Content ?? ""),
+      senderUserId: Number(r.senderUserId ?? r.SenderUserId),
+      createdAt: (r.createdAt ?? r.CreatedAt) as string | undefined,
+    };
+  });
 }
 
 export async function sendMessage(
   conversationId: number,
   body: { content: string; senderUserId: number },
 ) {
-  return apiPost(API.chat.messages(conversationId), body);
+  return apiPost(API.chat.messages(conversationId), {
+    conversationId,
+    senderUserId: body.senderUserId,
+    body: body.content,
+  });
 }
 
 export async function transportDeliver(conversationId: number) {
