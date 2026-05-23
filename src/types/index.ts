@@ -135,11 +135,19 @@ export interface Category {
 export interface Advertisement {
   advertisementId: number;
   title?: string;
-  description?: string;
+  description?: string | null;
   imageUrl?: string;
+  thumbnailUrl?: string | null;
   linkUrl?: string;
-  navigationType?: string;
+  navigationType?: "internal_route" | "external_link" | string;
   navigationValue?: string;
+  displayOrder?: number;
+  buttonLabel?: string;
+  titleColor?: string;
+  subtitleColor?: string;
+  ctaBackgroundColor?: string;
+  ctaTextColor?: string;
+  isEnabled?: boolean;
 }
 
 export interface Conversation {

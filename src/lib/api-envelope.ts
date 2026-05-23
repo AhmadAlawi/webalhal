@@ -9,6 +9,7 @@ export function unwrapEnvelopeData<T = Record<string, unknown>>(
 
   for (let i = 0; i < maxDepth; i++) {
     if (node == null || typeof node !== "object") break;
+    if (Array.isArray(node)) return node as T;
 
     const o = node as Record<string, unknown>;
 
@@ -29,10 +30,13 @@ export function unwrapEnvelopeData<T = Record<string, unknown>>(
 }
 
 function hasPayloadFields(o: Record<string, unknown>): boolean {
+  if (Array.isArray(o)) return true;
   return (
     typeof o.accessToken === "string" ||
     typeof o.userId === "number" ||
     typeof o.registrationId === "string" ||
+    o.advertisementId != null ||
+    o.AdvertisementId != null ||
     (!("success" in o) && !("data" in o) && Object.keys(o).length > 0)
   );
 }

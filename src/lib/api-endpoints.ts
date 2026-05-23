@@ -32,6 +32,7 @@ export const API = {
   ads: {
     app: "/api/advertisement/app",
     appBottom: "/api/advertisement/app/bottom",
+    click: "/api/advertisement/click",
     view: (id: number) => `/api/advertisement/${id}/view`,
   },
   marketplace: {

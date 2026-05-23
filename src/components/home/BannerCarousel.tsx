@@ -3,16 +3,55 @@
 import Image from "next/image";
 import Link from "next/link";
 import { useEffect, useState } from "react";
-import type { Advertisement } from "@/types";
+import {
+  advertisementHref,
+  isExternalAdHref,
+} from "@/lib/advertisement";
 import { resolveMediaUrl } from "@/lib/media";
-import { trackAdView } from "@/services/catalog";
+import { trackAdClick, trackAdView } from "@/services/catalog";
+import type { Advertisement } from "@/types";
+import { useAuth } from "@/context/AuthContext";
 
-function adHref(ad: Advertisement): string | null {
-  if (ad.linkUrl) return ad.linkUrl;
-  if (ad.navigationType === "internal_route" && ad.navigationValue) {
-    return ad.navigationValue.startsWith("/") ? ad.navigationValue : `/${ad.navigationValue}`;
+const DEFAULT_CTA = "اعرف المزيد";
+
+function AdCta({
+  ad,
+  href,
+  onNavigate,
+}: {
+  ad: Advertisement;
+  href: string;
+  onNavigate: () => void;
+}) {
+  const label = ad.buttonLabel?.trim() || DEFAULT_CTA;
+  const style = {
+    backgroundColor: ad.ctaBackgroundColor ?? "#047857",
+    color: ad.ctaTextColor ?? "#ffffff",
+  };
+
+  const className =
+    "pointer-events-auto mt-4 inline-flex rounded-xl px-5 py-2.5 text-sm font-semibold shadow-md transition hover:opacity-90";
+
+  if (isExternalAdHref(href)) {
+    return (
+      <a
+        href={href}
+        target="_blank"
+        rel="noopener noreferrer"
+        className={className}
+        style={style}
+        onClick={onNavigate}
+      >
+        {label}
+      </a>
+    );
   }
-  return null;
+
+  return (
+    <Link href={href} className={className} style={style} onClick={onNavigate}>
+      {label}
+    </Link>
+  );
 }
 
 export function BannerCarousel({
@@ -22,6 +61,7 @@ export function BannerCarousel({
   ads: Advertisement[];
   loading?: boolean;
 }) {
+  const { user } = useAuth();
   const [index, setIndex] = useState(0);
 
   useEffect(() => {
@@ -29,6 +69,10 @@ export function BannerCarousel({
     const t = setInterval(() => setIndex((i) => (i + 1) % ads.length), 6000);
     return () => clearInterval(t);
   }, [ads.length]);
+
+  useEffect(() => {
+    setIndex(0);
+  }, [ads]);
 
   useEffect(() => {
     const ad = ads[index];
@@ -48,7 +92,16 @@ export function BannerCarousel({
   if (!ads.length) return null;
 
   const ad = ads[index];
-  const href = adHref(ad);
+  const href = advertisementHref(ad);
+
+  function handleClick() {
+    if (ad.advertisementId) {
+      void trackAdClick(ad.advertisementId, user?.userId);
+    }
+  }
+
+  const titleStyle = ad.titleColor ? { color: ad.titleColor } : undefined;
+  const subtitleStyle = ad.subtitleColor ? { color: ad.subtitleColor } : undefined;
 
   const image = (
     <Image
@@ -66,30 +119,57 @@ export function BannerCarousel({
     <section className="relative w-full overflow-hidden border-b border-slate-200/60 bg-slate-900">
       <div className="relative aspect-[21/7] min-h-[220px] w-full max-h-[420px] sm:min-h-[280px] lg:min-h-[320px]">
         <div key={ad.advertisementId ?? index} className="absolute inset-0 animate-fade-up">
-          {href ? (
-            <Link href={href} className="absolute inset-0 block">
-              {image}
-            </Link>
+          {href && !ad.buttonLabel ? (
+            isExternalAdHref(href) ? (
+              <a
+                href={href}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="absolute inset-0 block"
+                onClick={handleClick}
+              >
+                {image}
+              </a>
+            ) : (
+              <Link
+                href={href}
+                className="absolute inset-0 block"
+                onClick={handleClick}
+              >
+                {image}
+              </Link>
+            )
           ) : (
             image
           )}
         </div>
-        <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-black/20 to-transparent" />
-        {(ad.title || ad.description) && (
-          <div className="pointer-events-none absolute bottom-0 inset-x-0 p-6 sm:p-10">
+        <div className="absolute inset-0 bg-gradient-to-t from-black/65 via-black/25 to-transparent" />
+        {(ad.title || ad.description || (href && ad.buttonLabel)) && (
+          <div className="absolute bottom-0 inset-x-0 p-6 sm:p-10">
             <div className="mx-auto max-w-7xl">
               {ad.title && (
-                <h2 className="text-2xl font-bold text-white sm:text-3xl">{ad.title}</h2>
+                <h2
+                  className="text-2xl font-bold text-white sm:text-3xl"
+                  style={titleStyle}
+                >
+                  {ad.title}
+                </h2>
               )}
               {ad.description && (
-                <p className="mt-1 text-sm text-white/80 sm:text-base">{ad.description}</p>
+                <p
+                  className="mt-1 text-sm text-white/85 sm:text-base"
+                  style={subtitleStyle}
+                >
+                  {ad.description}
+                </p>
               )}
+              {href && <AdCta ad={ad} href={href} onNavigate={handleClick} />}
             </div>
           </div>
         )}
       </div>
       {ads.length > 1 && (
-        <div className="absolute bottom-4 inset-x-0 flex justify-center gap-2">
+        <div className="absolute bottom-4 inset-x-0 z-10 flex justify-center gap-2">
           {ads.map((_, i) => (
             <button
               key={i}

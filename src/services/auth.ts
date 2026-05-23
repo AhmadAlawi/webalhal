@@ -126,8 +126,11 @@ export async function getCurrentUserType(
   if (userId != null) {
     return apiGet<{ roleId: number }>(API.profile.userType(userId));
   }
+  const { getAccessToken } = await import("@/lib/auth-storage");
+  const token = getAccessToken();
+  if (!token) return { roleId: 2 };
   const me = await apiGet<{ roleId?: number; userId?: number } & Record<string, unknown>>(
-    API.auth.me,
+    `${API.auth.me}?token=${encodeURIComponent(token)}`,
   );
   return { roleId: Number(me?.roleId ?? 2) };
 }

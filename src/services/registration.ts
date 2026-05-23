@@ -45,8 +45,9 @@ export async function uploadDocument(formData: FormData) {
   return apiPost("/api/registration/step/4/document", formData);
 }
 
+/** Swagger: body is raw registration GUID JSON string */
 export async function completeDocuments(registrationId: string) {
-  return apiPost("/api/registration/step/4/complete", { registrationId });
+  return apiPost("/api/registration/step/4/complete", registrationId);
 }
 
 export async function registrationPayout(body: Record<string, unknown>) {
@@ -54,11 +55,11 @@ export async function registrationPayout(body: Record<string, unknown>) {
 }
 
 export async function completePayout(registrationId: string) {
-  return apiPost("/api/registration/step/5/complete", { registrationId });
+  return apiPost("/api/registration/step/5/complete", registrationId);
 }
 
 export async function submitRegistration(registrationId: string) {
-  return apiPost(API.registration.submit, { registrationId });
+  return apiPost(API.registration.submit, registrationId);
 }
 
 export async function getRegistration(registrationId: string) {
