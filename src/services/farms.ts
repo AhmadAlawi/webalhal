@@ -22,7 +22,7 @@ export async function createFarm(body: Record<string, unknown>) {
 
 export async function getCropsByFarm(farmId: number) {
   const data = await apiGet<Crop[] | { items?: Crop[] }>(
-    `/api/crops?farmId=${farmId}`,
+    `/api/crops/by-farmland/${farmId}`,
   );
   return asArray(data);
 }
