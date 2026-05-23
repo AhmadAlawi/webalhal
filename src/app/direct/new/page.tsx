@@ -37,13 +37,8 @@ export default function NewDirectListingPage() {
       await createListing({
         sellerUserId: user.userId,
         cropId: Number(cropId),
-        unitPrice: Number(unitPrice),
-        price: Number(unitPrice),
-        availableQty: Number(availableQty),
-        minOrderQty: 1,
-        unit,
         title: title || undefined,
-        cropName: title || undefined,
+        price: Number(unitPrice),
       });
       router.push("/direct");
     } catch (e) {

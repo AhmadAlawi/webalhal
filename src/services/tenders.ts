@@ -42,10 +42,6 @@ export async function awardTender(tenderId: number, offerId: number) {
   return apiPost(`/api/tenders/${tenderId}/award/${offerId}`, {});
 }
 
-export async function revokeTenderAward(tenderId: number, offerId: number) {
-  return apiPost(`/api/tenders/${tenderId}/award/${offerId}/cancel`, {});
-}
-
 export async function finishTender(tenderId: number) {
   return apiPost(`/api/tenders/${tenderId}/finish`, {});
 }

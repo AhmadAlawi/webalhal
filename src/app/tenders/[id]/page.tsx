@@ -13,7 +13,6 @@ import {
   createOffer,
   awardTender,
   finishTender,
-  revokeTenderAward,
 } from "@/services/tenders";
 import { formatPrice } from "@/lib/auctionPricing";
 import { useAuth } from "@/context/AuthContext";
@@ -92,20 +91,6 @@ export default function TenderDetailPage() {
     }
   }
 
-  async function handleRevoke(offerId: number) {
-    setActing(offerId);
-    try {
-      await revokeTenderAward(tenderId, offerId);
-      setMsg("تم إلغاء الترسية");
-      getTender(tenderId).then(setTender);
-      await reloadOffers();
-    } catch (e) {
-      setError(e instanceof Error ? e.message : "فشل الإلغاء");
-    } finally {
-      setActing(null);
-    }
-  }
-
   async function handleFinish() {
     setActing(-1);
     try {
@@ -157,7 +142,7 @@ export default function TenderDetailPage() {
           <section className="mb-8 rounded-2xl border border-amber-100 bg-amber-50/50 p-6">
             <h3 className="mb-3 font-semibold text-amber-900">إدارة المناقصة (مالك)</h3>
             <p className="mb-4 text-sm text-amber-800">
-              اختر عرضاً للترسية، أو أنهِ المناقصة بعد التعاقد.
+              اختر عرضاً للترسية (لا يمكن إلغاء الترسية بعدها)، ثم أنهِ المناقصة بعد التعاقد.
             </p>
             <Button variant="outline" disabled={acting != null} onClick={handleFinish}>
               إنهاء المناقصة
@@ -227,15 +212,10 @@ export default function TenderDetailPage() {
                         ترسية
                       </Button>
                     )}
-                    {isOwner && isAwarded && o.offerId && (
-                      <Button
-                        size="sm"
-                        variant="outline"
-                        disabled={acting != null}
-                        onClick={() => handleRevoke(o.offerId!)}
-                      >
-                        إلغاء الترسية
-                      </Button>
+                    {isOwner && isAwarded && (
+                      <span className="rounded-full bg-emerald-100 px-3 py-1 text-xs font-semibold text-emerald-800">
+                        مُرسى — لا يمكن الإلغاء
+                      </span>
                     )}
                   </li>
                 );

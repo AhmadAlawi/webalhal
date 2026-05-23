@@ -1,4 +1,5 @@
 import { apiGet } from "@/lib/api";
+import { API } from "@/lib/api-endpoints";
 import type { Advertisement, Category } from "@/types";
 import type { Product } from "@/types/farm";
 
@@ -8,13 +9,34 @@ function asArray<T>(data: T[] | { items?: T[] } | null | undefined): T[] {
   return data.items ?? [];
 }
 
+interface AdminCategory {
+  categoryId: number;
+  nameAr?: string;
+  nameEn?: string;
+  isActive?: boolean;
+}
+
+/** GET /api/admin/categories — مطابق Swagger والموبايل */
 export async function getCategories() {
-  const data = await apiGet<Category[]>("/api/categories");
-  return Array.isArray(data) ? data : [];
+  try {
+    const data = await apiGet<AdminCategory[] | { items?: AdminCategory[] }>(
+      API.categories.list(true),
+    );
+    const list = asArray(data);
+    return list.map(
+      (c): Category => ({
+        categoryId: c.categoryId,
+        nameAr: c.nameAr,
+        name: c.nameAr ?? c.nameEn,
+      }),
+    );
+  } catch {
+    return [];
+  }
 }
 
 export async function getAppAds() {
-  const data = await apiGet<Advertisement[]>("/api/advertisement/app?enabledOnly=true", {
+  const data = await apiGet<Advertisement[]>(`${API.ads.app}?enabledOnly=true`, {
     headers: { "X-Platform": "web" },
   } as never);
   return Array.isArray(data) ? data : [];
@@ -22,19 +44,22 @@ export async function getAppAds() {
 
 export async function getBottomAds() {
   const data = await apiGet<Advertisement[]>(
-    "/api/advertisement/app/bottom?enabledOnly=true",
+    `${API.ads.appBottom}?enabledOnly=true`,
     { headers: { "X-Platform": "web" } } as never,
   );
   return Array.isArray(data) ? data : [];
 }
 
+/** GET /api/admin/products */
 export async function getProducts() {
-  const data = await apiGet<Product[] | { items?: Product[] }>("/api/products");
-  return asArray(data);
+  try {
+    const data = await apiGet<Product[] | { items?: Product[] }>(API.products.list);
+    return asArray(data);
+  } catch {
+    return [];
+  }
 }
 
 export async function trackAdView(id: number) {
-  return apiGet(`/api/advertisement/${id}/view`, { method: "POST" } as never).catch(
-    () => null,
-  );
+  return apiGet(API.ads.view(id), { method: "POST" } as never).catch(() => null);
 }

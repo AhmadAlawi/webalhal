@@ -1,8 +1,9 @@
 import { apiGet, apiPost } from "@/lib/api";
+import { API, REGISTRATION_STEP3_ROLE } from "@/lib/api-endpoints";
 
 export async function startRegistration() {
   return apiPost<{ registrationId: string; currentStep: number }>(
-    "/api/registration/start",
+    API.registration.start,
     {},
   );
 }
@@ -14,29 +15,30 @@ export async function registrationStep1(body: {
   phone: string;
   password: string;
 }) {
-  return apiPost("/api/registration/step/1", body);
+  return apiPost(API.registration.step1, body);
 }
 
 export async function verifyOtp(registrationId: string, otp: string) {
-  return apiPost("/api/registration/verify-otp", { registrationId, otp });
+  return apiPost(API.registration.verifyOtp, { registrationId, otp });
 }
 
 export async function resendOtp(registrationId: string) {
-  return apiPost("/api/registration/resend-otp", { registrationId });
+  return apiPost(API.registration.resendOtp, { registrationId });
 }
 
 export async function registrationStep2(
   registrationId: string,
   roleName: string,
 ) {
-  return apiPost("/api/registration/step/2", { registrationId, roleName });
+  return apiPost(API.registration.step2, { registrationId, roleName });
 }
 
 export async function registrationStep3(
   role: string,
   body: Record<string, unknown>,
 ) {
-  return apiPost(`/api/registration/step/3/${role}`, body);
+  const slug = REGISTRATION_STEP3_ROLE[role] ?? role;
+  return apiPost(API.registration.step3(slug), body);
 }
 
 export async function uploadDocument(formData: FormData) {
@@ -56,7 +58,7 @@ export async function completePayout(registrationId: string) {
 }
 
 export async function submitRegistration(registrationId: string) {
-  return apiPost("/api/registration/submit", { registrationId });
+  return apiPost(API.registration.submit, { registrationId });
 }
 
 export async function getRegistration(registrationId: string) {

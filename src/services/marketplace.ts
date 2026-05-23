@@ -1,4 +1,5 @@
 import { apiGet, apiPost } from "@/lib/api";
+import { API } from "@/lib/api-endpoints";
 import type { MarketplaceBrowseData, MarketplaceListing } from "@/types";
 
 function emptyBrowse(): MarketplaceBrowseData {
@@ -10,7 +11,7 @@ export async function getMarketplaceBrowse(
   params?: Record<string, string>,
 ): Promise<MarketplaceBrowseData> {
   const qs = params ? `?${new URLSearchParams(params)}` : "";
-  const data = await apiGet<MarketplaceBrowseData | null>(`/api/marketplace/browse${qs}`);
+  const data = await apiGet<MarketplaceBrowseData | null>(`${API.marketplace.browse}${qs}`);
 
   if (!data || typeof data !== "object") return emptyBrowse();
 
@@ -31,23 +32,29 @@ export async function getMarketplace(params?: Record<string, string>) {
 export async function getFilteredDirectListings(params?: Record<string, string>) {
   const qs = params && Object.keys(params).length ? `?${new URLSearchParams(params)}` : "";
   const data = await apiGet<MarketplaceListing[] | { items?: MarketplaceListing[] }>(
-    `/api/direct/listings/filtered${qs}`,
+    `${API.direct.listingsFiltered}${qs}`,
   );
   return Array.isArray(data) ? data : data?.items ?? [];
 }
 
 export async function getListing(id: number) {
-  return apiGet<MarketplaceListing>(`/api/direct/listings/${id}`);
+  return apiGet<MarketplaceListing>(API.direct.listingById(id));
 }
 
-export async function createListing(body: Record<string, unknown>) {
-  return apiPost("/api/direct/listings", body);
+/** Swagger CreateListingDto: sellerUserId, cropId, title?, price */
+export async function createListing(body: {
+  sellerUserId: number;
+  cropId: number;
+  title?: string;
+  price: number;
+}) {
+  return apiPost(API.direct.listings, body);
 }
 
 export async function createOrder(body: Record<string, unknown>) {
-  return apiPost("/api/direct/orders", body);
+  return apiPost(API.direct.orders, body);
 }
 
 export async function getMyOrders() {
-  return apiGet("/api/direct/orders");
+  return apiGet(API.direct.orders);
 }

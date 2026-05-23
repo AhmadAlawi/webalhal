@@ -1,8 +1,9 @@
 import { apiGet, apiPost, apiPut } from "@/lib/api";
+import { API } from "@/lib/api-endpoints";
 import type { AuthUser } from "@/types";
 
 export async function getMyProfile() {
-  return apiGet<AuthUser & Record<string, unknown>>("/api/profile");
+  return apiGet<AuthUser & Record<string, unknown>>(API.profile.me);
 }
 
 export async function updateProfile(body: {
@@ -10,18 +11,18 @@ export async function updateProfile(body: {
   email?: string;
   phone?: string;
 }) {
-  return apiPut<AuthUser & Record<string, unknown>>("/api/profile", body);
+  return apiPut<AuthUser & Record<string, unknown>>(API.profile.me, body);
 }
 
 export async function requestPhoneChange(newPhone: string) {
   return apiPost<{ otpSent?: boolean; message?: string }>(
-    "/api/profile/phone-change/request",
+    API.profile.phoneChangeRequest,
     { newPhone: newPhone.replace(/\s/g, "").trim() },
   );
 }
 
 export async function confirmPhoneChange(newPhone: string, otp: string) {
-  return apiPost("/api/profile/phone-change/confirm", {
+  return apiPost(API.profile.phoneChangeConfirm, {
     newPhone: newPhone.replace(/\s/g, "").trim(),
     otp: otp.replace(/\s/g, "").trim(),
   });

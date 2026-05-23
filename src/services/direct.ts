@@ -41,6 +41,20 @@ export async function getSellerOrders(userId: number) {
   return asArray(data);
 }
 
+export async function updateDirectOrderStatus(
+  orderId: number,
+  newStatus: string,
+) {
+  return apiPost(`/api/direct/orders/${orderId}/status`, {
+    orderId,
+    newStatus,
+  });
+}
+
+export async function cancelDirectOrder(orderId: number) {
+  return apiPost(`/api/direct/orders/${orderId}/cancel`, {});
+}
+
 export async function getMyDirectListings(userId: number) {
   const data = await apiGet<MarketplaceListing[] | { items?: MarketplaceListing[] }>(
     `/api/direct/listings/filtered?sellerUserId=${userId}`,

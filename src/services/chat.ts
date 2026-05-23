@@ -1,4 +1,5 @@
 import { apiGet, apiPost } from "@/lib/api";
+import { API } from "@/lib/api-endpoints";
 import type { Conversation } from "@/types";
 
 export interface ConversationDetail extends Conversation {
@@ -19,19 +20,17 @@ export interface ConversationDetail extends Conversation {
 
 export async function getConversations() {
   const data = await apiGet<Conversation[] | { items: Conversation[] }>(
-    "/api/Chat/conversations",
+    API.chat.conversations,
   );
   return Array.isArray(data) ? data : data?.items ?? [];
 }
 
 export async function getConversation(conversationId: number) {
-  return apiGet<ConversationDetail>(
-    `/api/Chat/conversations/${conversationId}`,
-  );
+  return apiGet<ConversationDetail>(API.chat.conversation(conversationId));
 }
 
 export async function getMessages(conversationId: number) {
-  const data = await apiGet<unknown>(`/api/Chat/conversations/${conversationId}/messages`);
+  const data = await apiGet<unknown>(API.chat.messages(conversationId));
   return Array.isArray(data) ? data : (data as { items?: unknown[] })?.items ?? [];
 }
 
@@ -39,15 +38,15 @@ export async function sendMessage(
   conversationId: number,
   body: { content: string; senderUserId: number },
 ) {
-  return apiPost(`/api/Chat/conversations/${conversationId}/messages`, body);
+  return apiPost(API.chat.messages(conversationId), body);
 }
 
 export async function transportDeliver(conversationId: number) {
-  return apiPost(`/api/Chat/conversations/${conversationId}/transport-deliver`, {});
+  return apiPost(API.chat.transportDeliver(conversationId), {});
 }
 
 export async function transportReceived(conversationId: number) {
-  return apiPost(`/api/Chat/conversations/${conversationId}/transport-received`, {});
+  return apiPost(API.chat.transportReceived(conversationId), {});
 }
 
 export function parseConversationIdFromOpen(res: unknown): number | undefined {
@@ -64,19 +63,24 @@ export function parseConversationIdFromOpen(res: unknown): number | undefined {
   return Number.isFinite(n) && n > 0 ? n : undefined;
 }
 
-/** فتح محادثة لسياق صفقة — مطابق للموبايل POST /api/chat/open/{type}/{id} */
+/** POST /api/Chat/conversations/open أو /api/Chat/open/order/{orderId} */
 export async function openConversation(
   contextType: string,
   contextId: number,
   opts?: { buyerUserId?: number; sellerUserId?: number },
 ) {
-  const sp = new URLSearchParams();
-  if (opts?.buyerUserId) sp.set("buyerUserId", String(opts.buyerUserId));
-  if (opts?.sellerUserId) sp.set("sellerUserId", String(opts.sellerUserId));
-  const qs = sp.toString() ? `?${sp}` : "";
-  const data = await apiPost<unknown>(
-    `/api/chat/open/${encodeURIComponent(contextType)}/${contextId}${qs}`,
-    {},
-  );
-  return data;
+  if (contextType === "order") {
+    const sp = new URLSearchParams();
+    if (opts?.buyerUserId) sp.set("buyerUserId", String(opts.buyerUserId));
+    if (opts?.sellerUserId) sp.set("sellerUserId", String(opts.sellerUserId));
+    const qs = sp.toString() ? `?${sp}` : "";
+    return apiPost<unknown>(`${API.chat.openOrder(contextId)}${qs}`, {});
+  }
+
+  return apiPost<unknown>(API.chat.open, {
+    contextType,
+    contextId,
+    buyerUserId: opts?.buyerUserId,
+    sellerUserId: opts?.sellerUserId,
+  });
 }

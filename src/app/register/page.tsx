@@ -122,7 +122,7 @@ function RegisterForm() {
       body.companyName = fullName;
     }
     try {
-      await registrationStep3(roleName === "gov_employee" ? "farmer" : roleName, body);
+      await registrationStep3(roleName, body);
       await completeDocuments(registrationId);
       setStep(5);
     } catch (e) {

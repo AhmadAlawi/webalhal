@@ -1,16 +1,17 @@
-import { apiGet, apiPost, apiPut } from "@/lib/api";
+import { apiGet, apiPost } from "@/lib/api";
+import { API } from "@/lib/api-endpoints";
 import type { NotificationItem } from "@/types";
 
 export async function getNotifications() {
   const data = await apiGet<NotificationItem[] | { items: NotificationItem[] }>(
-    "/api/notifications",
+    API.notifications.list,
   );
   return Array.isArray(data) ? data : data?.items ?? [];
 }
 
 export async function getUnreadCount(): Promise<number> {
   try {
-    const data = await apiGet<{ count: number }>("/api/notifications/unread-count");
+    const data = await apiGet<{ count: number }>(API.notifications.unreadCount);
     return data?.count ?? 0;
   } catch {
     const list = await getNotifications();
@@ -19,17 +20,9 @@ export async function getUnreadCount(): Promise<number> {
 }
 
 export async function markNotificationRead(notificationId: number) {
-  try {
-    await apiPut(`/api/notifications/${notificationId}/read`, {});
-  } catch {
-    await apiPost(`/api/notifications/${notificationId}/read`, {}).catch(() => {});
-  }
+  await apiPost(API.notifications.read(notificationId), {}).catch(() => {});
 }
 
 export async function markAllNotificationsRead() {
-  try {
-    await apiPost("/api/notifications/read-all", {});
-  } catch {
-    await apiPut("/api/notifications/read-all", {}).catch(() => {});
-  }
+  await apiPost(API.notifications.readAll, {});
 }

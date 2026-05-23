@@ -119,8 +119,15 @@ export async function refreshAccessToken(refreshToken: string) {
   return data;
 }
 
-export async function getCurrentUserType(): Promise<{ roleId: number }> {
-  return apiGet<{ roleId: number }>("/api/profile/role").catch(() =>
-    apiGet<{ roleId: number }>("/api/users/me/type"),
+export async function getCurrentUserType(
+  userId?: number,
+): Promise<{ roleId: number }> {
+  const { API } = await import("@/lib/api-endpoints");
+  if (userId != null) {
+    return apiGet<{ roleId: number }>(API.profile.userType(userId));
+  }
+  const me = await apiGet<{ roleId?: number; userId?: number } & Record<string, unknown>>(
+    API.auth.me,
   );
+  return { roleId: Number(me?.roleId ?? 2) };
 }

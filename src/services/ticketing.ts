@@ -8,17 +8,10 @@ function asArray<T>(data: T[] | { items?: T[] } | null | undefined): T[] {
 }
 
 export async function getMyTickets() {
-  try {
-    const data = await apiGet<SupportTicket[] | { items?: SupportTicket[] }>(
-      "/api/ticketing/tickets",
-    );
-    return asArray(data);
-  } catch {
-    const data = await apiGet<SupportTicket[] | { items?: SupportTicket[] }>(
-      "/api/ticketing",
-    );
-    return asArray(data);
-  }
+  const data = await apiGet<SupportTicket[] | { items?: SupportTicket[] }>(
+    "/api/ticketing/tickets",
+  );
+  return asArray(data);
 }
 
 export async function getTicket(ticketId: number) {
