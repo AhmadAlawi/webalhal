@@ -28,7 +28,7 @@ function normalizeAuction(raw: unknown): Auction {
     secondEndTime: (r.secondEndTime ?? r.SecondEndTime) as string | undefined,
     status: (r.status ?? r.Status) as string | undefined,
     lifecycleStatus: (r.lifecycleStatus ?? r.LifecycleStatus) as string | undefined,
-    isBiddable: r.isBiddable ?? r.IsBiddable,
+    isBiddable: (r.isBiddable ?? r.IsBiddable) as boolean | undefined,
     productMainImage: (r.productMainImage ?? r.ProductMainImage) as string | undefined,
     productImageUrl: (r.productImageUrl ?? r.ProductImageUrl) as string | undefined,
     images: Array.isArray(r.images) ? (r.images as string[]) : undefined,
