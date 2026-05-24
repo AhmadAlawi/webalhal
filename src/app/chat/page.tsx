@@ -15,7 +15,7 @@ export default function ChatListPage() {
     requireAuth();
   }, [requireAuth]);
 
-  const { data: conversations = [], isLoading } = useSWR(
+  const { data: conversations = [], isLoading, error: chatError } = useSWR(
     isAuthenticated && user?.userId ? ["chat:conversations", user.userId] : null,
     () => getConversations(user!.userId),
     { refreshInterval: 30_000, revalidateOnFocus: true },
@@ -52,7 +52,9 @@ export default function ChatListPage() {
               </li>
             ))}
             {conversations.length === 0 && (
-              <li className="py-16 text-center text-slate-500">لا توجد محادثات</li>
+              <li className="py-16 text-center text-slate-500">
+                {chatError ? "تعذّر تحميل المحادثات" : "لا توجد محادثات"}
+              </li>
             )}
           </ul>
         )}

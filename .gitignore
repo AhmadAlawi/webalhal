@@ -27,6 +27,7 @@ scripts/e2e-results.json
 # misc
 .DS_Store
 *.pem
+/logs
 
 # debug
 npm-debug.log*
@@ -37,6 +38,7 @@ yarn-error.log*
 # env files (can opt-in for committing if needed)
 .env*
 !.env.e2e.example
+!.env.production.example
 e2e.env.local
 
 # vercel

@@ -24,9 +24,19 @@ export interface ApiEnvelope<T = unknown> {
 export interface AuthUser {
   userId: number;
   roleId: UserRole;
+  /** من GET /api/profile/UserType — farmer, trader, … */
+  roleName?: string;
   fullName?: string;
   email?: string;
   phone?: string;
+}
+
+/** استجابة GET /api/profile/UserType/{userId} */
+export interface ProfileUserType {
+  roleId?: number;
+  roleName?: string;
+  description?: string;
+  scope?: string;
 }
 
 export interface LoginResponse {
@@ -50,9 +60,13 @@ export interface Auction {
   startingPrice?: number;
   currentPrice?: number;
   minIncrement?: number;
+  maxPrice?: number;
   endTime?: string;
   startTime?: string;
+  secondEndTime?: string;
   status?: string;
+  lifecycleStatus?: string;
+  isBiddable?: boolean;
   productMainImage?: string;
   productImageUrl?: string;
   images?: string[];
@@ -68,6 +82,9 @@ export interface Auction {
   categoryNameAr?: string;
   createdByUserId?: number;
   sellerUserId?: number;
+  winnerUserId?: number;
+  chatConversationId?: number;
+  conversationId?: number;
   bidsCount?: number;
   pricing?: AuctionPricing & {
     startingPriceTotal?: number;
@@ -181,15 +198,20 @@ export interface TransportRequest {
   preferredPickupDate?: string;
   agreedPrice?: number;
   assignedTransportProviderId?: number;
+  offersCount?: number;
+  createdAt?: string;
 }
 
 export interface AuctionPricing {
   bidAmountBasis: "total" | "perUnit";
+  startingPriceTotal?: number;
+  startingPricePerUnit?: number;
   currentPriceTotal: number;
   currentPricePerUnit: number;
   minIncrementTotal: number;
   minIncrementPerUnit: number;
   maxPriceTotal: number | null;
+  maxPricePerUnit?: number | null;
   quantity: number;
   unit: string;
 }

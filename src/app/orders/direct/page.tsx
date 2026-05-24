@@ -16,14 +16,19 @@ function orderKey(o: DirectOrder, i: number) {
 }
 
 export default function DirectOrdersPage() {
-  const { user, requireAuth } = useAuth();
+  const { user, requireAuth, isAuthenticated, isLoading: authLoading } = useAuth();
   const [orders, setOrders] = useState<DirectOrder[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
 
   useEffect(() => {
-    if (!requireAuth() || !user?.userId) return;
+    if (authLoading) return;
+    if (!isAuthenticated || !user?.userId) {
+      requireAuth();
+      return;
+    }
     const uid = user.userId;
+    setLoading(true);
     Promise.all([getBuyerOrders(uid), getSellerOrders(uid)])
       .then(([buyer, seller]) => {
         const merged = [...buyer, ...seller];
@@ -47,7 +52,7 @@ export default function DirectOrdersPage() {
         setError(e instanceof Error ? e.message : "تعذّر تحميل الطلبات");
       })
       .finally(() => setLoading(false));
-  }, [user?.userId, requireAuth]);
+  }, [authLoading, isAuthenticated, user?.userId, requireAuth]);
 
   return (
     <>

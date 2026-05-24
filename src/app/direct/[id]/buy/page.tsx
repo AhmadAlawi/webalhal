@@ -3,12 +3,12 @@
 import { useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import Image from "next/image";
-import { MapPin } from "lucide-react";
 import { PageHeader } from "@/components/ui/PageHeader";
 import { PageContainer } from "@/components/layout/PageContainer";
 import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
 import { getListing, createOrder } from "@/services/marketplace";
+import { parseOrderFromCreate } from "@/services/direct";
 import { getDirectMainImage } from "@/lib/media";
 import { formatPrice } from "@/lib/auctionPricing";
 import { useAuth } from "@/context/AuthContext";
@@ -32,6 +32,8 @@ export default function BuyDirectPage() {
   const availQty = Number(listing?.availableQty ?? 0);
   const unitPrice = Number(listing?.unitPrice ?? 0);
   const total = unitPrice * availQty;
+  const isActive =
+    String(listing?.status ?? "").toLowerCase() === "active" && availQty > 0;
 
   async function buy() {
     if (!requireAuth() || !user?.userId || !listing) return;
@@ -39,8 +41,8 @@ export default function BuyDirectPage() {
       setError("أدخل عنوان التسليم");
       return;
     }
-    if (availQty <= 0) {
-      setError("الكمية غير متاحة لهذا العرض");
+    if (!isActive) {
+      setError("هذا العرض غير متاح للشراء حالياً");
       return;
     }
     setLoading(true);
@@ -53,11 +55,17 @@ export default function BuyDirectPage() {
         deliveryAddress: address.trim(),
         paymentMethod: "cash",
       });
-      const orderId =
-        (created as { orderId?: number })?.orderId ??
-        (created as { id?: number })?.id;
-      if (orderId) router.push(`/orders/direct/${orderId}`);
-      else router.push("/orders/direct");
+      const parsed = parseOrderFromCreate(created);
+      const orderId = parsed.orderId;
+      const chatId = parsed.chatId;
+
+      if (chatId) {
+        router.push(`/chat/${chatId}`);
+      } else if (orderId) {
+        router.push(`/orders/direct/${orderId}`);
+      } else {
+        router.push("/orders/direct");
+      }
     } catch (e) {
       setError(e instanceof Error ? e.message : "فشل إنشاء الطلب");
     } finally {
@@ -95,16 +103,8 @@ export default function BuyDirectPage() {
             <p className="mt-2 text-lg font-bold text-emerald-600">
               {formatPrice(unitPrice)} ل.س / {listing.unit}
             </p>
-            <p className="mt-2 text-sm text-slate-600">
-              الكمية: <span className="font-semibold">{availQty}</span> {listing.unit}
-              <span className="mx-2 text-slate-400">·</span>
-              يجب شراء العرض بالكامل
-            </p>
-            {(listing.farmCity || listing.governorateName) && (
-              <p className="mt-2 flex items-center gap-1 text-sm text-slate-500">
-                <MapPin className="h-4 w-4" />
-                {listing.farmCity || listing.governorateName}
-              </p>
+            {!isActive && (
+              <p className="mt-2 text-sm text-amber-700">هذا العرض غير متاح للشراء</p>
             )}
           </div>
           <Input
@@ -112,14 +112,16 @@ export default function BuyDirectPage() {
             value={address}
             onChange={(e) => setAddress(e.target.value)}
             placeholder="المدينة، الحي، تفاصيل الوصول..."
+            required
           />
-          {total > 0 && (
-            <p className="text-center text-lg font-bold text-slate-800">
-              الإجمالي: {formatPrice(total)} ل.س
+          {total > 0 && isActive && (
+            <p className="text-center text-sm text-slate-600">
+              شراء كامل العرض ({availQty} {listing.unit}) — الإجمالي{" "}
+              <span className="font-bold text-slate-900">{formatPrice(total)} ل.س</span>
             </p>
           )}
           {error && <p className="text-sm text-red-600">{error}</p>}
-          <Button fullWidth onClick={buy} disabled={loading || availQty <= 0}>
+          <Button fullWidth onClick={buy} disabled={loading || !isActive}>
             {loading ? "جاري التأكيد..." : "تأكيد الطلب"}
           </Button>
         </div>

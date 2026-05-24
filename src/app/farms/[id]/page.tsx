@@ -1,13 +1,15 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import Link from "next/link";
 import { useParams } from "next/navigation";
+import { Plus, Sprout } from "lucide-react";
 import { PageHeader } from "@/components/ui/PageHeader";
 import { PageContainer } from "@/components/layout/PageContainer";
+import { Button } from "@/components/ui/Button";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { getFarm, getCropsByFarm } from "@/services/farms";
 import type { Crop, Farm } from "@/types/farm";
-import { Sprout } from "lucide-react";
 
 export default function FarmDetailPage() {
   const { id } = useParams();
@@ -16,17 +18,21 @@ export default function FarmDetailPage() {
   const [crops, setCrops] = useState<Crop[]>([]);
   const [loading, setLoading] = useState(true);
 
-  useEffect(() => {
+  function reload() {
     if (!farmId) return;
     Promise.all([
       getFarm(farmId).catch(() => null),
       getCropsByFarm(farmId).catch(() => [] as Crop[]),
-    ])
-      .then(([f, c]) => {
-        setFarm(f);
-        setCrops(c);
-      })
-      .finally(() => setLoading(false));
+    ]).then(([f, c]) => {
+      setFarm(f);
+      setCrops(c);
+    });
+  }
+
+  useEffect(() => {
+    if (!farmId) return;
+    reload();
+    setLoading(false);
   }, [farmId]);
 
   if (loading) {
@@ -49,19 +55,33 @@ export default function FarmDetailPage() {
           <div className="mb-8 rounded-2xl border border-gray-100 bg-white p-6 shadow-sm">
             <p className="text-sm text-slate-500">الموقع</p>
             <p className="font-medium text-slate-800">
-              {[farm.governorateName, farm.cityName, farm.location]
+              {[farm.governorateName, farm.cityName, farm.area, farm.location]
                 .filter(Boolean)
                 .join(" — ") || "—"}
             </p>
           </div>
         )}
 
-        <h2 className="mb-4 text-lg font-bold text-slate-900">المحاصيل</h2>
+        <div className="mb-4 flex items-center justify-between gap-3">
+          <h2 className="text-lg font-bold text-slate-900">المحاصيل</h2>
+          <Link href={`/farms/${farmId}/crops/new`}>
+            <Button size="sm">
+              <Plus className="h-4 w-4" />
+              إضافة محصول
+            </Button>
+          </Link>
+        </div>
+
         {crops.length === 0 ? (
           <EmptyState
             icon={Sprout}
             title="لا توجد محاصيل"
-            description="أضف المحاصيل من تطبيق الجوال أو لوحة الإدارة"
+            description="أضف محصولاً لهذه المزرعة لاستخدامه في المزادات والبيع المباشر"
+            action={
+              <Link href={`/farms/${farmId}/crops/new`}>
+                <Button size="sm">إضافة محصول</Button>
+              </Link>
+            }
           />
         ) : (
           <ul className="grid gap-3 sm:grid-cols-2">
@@ -74,8 +94,8 @@ export default function FarmDetailPage() {
                   {c.nameAr || c.cropName || c.name || `#${c.cropId}`}
                 </p>
                 <p className="mt-1 text-xs text-slate-500">
-                  معرف المحصول: {c.cropId}
-                  {c.unit ? ` · ${c.unit}` : ""}
+                  {c.quantity != null ? `${c.quantity} ` : ""}
+                  {c.unit || ""}
                 </p>
               </li>
             ))}

@@ -13,17 +13,20 @@ import { useAuth } from "@/context/AuthContext";
 import type { Farm } from "@/types/farm";
 
 export default function FarmsPage() {
-  const { requireAuth } = useAuth();
+  const { user, requireAuth, isAuthenticated } = useAuth();
   const [farms, setFarms] = useState<Farm[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    if (!requireAuth()) return;
-    getMyFarms()
+    if (!isAuthenticated || !user?.userId) {
+      requireAuth();
+      return;
+    }
+    getMyFarms(user.userId)
       .then(setFarms)
       .catch(() => setFarms([]))
       .finally(() => setLoading(false));
-  }, [requireAuth]);
+  }, [isAuthenticated, user?.userId, requireAuth]);
 
   return (
     <>

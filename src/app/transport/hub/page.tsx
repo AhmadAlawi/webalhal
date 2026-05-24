@@ -84,7 +84,7 @@ export default function TransportHubPage() {
           <HubLink href="/transport/manage" icon={Route} title="خطوط الأسعار" desc="مسارات وأسعار النقل" />
           <HubLink href="/transport/vehicles" icon={Car} title="المركبات" desc="إدارة أسطولك" />
           <HubLink href="/transport/inbox" icon={Inbox} title="وارد الطلبات" desc="طلبات وعروض" />
-          <HubLink href="/transport/requests" icon={Truck} title="طلباتي كمشتري" desc="شحن مشترياتك" />
+          <HubLink href="/account/transport-requests" icon={Truck} title="طلباتي كمشتري" desc="شحن مشترياتك" />
           <HubLink href="/transport/prices" icon={Calculator} title="حاسبة الأسعار" desc="السعر الرسمي وأرخص عرض" />
         </div>
       </PageContainer>

@@ -65,6 +65,7 @@ export default function DirectOrderDetailPage() {
       });
       const cid = parseConversationIdFromOpen(res);
       if (cid) router.push(`/chat/${cid}`);
+      else if (order.chatId) router.push(`/chat/${order.chatId}`);
       else setError("تعذّر فتح المحادثة");
     } catch (e) {
       setError(e instanceof Error ? e.message : "فشل فتح المحادثة");

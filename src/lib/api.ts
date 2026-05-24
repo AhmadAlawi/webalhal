@@ -7,6 +7,7 @@ import {
   clearAuthSession,
 } from "./auth-storage";
 import { unwrapEnvelopeData } from "./api-envelope";
+import { formatApiErrorMessage } from "./api-errors";
 import type { ApiEnvelope } from "@/types";
 
 export class ApiClientError extends Error {
@@ -119,7 +120,10 @@ export async function apiRequest<T>(
   if (!res.ok) {
     const err = envelope?.error;
     throw new ApiClientError(
-      err?.detail || err?.title || envelope?.message || res.statusText,
+      formatApiErrorMessage(
+        err?.detail || err?.title || envelope?.message || res.statusText,
+        err?.errors,
+      ),
       res.status,
       err?.code,
       envelope?.traceId,
@@ -129,7 +133,10 @@ export async function apiRequest<T>(
   if (envelope && typeof envelope === "object" && "success" in envelope) {
     if (!envelope.success) {
       throw new ApiClientError(
-        envelope.error?.detail || envelope.message || "Request failed",
+        formatApiErrorMessage(
+          envelope.error?.detail || envelope.message || "Request failed",
+          envelope.error?.errors,
+        ),
         res.status,
         envelope.error?.code,
         envelope.traceId,

@@ -15,6 +15,7 @@ export function asApiList<T = unknown>(payload: unknown): T[] {
     "summaries",
     "records",
     "results",
+    "orders",
   ] as const;
 
   for (const key of keys) {

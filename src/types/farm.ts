@@ -6,8 +6,10 @@ export interface Farm {
   cityName?: string;
   cityId?: number;
   governorateId?: number;
-  area?: number;
+  areaId?: number;
+  area?: string;
   location?: string;
+  village?: string;
 }
 
 export interface Crop {

@@ -13,7 +13,7 @@ import {
   Info,
 } from "lucide-react";
 import { useAuth } from "@/context/AuthContext";
-import { roleLabel } from "@/lib/permissions";
+import { useUserPermissions } from "@/hooks/useUserPermissions";
 import { UserRole } from "@/types";
 import { Button } from "@/components/ui/Button";
 import { PageContainer } from "@/components/layout/PageContainer";
@@ -27,7 +27,7 @@ const MENU = [
   { href: "/tenders", label: "المناقصات", icon: FileText, desc: "عروض وتوريد" },
   { href: "/direct", label: "البيع المباشر", icon: ShoppingBag, desc: "شراء وبيع فوري" },
   { href: "/orders/direct", label: "طلباتي", icon: ShoppingBag, desc: "متابعة الطلبات", auth: true },
-  { href: "/transport/requests", label: "طلبات النقل", icon: Truck, desc: "شحن المحاصيل", auth: true },
+  { href: "/account/transport-requests", label: "طلبات النقل — مشتري", icon: Truck, desc: "متابعة طلبات الشحن وعروض الناقلين", auth: true },
   { href: "/transport/prices", label: "حاسبة أسعار النقل", icon: Truck, desc: "تقدير تكلفة الشحن" },
   { href: "/transport/hub", label: "مركز النقل", icon: Truck, desc: "إدارة حساب الناقل", roles: [UserRole.Transport] },
   { href: "/transport/register", label: "تسجيل كناقل", icon: Truck, desc: "إنشاء حساب مزود نقل", roles: [UserRole.Transport] },
@@ -39,6 +39,7 @@ const MENU = [
 
 export default function AccountPage() {
   const { user, isAuthenticated, logout, isLoading } = useAuth();
+  const { roleLabel, roleName } = useUserPermissions();
 
   if (isLoading) {
     return (
@@ -60,7 +61,11 @@ export default function AccountPage() {
                   {isAuthenticated ? user?.fullName || "حسابي" : "مرحباً بك"}
                 </h1>
                 <p className="mt-1 text-emerald-100">
-                  {isAuthenticated ? roleLabel(user?.roleId) : "سجّل الدخول للوصول الكامل"}
+                  {isAuthenticated
+                    ? roleName
+                      ? `${roleLabel} (${roleName})`
+                      : roleLabel
+                    : "سجّل الدخول للوصول الكامل"}
                 </p>
               </div>
             </div>

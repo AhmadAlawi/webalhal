@@ -104,9 +104,21 @@ export async function stopChatHub(
 export type AuctionHubHandlers = {
   onPriceTick: (data: unknown) => void;
   onBidPlaced?: (data: unknown) => void;
+  onAuctionUpdated?: (data: unknown) => void;
   onError?: (message: string) => void;
   onConnectionState?: (state: "connected" | "reconnecting" | "disconnected") => void;
 };
+
+function registerAuctionHubEvent(
+  conn: signalR.HubConnection,
+  names: string[],
+  handler: (data: unknown) => void,
+) {
+  for (const name of names) {
+    conn.off(name);
+    conn.on(name, handler);
+  }
+}
 
 /**
  * اتصال مزاد حي — JoinAuction(auctionId, userId, inviteCode) مطابق للموبايل
@@ -127,13 +139,19 @@ export async function startAuctionHub(
     await invokeHubWhenConnected(conn, "JoinAuction", auctionId, userId, code);
   };
 
-  conn.off("PriceTick");
-  conn.off("BidPlaced");
+  registerAuctionHubEvent(conn, ["PriceTick", "priceTick"], handlers.onPriceTick);
+  if (handlers.onBidPlaced) {
+    registerAuctionHubEvent(conn, ["BidPlaced", "bidPlaced"], handlers.onBidPlaced);
+  }
+  if (handlers.onAuctionUpdated) {
+    registerAuctionHubEvent(
+      conn,
+      ["AuctionUpdated", "auctionupdated", "AuctionClosed", "auctionclosed", "AuctionEnded"],
+      handlers.onAuctionUpdated,
+    );
+  }
+
   conn.off("Error");
-
-  conn.on("PriceTick", handlers.onPriceTick);
-  if (handlers.onBidPlaced) conn.on("BidPlaced", handlers.onBidPlaced);
-
   conn.on("Error", (err: unknown) => {
     handlers.onError?.(parseHubError(err));
   });
@@ -173,9 +191,20 @@ export async function stopAuctionHub(
   } catch {
     /* ignore */
   }
-  conn.off("PriceTick");
-  conn.off("BidPlaced");
-  conn.off("Error");
+  for (const ev of [
+    "PriceTick",
+    "priceTick",
+    "BidPlaced",
+    "bidPlaced",
+    "AuctionUpdated",
+    "auctionupdated",
+    "AuctionClosed",
+    "auctionclosed",
+    "AuctionEnded",
+    "Error",
+  ]) {
+    conn.off(ev);
+  }
   try {
     await conn.stop();
   } catch {

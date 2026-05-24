@@ -10,14 +10,23 @@ import { ProductSelect } from "@/components/forms/ProductSelect";
 import { useAuth } from "@/context/AuthContext";
 import { canCreateTender } from "@/lib/permissions";
 import { createTender } from "@/services/tenders";
+import type { Product } from "@/types/farm";
+
+function toIso(local: string): string {
+  const d = new Date(local);
+  if (Number.isNaN(d.getTime())) throw new Error("تاريخ غير صالح");
+  return d.toISOString();
+}
 
 export default function CreateTenderPage() {
   const { user, requireAuth } = useAuth();
   const router = useRouter();
   const [step, setStep] = useState(1);
   const [productId, setProductId] = useState<number | "">("");
+  const [selectedProduct, setSelectedProduct] = useState<Product | undefined>();
   const [quantity, setQuantity] = useState("");
   const [title, setTitle] = useState("");
+  const [deliveryLocation, setDeliveryLocation] = useState("");
   const [maxBudget, setMaxBudget] = useState("");
   const [deliveryFrom, setDeliveryFrom] = useState("");
   const [deliveryTo, setDeliveryTo] = useState("");
@@ -35,23 +44,52 @@ export default function CreateTenderPage() {
     );
   }
 
+  function validateDates(): string | null {
+    const start = new Date(startTime);
+    const end = new Date(endTime);
+    const dFrom = new Date(deliveryFrom);
+    const dTo = new Date(deliveryTo);
+    if (end <= start) return "نهاية المناقصة يجب أن تكون بعد بدايتها";
+    if (dTo <= dFrom) return "نهاية التسليم يجب أن تكون بعد بدايته";
+    return null;
+  }
+
   async function submit() {
     if (!user?.userId || !productId) return;
+    if (!title.trim()) {
+      setError("أدخل عنوان المناقصة");
+      return;
+    }
+    if (!deliveryLocation.trim()) {
+      setError("أدخل موقع التسليم");
+      return;
+    }
     if (!quantity || !deliveryFrom || !deliveryTo || !startTime || !endTime) {
       setError("أكمل جميع الحقول المطلوبة");
       return;
     }
+    const dateErr = validateDates();
+    if (dateErr) {
+      setError(dateErr);
+      return;
+    }
+
+    const cropName =
+      selectedProduct?.nameAr || selectedProduct?.name || title.trim();
+
     setSubmitting(true);
     setError("");
     try {
       await createTender(user.userId, {
         productId: Number(productId),
+        title: title.trim(),
+        cropName,
+        deliveryLocation: deliveryLocation.trim(),
         quantity: Number(quantity),
-        deliveryFrom: new Date(deliveryFrom).toISOString(),
-        deliveryTo: new Date(deliveryTo).toISOString(),
-        startTime: new Date(startTime).toISOString(),
-        endTime: new Date(endTime).toISOString(),
-        title: title || undefined,
+        deliveryFrom: toIso(deliveryFrom),
+        deliveryTo: toIso(deliveryTo),
+        startTime: toIso(startTime),
+        endTime: toIso(endTime),
         maxBudget: maxBudget ? Number(maxBudget) : undefined,
         unit: "كغ",
       });
@@ -72,16 +110,37 @@ export default function CreateTenderPage() {
             <>
               <ProductSelect
                 productId={productId}
-                onChange={(id) => setProductId(id || "")}
+                onChange={(id, product) => {
+                  setProductId(id || "");
+                  setSelectedProduct(product);
+                  if (product?.nameAr && !title) setTitle(`مناقصة ${product.nameAr}`);
+                }}
               />
               <Input
                 label="الكمية المطلوبة"
                 type="number"
                 value={quantity}
                 onChange={(e) => setQuantity(e.target.value)}
+                required
               />
-              <Input label="عنوان المناقصة" value={title} onChange={(e) => setTitle(e.target.value)} />
-              <Button fullWidth disabled={!productId} onClick={() => setStep(2)}>
+              <Input
+                label="عنوان المناقصة"
+                value={title}
+                onChange={(e) => setTitle(e.target.value)}
+                required
+              />
+              <Input
+                label="موقع التسليم"
+                value={deliveryLocation}
+                onChange={(e) => setDeliveryLocation(e.target.value)}
+                placeholder="مثال: دمشق — ريف دمشق"
+                required
+              />
+              <Button
+                fullWidth
+                disabled={!productId || !title.trim() || !deliveryLocation.trim()}
+                onClick={() => setStep(2)}
+              >
                 التالي
               </Button>
             </>
@@ -99,12 +158,14 @@ export default function CreateTenderPage() {
                 type="datetime-local"
                 value={deliveryFrom}
                 onChange={(e) => setDeliveryFrom(e.target.value)}
+                required
               />
               <Input
                 label="التسليم إلى"
                 type="datetime-local"
                 value={deliveryTo}
                 onChange={(e) => setDeliveryTo(e.target.value)}
+                required
               />
               <Button fullWidth onClick={() => setStep(3)}>
                 التالي
@@ -118,12 +179,14 @@ export default function CreateTenderPage() {
                 type="datetime-local"
                 value={startTime}
                 onChange={(e) => setStartTime(e.target.value)}
+                required
               />
               <Input
                 label="نهاية المناقصة"
                 type="datetime-local"
                 value={endTime}
                 onChange={(e) => setEndTime(e.target.value)}
+                required
               />
               {error && <p className="text-sm text-red-600">{error}</p>}
               <Button fullWidth onClick={submit} disabled={submitting}>

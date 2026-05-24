@@ -19,6 +19,26 @@ export interface ConversationDetail extends Conversation {
   transportStatus?: string;
 }
 
+const CONTEXT_LABELS: Record<string, string> = {
+  order: "طلب بيع مباشر",
+  direct: "بيع مباشر",
+  auction: "مزاد",
+  tender: "مناقصة",
+  tender_offer: "عرض مناقصة",
+  transport_delivery: "نقل",
+};
+
+function contextTitle(raw: Record<string, unknown>): string | undefined {
+  const type = String(
+    raw.contextType ?? raw.ContextType ?? raw.orderType ?? raw.OrderType ?? "",
+  ).toLowerCase();
+  const ctxId = raw.contextId ?? raw.ContextId ?? raw.orderId ?? raw.OrderId;
+  const label = CONTEXT_LABELS[type];
+  if (label && ctxId != null) return `${label} #${ctxId}`;
+  if (label) return label;
+  return undefined;
+}
+
 function normalizeConversation(raw: unknown): Conversation | null {
   if (!raw || typeof raw !== "object") return null;
   const r = raw as Record<string, unknown>;
@@ -31,15 +51,29 @@ function normalizeConversation(raw: unknown): Conversation | null {
   );
   if (!Number.isFinite(id) || id <= 0) return null;
 
+  const lastMsg = r.lastMessage;
+  const lastFromNested =
+    lastMsg && typeof lastMsg === "object"
+      ? String((lastMsg as Record<string, unknown>).body ?? "")
+      : "";
+
   return {
     conversationId: id,
-    title: (r.title ?? r.Title ?? r.otherPartyName ?? r.OtherPartyName) as
-      | string
-      | undefined,
-    lastMessage: (r.lastMessage ??
-      r.LastMessage ??
-      r.lastMessagePreview ??
-      r.LastMessagePreview) as string | undefined,
+    title: (r.title ??
+      r.Title ??
+      r.otherPartyName ??
+      r.OtherPartyName ??
+      contextTitle(r)) as string | undefined,
+    lastMessage: String(
+      r.lastMessageBody ??
+        r.LastMessageBody ??
+        (lastFromNested || undefined) ??
+        r.lastMessage ??
+        r.LastMessage ??
+        r.lastMessagePreview ??
+        r.LastMessagePreview ??
+        "",
+    ).trim() || undefined,
     lastMessageAt: (r.lastMessageAt ?? r.LastMessageAt) as string | undefined,
     unreadCount: Number(r.unreadCount ?? r.UnreadCount ?? 0) || undefined,
     contextType: (r.contextType ?? r.ContextType ?? r.orderType ?? r.OrderType) as
@@ -57,22 +91,26 @@ async function fetchConversationList(path: string): Promise<Conversation[]> {
 }
 
 export async function getConversations(userId?: number) {
-  const uid = userId != null ? `?userId=${userId}&page=1&pageSize=50` : "?page=1&pageSize=50";
+  const baseQs =
+    userId != null
+      ? `userId=${encodeURIComponent(String(userId))}&page=1&pageSize=50`
+      : "page=1&pageSize=50";
 
-  try {
-    const summaries = await fetchConversationList(
-      `/api/Chat/conversations/summaries${uid}`,
-    );
-    if (summaries.length) return summaries;
-  } catch {
-    /* fallback */
-  }
+  const paths = [
+    `/api/Chat/conversations/summaries?${baseQs}`,
+    `${API.chat.conversations}?${baseQs}`,
+    `/api/Chat/conversations?${baseQs}`,
+  ];
 
-  try {
-    return await fetchConversationList(`${API.chat.conversations}${uid}`);
-  } catch {
-    return [];
+  for (const path of paths) {
+    try {
+      const list = await fetchConversationList(path);
+      if (list.length) return list;
+    } catch {
+      /* next */
+    }
   }
+  return [];
 }
 
 export async function getConversation(conversationId: number) {
@@ -121,6 +159,8 @@ export function parseConversationIdFromOpen(res: unknown): number | undefined {
   const id =
     obj?.conversationId ??
     obj?.chatConversationId ??
+    obj?.chatId ??
+    obj?.ChatId ??
     (obj?.conversation as Record<string, unknown>)?.conversationId ??
     (obj?.conversation as Record<string, unknown>)?.id ??
     obj?.id;

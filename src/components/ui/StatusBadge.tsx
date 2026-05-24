@@ -2,6 +2,7 @@ import { clsx } from "clsx";
 
 const STATUS_STYLES: Record<string, string> = {
   open: "bg-blue-50 text-blue-700",
+  closed: "bg-slate-100 text-slate-600",
   negotiating: "bg-amber-50 text-amber-800",
   assigned: "bg-emerald-50 text-emerald-700",
   completed: "bg-slate-100 text-slate-600",
@@ -13,6 +14,7 @@ const STATUS_STYLES: Record<string, string> = {
 
 const STATUS_AR: Record<string, string> = {
   open: "مفتوح",
+  closed: "مغلق",
   negotiating: "تفاوض",
   assigned: "مُعيَّن",
   completed: "مكتمل",

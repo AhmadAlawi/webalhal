@@ -7,11 +7,68 @@ import type {
   TransportRequestDetail,
 } from "@/types/transport";
 
-export async function getBuyerRequests() {
-  const data = await apiGet<TransportRequest[]>(
-    "/api/transport/me/buyer-requests",
+function normalizeTransportRequest(raw: Record<string, unknown>): TransportRequest {
+  const offers = raw.offers ?? raw.Offers;
+  const offersCount = Array.isArray(offers)
+    ? offers.length
+    : typeof raw.offersCount === "number"
+      ? raw.offersCount
+      : undefined;
+
+  return {
+    requestId: Number(
+      raw.transportRequestId ?? raw.requestId ?? raw.TransportRequestId ?? 0,
+    ),
+    orderType: String(raw.orderType ?? raw.OrderType ?? ""),
+    orderId: Number(raw.orderId ?? raw.OrderId ?? 0) || undefined,
+    status: String(raw.status ?? raw.Status ?? ""),
+    fromRegion: String(raw.fromRegion ?? raw.FromRegion ?? ""),
+    toRegion: String(raw.toRegion ?? raw.ToRegion ?? ""),
+    productType: String(raw.productType ?? raw.ProductType ?? ""),
+    weightKg: Number(raw.weightKg ?? raw.WeightKg ?? 0) || undefined,
+    preferredPickupDate: (raw.preferredPickupDate ?? raw.PreferredPickupDate) as
+      | string
+      | undefined,
+    agreedPrice: Number(raw.agreedPrice ?? raw.AgreedPrice ?? 0) || undefined,
+    assignedTransportProviderId:
+      Number(
+        raw.assignedTransportProviderId ?? raw.AssignedTransportProviderId ?? 0,
+      ) || undefined,
+    offersCount,
+    createdAt: (raw.createdAt ?? raw.CreatedAt) as string | undefined,
+  };
+}
+
+function extractPaginatedItems(data: unknown): Record<string, unknown>[] {
+  if (Array.isArray(data)) {
+    return data as Record<string, unknown>[];
+  }
+  if (data && typeof data === "object") {
+    const o = data as Record<string, unknown>;
+    if (Array.isArray(o.items)) return o.items as Record<string, unknown>[];
+    if (Array.isArray(o.Items)) return o.Items as Record<string, unknown>[];
+  }
+  return [];
+}
+
+export async function getBuyerRequests(
+  page = 1,
+  pageSize = 50,
+  status?: string,
+): Promise<TransportRequest[]> {
+  const sp = new URLSearchParams({
+    page: String(page),
+    pageSize: String(pageSize),
+  });
+  if (status) sp.set("status", status);
+
+  const data = await apiGet<unknown>(
+    `/api/transport/me/buyer-requests?${sp.toString()}`,
   );
-  return Array.isArray(data) ? data : [];
+
+  return extractPaginatedItems(data)
+    .map((row) => normalizeTransportRequest(row))
+    .filter((r) => r.requestId > 0);
 }
 
 export async function getNotifiedRequests() {
@@ -86,7 +143,15 @@ export async function findBuyerTransportForDeal(
 }
 
 export async function getTransportRequest(requestId: number) {
-  return apiGet<TransportRequestDetail>(`/api/transport/requests/${requestId}`);
+  const raw = await apiGet<Record<string, unknown>>(
+    `/api/transport/requests/${requestId}`,
+  );
+  const base = normalizeTransportRequest(raw);
+  const offers = raw.offers ?? raw.Offers;
+  return {
+    ...base,
+    offers: Array.isArray(offers) ? offers : [],
+  } as TransportRequestDetail & { offers?: unknown[] };
 }
 
 export async function assignTransport(body: AssignTransportPayload) {

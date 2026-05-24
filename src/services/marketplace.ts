@@ -52,7 +52,7 @@ export async function createListing(body: {
 }
 
 export async function createOrder(body: Record<string, unknown>) {
-  return apiPost(API.direct.orders, body);
+  return apiPost<Record<string, unknown>>(API.direct.orders, body);
 }
 
 export async function getMyOrders() {

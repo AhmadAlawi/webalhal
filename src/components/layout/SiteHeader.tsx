@@ -17,7 +17,7 @@ import {
   ShoppingBag,
 } from "lucide-react";
 import { useAuth } from "@/context/AuthContext";
-import { showTransportTab, showFab, canCreateAuction, canCreateTender, canCreateDirectListing } from "@/lib/permissions";
+import { useUserPermissions } from "@/hooks/useUserPermissions";
 import { clsx } from "clsx";
 import { RizqLogo } from "@/components/brand/RizqLogo";
 
@@ -32,9 +32,17 @@ const MAIN_LINKS = [
 export function SiteHeader() {
   const pathname = usePathname();
   const { user, isAuthenticated, logout, requireAuth } = useAuth();
+  const {
+    roleId,
+    canCreateAuction,
+    canCreateTender,
+    canCreateDirectListing,
+    showFab: showCreateFab,
+    showTransportTab: showTransportNav,
+  } = useUserPermissions();
   const [mobileOpen, setMobileOpen] = useState(false);
   const [createOpen, setCreateOpen] = useState(false);
-  const { notifCount, transportCount } = useHeaderBadges(isAuthenticated, user?.roleId);
+  const { notifCount, transportCount } = useHeaderBadges(isAuthenticated, roleId);
 
   useEffect(() => {
     setMobileOpen(false);
@@ -42,9 +50,9 @@ export function SiteHeader() {
   }, [pathname]);
 
   const createItems = [
-    canCreateAuction(user?.roleId) && { href: "/auctions/create", label: "إنشاء مزاد", icon: Gavel },
-    canCreateTender(user?.roleId) && { href: "/tenders/create", label: "إنشاء مناقصة", icon: FileText },
-    canCreateDirectListing(user?.roleId) && { href: "/direct/new", label: "بيع مباشر", icon: ShoppingBag },
+    canCreateAuction && { href: "/auctions/create", label: "إنشاء مزاد", icon: Gavel },
+    canCreateTender && { href: "/tenders/create", label: "إنشاء مناقصة", icon: FileText },
+    canCreateDirectListing && { href: "/direct/new", label: "بيع مباشر", icon: ShoppingBag },
   ].filter(Boolean) as { href: string; label: string; icon: typeof Gavel }[];
 
   return (
@@ -68,7 +76,7 @@ export function SiteHeader() {
               {link.label}
             </Link>
           ))}
-          {showTransportTab(user?.roleId) && (
+          {showTransportNav && (
             <Link
               href="/transport/inbox"
               className={clsx(
@@ -89,7 +97,7 @@ export function SiteHeader() {
         </nav>
 
         <div className="flex items-center gap-2 sm:gap-3">
-          {showFab(user?.roleId) && createItems.length > 0 && (
+          {showCreateFab && createItems.length > 0 && (
             <div className="relative hidden sm:block">
               <button
                 type="button"
@@ -203,7 +211,7 @@ export function SiteHeader() {
                 </Link>
               </li>
             ))}
-            {showTransportTab(user?.roleId) && (
+            {showTransportNav && (
               <li>
                 <Link href="/transport/inbox" className="flex items-center gap-2 rounded-lg px-4 py-3 text-sm font-medium text-slate-700">
                   <Truck className="h-4 w-4" />

@@ -38,16 +38,35 @@ export async function getNotifications(): Promise<NotificationItem[]> {
     );
     const list = normalizeList(data);
     if (list.length) return list;
+    if (data && typeof data === "object") {
+      const nested = (data as Record<string, unknown>).notifications;
+      if (Array.isArray(nested)) {
+        const fromNested = nested
+          .map(normalizeNotification)
+          .filter((n): n is NotificationItem => n != null);
+        if (fromNested.length) return fromNested;
+      }
+    }
   } catch {
     /* fallback */
   }
 
   try {
     const unread = await apiGet<unknown>("/api/notifications/unread");
-    return normalizeList(unread);
+    const list = normalizeList(unread);
+    if (list.length) return list;
+    if (unread && typeof unread === "object") {
+      const nested = (unread as Record<string, unknown>).notifications;
+      if (Array.isArray(nested)) {
+        return nested
+          .map(normalizeNotification)
+          .filter((n): n is NotificationItem => n != null);
+      }
+    }
   } catch {
     return [];
   }
+  return [];
 }
 
 export async function getUnreadCount(): Promise<number> {
@@ -56,7 +75,7 @@ export async function getUnreadCount(): Promise<number> {
       API.notifications.unreadCount,
     );
     const n = data?.count ?? data?.Count;
-    if (typeof n === "number") return n;
+    if (typeof n === "number" && Number.isFinite(n)) return n;
   } catch {
     /* fallback */
   }
