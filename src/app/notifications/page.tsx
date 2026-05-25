@@ -12,17 +12,8 @@ import {
   markNotificationRead,
 } from "@/services/notifications";
 import { useAuth } from "@/context/AuthContext";
+import { resolveNotificationDeepLink } from "@/lib/notificationDeepLinks";
 import type { NotificationItem } from "@/types";
-
-function resolveDeepLink(action?: string): string | null {
-  if (!action) return null;
-  if (action.startsWith("/")) return action;
-  const id = action.match(/\d+/)?.[0];
-  if (action.includes("auction") && id) return `/auctions/${id}`;
-  if (action.includes("tender") && id) return `/tenders/${id}`;
-  if (action.includes("chat") && id) return `/chat/${id}`;
-  return null;
-}
 
 export default function NotificationsPage() {
   const { requireAuth } = useAuth();
@@ -48,7 +39,7 @@ export default function NotificationsPage() {
         /* ignore */
       }
     }
-    const href = resolveDeepLink(n.clickAction);
+    const href = resolveNotificationDeepLink(n.clickAction);
     if (href) router.push(href);
   }
 

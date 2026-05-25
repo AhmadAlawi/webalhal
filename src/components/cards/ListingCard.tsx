@@ -16,6 +16,8 @@ interface ListingCardProps {
   location?: string;
   endTime?: string;
   badge?: string;
+  /** سطر إضافي: كمية، وحدة، حالة — مطابق لتطبيق الموبايل */
+  meta?: string;
 }
 
 export const ListingCard = memo(function ListingCard({
@@ -27,6 +29,7 @@ export const ListingCard = memo(function ListingCard({
   location,
   endTime,
   badge,
+  meta,
 }: ListingCardProps) {
   return (
     <Link
@@ -49,6 +52,7 @@ export const ListingCard = memo(function ListingCard({
       </div>
       <div className="p-4">
         <h3 className="line-clamp-2 font-semibold text-slate-900">{title}</h3>
+        {meta && <p className="mt-1 text-xs text-slate-500">{meta}</p>}
         {price != null && (
           <p className="mt-1 font-bold text-emerald-600">
             {priceLabel}: {formatPrice(price)} ل.س

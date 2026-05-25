@@ -123,6 +123,7 @@ export interface MarketplaceListing {
   productNameAr?: string;
   unitPrice?: number;
   availableQty?: number;
+  minOrderQty?: number;
   unit?: string;
   farmCity?: string;
   governorateName?: string;

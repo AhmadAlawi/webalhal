@@ -1,6 +1,6 @@
 "use client";
 
-import { Suspense, useCallback, useEffect, useState } from "react";
+import { Suspense, useCallback, useEffect, useMemo, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { PageHeader } from "@/components/ui/PageHeader";
 import { PageContainer } from "@/components/layout/PageContainer";
@@ -8,12 +8,15 @@ import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
 import { FarmCropSelect } from "@/components/forms/FarmCropSelect";
 import { LocationCascadeSelect } from "@/components/forms/LocationCascadeSelect";
+import { ImageUploadField } from "@/components/forms/ImageUploadField";
 import { useAuth } from "@/context/AuthContext";
 import { useUserPermissions } from "@/hooks/useUserPermissions";
 import { createAuction } from "@/services/auctions";
-import { getFarm, updateFarm } from "@/services/farms";
-import type { Farm } from "@/types/farm";
+import { getFarm, updateFarm, updateCrop } from "@/services/farms";
+import type { Crop, Farm } from "@/types/farm";
 import type { LocationSelection } from "@/types/location";
+
+type StepId = "farm" | "location" | "details" | "schedule";
 
 function toIso(local: string): string {
   const d = new Date(local);
@@ -37,6 +40,10 @@ function farmToLocation(farm?: Farm | null): LocationSelection {
   };
 }
 
+function farmHasCompleteLocation(farm?: Farm | null): boolean {
+  return Boolean(farm?.governorateId && farm?.cityId && farm?.areaId);
+}
+
 const AUCTION_RETURN = "/auctions/create";
 
 function CreateAuctionForm() {
@@ -44,9 +51,10 @@ function CreateAuctionForm() {
   const { canCreateAuction } = useUserPermissions();
   const router = useRouter();
   const searchParams = useSearchParams();
-  const [step, setStep] = useState(1);
+  const [step, setStep] = useState<StepId>("farm");
   const [farmId, setFarmId] = useState<number | "">("");
   const [selectedFarm, setSelectedFarm] = useState<Farm | null>(null);
+  const [selectedCrop, setSelectedCrop] = useState<Crop | null>(null);
   const [cropId, setCropId] = useState<number | "">("");
   const [location, setLocation] = useState<LocationSelection>(emptyLocation());
   const [startingPrice, setStartingPrice] = useState("");
@@ -56,8 +64,24 @@ function CreateAuctionForm() {
   const [secondEndTime, setSecondEndTime] = useState("");
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
+  const [imageUrls, setImageUrls] = useState<string[]>([]);
   const [error, setError] = useState("");
   const [submitting, setSubmitting] = useState(false);
+
+  const skipLocationStep = useMemo(
+    () => farmHasCompleteLocation(selectedFarm),
+    [selectedFarm],
+  );
+
+  const steps = useMemo<StepId[]>(
+    () =>
+      skipLocationStep
+        ? ["farm", "details", "schedule"]
+        : ["farm", "location", "details", "schedule"],
+    [skipLocationStep],
+  );
+
+  const stepIndex = steps.indexOf(step);
 
   useEffect(() => {
     requireAuth();
@@ -73,22 +97,28 @@ function CreateAuctionForm() {
   const handleFarmChange = useCallback((id: number, farm?: Farm) => {
     setFarmId(id || "");
     setSelectedFarm(farm ?? null);
-    setLocation((prev) => {
-      const next = farmToLocation(farm);
-      if (
-        prev.governorateId === next.governorateId &&
-        prev.cityId === next.cityId &&
-        prev.areaId === next.areaId
-      ) {
-        return prev;
-      }
-      return next;
-    });
+    setLocation(farmToLocation(farm));
   }, []);
 
-  const handleCropChange = useCallback((id: number) => {
+  const handleCropChange = useCallback((id: number, crop?: Crop) => {
     setCropId(id || "");
+    setSelectedCrop(crop ?? null);
+    if (crop) {
+      const name = crop.nameAr || crop.cropName || crop.name;
+      if (name) setTitle((t) => t || `مزاد ${name}`);
+      if (crop.imageUrls?.length) setImageUrls(crop.imageUrls);
+    }
   }, []);
+
+  function goNext() {
+    const i = steps.indexOf(step);
+    if (i >= 0 && i < steps.length - 1) setStep(steps[i + 1]);
+  }
+
+  function goBack() {
+    const i = steps.indexOf(step);
+    if (i > 0) setStep(steps[i - 1]);
+  }
 
   if (isLoading) {
     return (
@@ -124,7 +154,11 @@ function CreateAuctionForm() {
   }
 
   async function submit() {
-    if (!user?.userId || !cropId || !locationReady) return;
+    if (!user?.userId || !cropId) return;
+    if (!skipLocationStep && !locationReady) {
+      setError("موقع المزرعة غير مكتمل");
+      return;
+    }
     const timeErr = validateTimes();
     if (timeErr) {
       setError(timeErr);
@@ -141,9 +175,10 @@ function CreateAuctionForm() {
       if (farmId) {
         const fid = Number(farmId);
         const locationChanged =
-          Number(selectedFarm?.governorateId) !== Number(location.governorateId) ||
-          Number(selectedFarm?.cityId) !== Number(location.cityId) ||
-          Number(selectedFarm?.areaId) !== Number(location.areaId);
+          !skipLocationStep &&
+          (Number(selectedFarm?.governorateId) !== Number(location.governorateId) ||
+            Number(selectedFarm?.cityId) !== Number(location.cityId) ||
+            Number(selectedFarm?.areaId) !== Number(location.areaId));
 
         if (locationChanged) {
           let farmName = selectedFarm?.name?.trim() || selectedFarm?.nameAr?.trim();
@@ -167,11 +202,25 @@ function CreateAuctionForm() {
         }
       }
 
+      if (selectedCrop?.cropId && imageUrls.length > 0) {
+        const existing = selectedCrop.imageUrls ?? [];
+        const merged = [...new Set([...existing, ...imageUrls])];
+        if (merged.length !== existing.length) {
+          await updateCrop(selectedCrop.cropId, {
+            farmId: selectedCrop.farmId ?? Number(farmId),
+            productId: selectedCrop.productId,
+            name: selectedCrop.nameAr || selectedCrop.cropName || selectedCrop.name,
+            quantity: selectedCrop.quantity,
+            unit: selectedCrop.unit,
+            harvestDate: selectedCrop.harvestDate ?? new Date().toISOString(),
+            imageUrls: merged,
+          });
+        }
+      }
+
       const endIso = toIso(endTime);
       const startIso = toIso(startTime);
-      const secondIso = secondEndTime
-        ? toIso(secondEndTime)
-        : endIso;
+      const secondIso = secondEndTime ? toIso(secondEndTime) : endIso;
 
       await createAuction(user.userId, {
         cropId: Number(cropId),
@@ -196,44 +245,64 @@ function CreateAuctionForm() {
       <PageHeader title="إنشاء مزاد" backHref="/auctions" />
       <PageContainer narrow className="py-8">
         <div className="mb-6 flex gap-2">
-          {[1, 2, 3, 4].map((s) => (
+          {steps.map((s, i) => (
             <span
               key={s}
-              className={`h-2 flex-1 rounded-full ${step >= s ? "bg-emerald-600" : "bg-slate-200"}`}
+              className={`h-2 flex-1 rounded-full ${stepIndex >= i ? "bg-emerald-600" : "bg-slate-200"}`}
             />
           ))}
         </div>
         <div className="space-y-4 rounded-2xl border border-gray-100 bg-white p-6 shadow-sm">
-          {step === 1 && (
+          {step === "farm" && (
             <>
               <p className="text-sm text-slate-600">الخطوة 1: اختر المزرعة والمحصول</p>
+              {skipLocationStep && selectedFarm && (
+                <p className="rounded-lg bg-emerald-50 px-3 py-2 text-xs text-emerald-800">
+                  موقع المزرعة محفوظ:{" "}
+                  {[selectedFarm.governorateName, selectedFarm.cityName, selectedFarm.area]
+                    .filter(Boolean)
+                    .join(" — ")}
+                  . لن نطلب المحافظة مرة أخرى.
+                </p>
+              )}
               <FarmCropSelect
                 cropId={cropId}
                 farmId={farmId}
                 returnTo={AUCTION_RETURN}
                 onCropChange={handleCropChange}
                 onFarmChange={handleFarmChange}
+                onlyAvailable
               />
-              <Button fullWidth disabled={!cropId} onClick={() => setStep(2)}>
+              <Button fullWidth disabled={!cropId} onClick={goNext}>
                 التالي
               </Button>
             </>
           )}
 
-          {step === 2 && (
+          {step === "location" && (
             <>
               <p className="text-sm text-slate-600">
-                الخطوة 2: موقع المزاد (المحافظة → المدينة → المقاطعة)
+                الخطوة 2: أكمل موقع المزرعة (المحافظة → المدينة → المقاطعة)
+              </p>
+              <p className="text-xs text-amber-700">
+                المزرعة المختارة لا تحتوي موقعاً كاملاً في النظام — أضفه مرة واحدة وسيُحفظ
+                مع المزرعة.
               </p>
               <LocationCascadeSelect value={location} onChange={setLocation} />
-              <Button fullWidth disabled={!locationReady} onClick={() => setStep(3)}>
-                التالي
-              </Button>
+              <div className="flex gap-2">
+                <Button variant="outline" fullWidth onClick={goBack}>
+                  رجوع
+                </Button>
+                <Button fullWidth disabled={!locationReady} onClick={goNext}>
+                  التالي
+                </Button>
+              </div>
             </>
           )}
 
-          {step === 3 && (
+          {step === "details" && (
             <>
+              <p className="text-sm text-slate-600">تفاصيل المزاد والصور</p>
               <Input
                 label="سعر البداية (ل.س)"
                 type="number"
@@ -263,17 +332,28 @@ function CreateAuctionForm() {
                   required
                 />
               </label>
-              <Button
-                fullWidth
-                disabled={!startingPrice || !minIncrement || !description.trim()}
-                onClick={() => setStep(4)}
-              >
-                التالي
-              </Button>
+              <ImageUploadField
+                label="صور المحصول (مطلوبة لنجاح المزاد)"
+                value={imageUrls}
+                onChange={setImageUrls}
+                folder="auctions"
+              />
+              <div className="flex gap-2">
+                <Button variant="outline" fullWidth onClick={goBack}>
+                  رجوع
+                </Button>
+                <Button
+                  fullWidth
+                  disabled={!startingPrice || !minIncrement || !description.trim()}
+                  onClick={goNext}
+                >
+                  التالي
+                </Button>
+              </div>
             </>
           )}
 
-          {step === 4 && (
+          {step === "schedule" && (
             <>
               <Input
                 label="وقت البداية"
@@ -296,13 +376,17 @@ function CreateAuctionForm() {
                 onChange={(e) => setSecondEndTime(e.target.value)}
               />
               <p className="text-xs text-slate-500">
-                إن وُجد، يجب أن يكون وقت النهاية الثانية بين البداية ونهاية المزاد (عادةً
-                قبل الإغلاق بدقائق).
+                إن وُجد، يجب أن يكون وقت النهاية الثانية بين البداية ونهاية المزاد.
               </p>
               {error && <p className="text-sm text-red-600">{error}</p>}
-              <Button fullWidth onClick={submit} disabled={submitting}>
-                {submitting ? "جاري النشر..." : "نشر المزاد"}
-              </Button>
+              <div className="flex gap-2">
+                <Button variant="outline" fullWidth onClick={goBack}>
+                  رجوع
+                </Button>
+                <Button fullWidth onClick={submit} disabled={submitting}>
+                  {submitting ? "جاري النشر..." : "نشر المزاد"}
+                </Button>
+              </div>
             </>
           )}
         </div>

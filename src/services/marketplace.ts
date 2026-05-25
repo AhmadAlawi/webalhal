@@ -41,14 +41,26 @@ export async function getListing(id: number) {
   return apiGet<MarketplaceListing>(API.direct.listingById(id));
 }
 
-/** Swagger CreateListingDto: sellerUserId, cropId, title?, price */
+/** Swagger CreateListingDto — مطابق لتطبيق الموبايل */
 export async function createListing(body: {
   sellerUserId: number;
   cropId: number;
   title?: string;
   price: number;
+  unitPrice?: number;
+  availableQty?: number;
+  minOrderQty?: number;
+  maxOrderQty?: number;
+  unit?: string;
+  cropName?: string;
+  imageUrls?: string[];
 }) {
-  return apiPost(API.direct.listings, body);
+  const unitPrice = body.unitPrice ?? body.price;
+  return apiPost(API.direct.listings, {
+    ...body,
+    unitPrice,
+    price: unitPrice,
+  });
 }
 
 export async function createOrder(body: Record<string, unknown>) {

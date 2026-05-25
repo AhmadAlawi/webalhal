@@ -26,6 +26,9 @@ function normalizeFarm(raw: unknown): Farm | null {
     cityName: (r.city ?? r.CityName ?? r.cityName) as string | undefined,
     area: (r.area ?? r.AreaName ?? r.areaName) as string | undefined,
     location: (r.village ?? r.location ?? r.Location) as string | undefined,
+    village: (r.village ?? r.Village) as string | undefined,
+    latitude: Number(r.latitude ?? r.Latitude) || undefined,
+    longitude: Number(r.longitude ?? r.Longitude) || undefined,
   };
 }
 
@@ -60,7 +63,21 @@ function normalizeCrop(raw: unknown): Crop | null {
     cropName: (r.cropName ?? r.CropName) as string | undefined,
     unit: (r.unit ?? r.Unit) as string | undefined,
     quantity: Number(r.quantity ?? r.Quantity) || undefined,
+    productId: Number(r.productId ?? r.ProductId) || undefined,
+    status: (r.status ?? r.Status) as string | undefined,
+    harvestDate: (r.harvestDate ?? r.HarvestDate) as string | undefined,
+    imageUrls: Array.isArray(r.imageUrls)
+      ? (r.imageUrls as string[])
+      : Array.isArray(r.images)
+        ? (r.images as { url?: string; imageUrl?: string }[])
+            .map((img) => img.url ?? img.imageUrl)
+            .filter((u): u is string => Boolean(u))
+        : undefined,
   };
+}
+
+export async function updateCrop(cropId: number, body: Record<string, unknown>) {
+  return apiPut<Crop>(`/api/crops/${cropId}`, body);
 }
 
 export async function createCrop(body: {
@@ -72,6 +89,7 @@ export async function createCrop(body: {
   harvestDate: string;
   expiryDate?: string;
   variety?: string;
+  imageUrls?: string[];
 }) {
   return apiPost<Crop>("/api/crops", body);
 }

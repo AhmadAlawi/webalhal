@@ -7,6 +7,7 @@ import { PageContainer } from "@/components/layout/PageContainer";
 import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
 import { ProductSelect } from "@/components/forms/ProductSelect";
+import { ImageUploadField } from "@/components/forms/ImageUploadField";
 import { createCrop } from "@/services/farms";
 import { navigateAfterCreate, parseEntityId } from "@/lib/return-navigation";
 import { useAuth } from "@/context/AuthContext";
@@ -25,6 +26,7 @@ function NewCropForm() {
   const [unit, setUnit] = useState("كغ");
   const [harvestDate, setHarvestDate] = useState("");
   const [expiryDate, setExpiryDate] = useState("");
+  const [imageUrls, setImageUrls] = useState<string[]>([]);
   const [error, setError] = useState("");
   const [saving, setSaving] = useState(false);
 
@@ -69,6 +71,7 @@ function NewCropForm() {
         unit: unit.trim() || "كغ",
         harvestDate: harvest.toISOString(),
         expiryDate: expiryDate ? new Date(expiryDate).toISOString() : undefined,
+        imageUrls: imageUrls.length ? imageUrls : undefined,
       });
       const newCropId = parseEntityId(res, "cropId", "CropId");
 
@@ -129,6 +132,7 @@ function NewCropForm() {
             value={expiryDate}
             onChange={(e) => setExpiryDate(e.target.value)}
           />
+          <ImageUploadField value={imageUrls} onChange={setImageUrls} />
           {error && <p className="text-sm text-red-600">{error}</p>}
           <Button fullWidth onClick={submit} disabled={saving}>
             {saving ? "جاري الحفظ..." : "حفظ المحصول"}

@@ -7,6 +7,7 @@ import { PageContainer } from "@/components/layout/PageContainer";
 import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
 import { ProductSelect } from "@/components/forms/ProductSelect";
+import { ImageUploadField } from "@/components/forms/ImageUploadField";
 import { useAuth } from "@/context/AuthContext";
 import { canCreateTender } from "@/lib/permissions";
 import { createTender } from "@/services/tenders";
@@ -32,6 +33,7 @@ export default function CreateTenderPage() {
   const [deliveryTo, setDeliveryTo] = useState("");
   const [startTime, setStartTime] = useState("");
   const [endTime, setEndTime] = useState("");
+  const [imageUrls, setImageUrls] = useState<string[]>([]);
   const [error, setError] = useState("");
   const [submitting, setSubmitting] = useState(false);
 
@@ -92,6 +94,7 @@ export default function CreateTenderPage() {
         endTime: toIso(endTime),
         maxBudget: maxBudget ? Number(maxBudget) : undefined,
         unit: "كغ",
+        imageUrls: imageUrls.length ? imageUrls : undefined,
       });
       router.push("/tenders");
     } catch (e) {
@@ -167,6 +170,7 @@ export default function CreateTenderPage() {
                 onChange={(e) => setDeliveryTo(e.target.value)}
                 required
               />
+              <ImageUploadField value={imageUrls} onChange={setImageUrls} folder="tenders" />
               <Button fullWidth onClick={() => setStep(3)}>
                 التالي
               </Button>

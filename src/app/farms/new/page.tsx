@@ -27,6 +27,8 @@ function NewFarmForm() {
   const [name, setName] = useState("");
   const [location, setLocation] = useState<LocationSelection>(emptyLocation);
   const [village, setVillage] = useState("");
+  const [latitude, setLatitude] = useState("");
+  const [longitude, setLongitude] = useState("");
   const [error, setError] = useState("");
   const [saving, setSaving] = useState(false);
 
@@ -62,6 +64,8 @@ function NewFarmForm() {
         governorate: location.governorateName,
         city: location.cityName,
         village: village.trim() || undefined,
+        latitude: latitude.trim() ? Number(latitude) : undefined,
+        longitude: longitude.trim() ? Number(longitude) : undefined,
         canStoreAfterHarvest: false,
       });
       const newFarmId = parseEntityId(res, "farmId", "FarmId");
@@ -87,12 +91,33 @@ function NewFarmForm() {
           <LocationCascadeSelect value={location} onChange={setLocation} />
 
           <Input
-            label="القرية / تفاصيل إضافية (اختياري)"
+            label="القرية / وصف الموقع (اختياري)"
             value={village}
             onChange={(e) => setVillage(e.target.value)}
             placeholder="اسم القرية أو معلم قريب"
             disabled={!locationReady}
           />
+          <div className="grid grid-cols-2 gap-3">
+            <Input
+              label="خط العرض (اختياري)"
+              type="number"
+              step="any"
+              value={latitude}
+              onChange={(e) => setLatitude(e.target.value)}
+              placeholder="33.5138"
+            />
+            <Input
+              label="خط الطول (اختياري)"
+              type="number"
+              step="any"
+              value={longitude}
+              onChange={(e) => setLongitude(e.target.value)}
+              placeholder="36.2765"
+            />
+          </div>
+          <p className="text-xs text-slate-500">
+            يمكنك لاحقاً فتح الموقع على الخريطة من تطبيق الجوال؛ هنا نحفظ الإحداثيات كنص.
+          </p>
 
           {error && <p className="text-sm text-red-600">{error}</p>}
           <Button fullWidth onClick={submit} disabled={saving || !locationReady}>

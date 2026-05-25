@@ -5,6 +5,7 @@ import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import { StatusBadge } from "@/components/ui/StatusBadge";
 import { formatPrice } from "@/lib/auctionPricing";
+import { getAuctionLocation, getListingLocation, getTenderLocation } from "@/lib/marketplace";
 import { getAuctionsCreatedByUser } from "@/services/auctions";
 import { getTendersCreatedByUser } from "@/services/tenders";
 import { getMyDirectListings, getBuyerOrders } from "@/services/direct";
@@ -92,9 +93,20 @@ export function MyActivityContent() {
               <li key={t.tenderId}>
                 <Link
                   href={`/tenders/${t.tenderId}`}
-                  className="flex items-center justify-between rounded-xl border bg-white px-5 py-4 hover:border-emerald-200"
+                  className="flex flex-col gap-1 rounded-xl border bg-white px-5 py-4 hover:border-emerald-200 sm:flex-row sm:items-center sm:justify-between"
                 >
-                  <span className="font-medium">{t.title || t.cropName}</span>
+                  <div>
+                    <span className="font-medium">{t.title || t.cropName}</span>
+                    <p className="mt-1 text-xs text-slate-500">
+                      {[
+                        t.quantity != null ? `${t.quantity} ${t.unit || ""}` : null,
+                        t.maxBudget != null ? `ميزانية ${formatPrice(t.maxBudget)} ل.س` : null,
+                        getTenderLocation(t),
+                      ]
+                        .filter(Boolean)
+                        .join(" · ")}
+                    </p>
+                  </div>
                   <StatusBadge status={t.status} />
                 </Link>
               </li>
@@ -109,9 +121,20 @@ export function MyActivityContent() {
               <li key={a.auctionId}>
                 <Link
                   href={`/auctions/${a.auctionId}`}
-                  className="flex items-center justify-between rounded-xl border bg-white px-5 py-4 hover:border-emerald-200"
+                  className="flex flex-col gap-1 rounded-xl border bg-white px-5 py-4 hover:border-emerald-200 sm:flex-row sm:items-center sm:justify-between"
                 >
-                  <span className="font-medium">{a.auctionTitle || a.cropName}</span>
+                  <div>
+                    <span className="font-medium">{a.auctionTitle || a.cropName}</span>
+                    <p className="mt-1 text-xs text-slate-500">
+                      {[
+                        a.cropQuantity != null ? `${a.cropQuantity} ${a.cropUnit || ""}` : null,
+                        a.currentPrice != null ? `السعر ${formatPrice(a.currentPrice)} ل.س` : null,
+                        getAuctionLocation(a),
+                      ]
+                        .filter(Boolean)
+                        .join(" · ")}
+                    </p>
+                  </div>
                   <StatusBadge status={a.status} />
                 </Link>
               </li>
@@ -126,11 +149,22 @@ export function MyActivityContent() {
               <li key={l.listingId}>
                 <Link
                   href={`/direct/${l.listingId}/buy`}
-                  className="flex items-center justify-between rounded-xl border bg-white px-5 py-4 hover:border-emerald-200"
+                  className="flex flex-col gap-1 rounded-xl border bg-white px-5 py-4 hover:border-emerald-200 sm:flex-row sm:items-center sm:justify-between"
                 >
-                  <span className="font-medium">{l.title || l.cropName}</span>
+                  <div>
+                    <span className="font-medium">{l.title || l.cropName}</span>
+                    <p className="mt-1 text-xs text-slate-500">
+                      {[
+                        l.availableQty != null ? `متاح ${l.availableQty} ${l.unit || ""}` : null,
+                        getListingLocation(l),
+                        l.status,
+                      ]
+                        .filter(Boolean)
+                        .join(" · ")}
+                    </p>
+                  </div>
                   <span className="font-bold text-emerald-600">
-                    {formatPrice(l.unitPrice ?? 0)} ل.س
+                    {formatPrice(l.unitPrice ?? 0)} ل.س / وحدة
                   </span>
                 </Link>
               </li>

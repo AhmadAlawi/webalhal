@@ -140,6 +140,12 @@ export function MarketListings({
             location={getAuctionLocation(a)}
             endTime={a.endTime}
             badge="مزاد"
+            meta={[
+              a.cropQuantity != null ? `${a.cropQuantity} ${a.cropUnit || a.unit || ""}` : null,
+              a.status,
+            ]
+              .filter(Boolean)
+              .join(" · ")}
           />
         ))}
       {tab === "tenders" &&
@@ -154,6 +160,13 @@ export function MarketListings({
             location={getTenderLocation(t)}
             endTime={t.endTime}
             badge="مناقصة"
+            meta={[
+              t.quantity != null ? `${t.quantity} ${t.unit || ""}` : null,
+              t.deliveryLocation,
+              t.status,
+            ]
+              .filter(Boolean)
+              .join(" · ")}
           />
         ))}
       {tab === "direct" &&
@@ -167,6 +180,13 @@ export function MarketListings({
             priceLabel="سعر الوحدة"
             location={getListingLocation(l)}
             badge="بيع مباشر"
+            meta={[
+              l.availableQty != null ? `متاح: ${l.availableQty} ${l.unit || ""}` : null,
+              l.minOrderQty != null ? `أقل طلب: ${l.minOrderQty}` : null,
+              l.status,
+            ]
+              .filter(Boolean)
+              .join(" · ")}
           />
         ))}
     </div>

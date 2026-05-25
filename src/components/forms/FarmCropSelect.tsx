@@ -4,6 +4,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { Plus } from "lucide-react";
 import { getMyFarms, getCropsByFarm } from "@/services/farms";
+import { isCropSelectable, cropStatusLabel } from "@/lib/crop-status";
 import { useAuth } from "@/context/AuthContext";
 import type { Crop, Farm } from "@/types/farm";
 
@@ -14,14 +15,16 @@ export function FarmCropSelect({
   onFarmChange,
   returnTo,
   label = "المحصول",
+  onlyAvailable = true,
 }: {
   cropId: number | "";
   farmId?: number | "";
   onCropChange: (cropId: number, crop?: Crop) => void;
   onFarmChange?: (farmId: number, farm?: Farm) => void;
-  /** عند التعيين: روابط إنشاء مزرعة/محصول والعودة لهذه الصفحة */
   returnTo?: string;
   label?: string;
+  /** إخفاء المحاصيل المباعة أو المعروضة في مزاد/بيع مباشر */
+  onlyAvailable?: boolean;
 }) {
   const [farms, setFarms] = useState<Farm[]>([]);
   const [farmId, setFarmId] = useState<number | "">(controlledFarmId ?? "");
@@ -43,14 +46,6 @@ export function FarmCropSelect({
     if (!user?.userId) return Promise.resolve([]);
     return getMyFarms(user.userId);
   }, [user?.userId]);
-
-  const loadCrops = useCallback((fid: number) => {
-    setLoadingCrops(true);
-    return getCropsByFarm(fid)
-      .then(setCrops)
-      .catch(() => setCrops([]))
-      .finally(() => setLoadingCrops(false));
-  }, []);
 
   useEffect(() => {
     if (!isAuthenticated || !user?.userId) {
@@ -118,6 +113,14 @@ export function FarmCropSelect({
     };
   }, [farmId]);
 
+  const visibleCrops = onlyAvailable ? crops.filter(isCropSelectable) : crops;
+
+  useEffect(() => {
+    if (!cropId || !visibleCrops.length) return;
+    const crop = visibleCrops.find((c) => c.cropId === cropId);
+    if (crop) onCropChangeRef.current(cropId, crop);
+  }, [cropId, visibleCrops]);
+
   const farmNewHref = returnTo
     ? `/farms/new?returnTo=${encodeURIComponent(returnTo)}`
     : "/farms/new";
@@ -156,19 +159,12 @@ export function FarmCropSelect({
         {farms.map((f) => (
           <option key={f.farmId} value={f.farmId}>
             {f.nameAr || f.name || `مزرعة #${f.farmId}`}
-            {f.cityName ? ` — ${f.cityName}` : ""}
+            {f.governorateName || f.cityName
+              ? ` — ${[f.governorateName, f.cityName].filter(Boolean).join("، ")}`
+              : ""}
           </option>
         ))}
       </select>
-
-      {farms.length === 0 && !loadingFarms && !returnTo && (
-        <p className="text-xs text-amber-700">
-          لا توجد مزارع.{" "}
-          <Link href="/farms/new" className="font-semibold underline">
-            أضف مزرعة
-          </Link>
-        </p>
-      )}
 
       <div className="flex flex-wrap items-center justify-between gap-2">
         <span className="text-sm font-medium text-slate-700">{label}</span>
@@ -178,8 +174,6 @@ export function FarmCropSelect({
             className={`inline-flex items-center gap-1 text-xs font-semibold hover:underline ${
               farmId ? "text-emerald-700" : "pointer-events-none text-slate-400"
             }`}
-            aria-disabled={!farmId}
-            tabIndex={farmId ? 0 : -1}
           >
             <Plus className="h-3.5 w-3.5" />
             محصول جديد
@@ -192,7 +186,7 @@ export function FarmCropSelect({
         disabled={!farmId || loadingCrops}
         onChange={(e) => {
           const id = Number(e.target.value);
-          const crop = crops.find((c) => c.cropId === id);
+          const crop = visibleCrops.find((c) => c.cropId === id);
           onCropChangeRef.current(id, crop);
         }}
       >
@@ -201,16 +195,30 @@ export function FarmCropSelect({
             ? "اختر المزرعة أولاً"
             : loadingCrops
               ? "جاري تحميل المحاصيل..."
-              : crops.length === 0
-                ? "لا محاصيل — أضف محصولاً"
+              : visibleCrops.length === 0
+                ? onlyAvailable && crops.length > 0
+                  ? "لا محاصيل متاحة — المحاصيل الحالية مباعة أو في مزاد"
+                  : "لا محاصيل — أضف محصولاً"
                 : "اختر المحصول"}
         </option>
-        {crops.map((c) => (
-          <option key={c.cropId} value={c.cropId}>
-            {c.nameAr || c.cropName || c.name || `#${c.cropId}`}
-          </option>
-        ))}
+        {visibleCrops.map((c) => {
+          const status = cropStatusLabel(c.status);
+          const label =
+            (c.nameAr || c.cropName || c.name || `#${c.cropId}`) +
+            (c.quantity != null ? ` — ${c.quantity} ${c.unit || ""}` : "") +
+            (status ? ` (${status})` : "");
+          return (
+            <option key={c.cropId} value={c.cropId}>
+              {label}
+            </option>
+          );
+        })}
       </select>
+      {onlyAvailable && crops.length > visibleCrops.length && (
+        <p className="text-xs text-amber-700">
+          {crops.length - visibleCrops.length} محصول مخفي (مباع أو معروض مسبقاً)
+        </p>
+      )}
     </div>
   );
 }

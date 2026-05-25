@@ -11,6 +11,9 @@ import {
   getTransportMatches,
 } from "@/services/transport";
 import { useCities } from "@/hooks/useCities";
+import { getGovernorates } from "@/services/locations";
+import { locationLabel } from "@/services/locations";
+import type { Governorate } from "@/types/location";
 import type { TransportPriceLineMatch, TransportRequestDetail } from "@/types/transport";
 import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
@@ -28,6 +31,9 @@ export function TransportAssignPanel({ deal }: { deal: DealContext }) {
   const { user } = useAuth();
   const [mode, setMode] = useState<"assign" | "request">("assign");
   const { data: cities = [], isLoading: loadingCities } = useCities();
+  const [governorates, setGovernorates] = useState<Governorate[]>([]);
+  const [fromGovernorateId, setFromGovernorateId] = useState<number | "">("");
+  const [toGovernorateId, setToGovernorateId] = useState<number | "">("");
   const [productType, setProductType] = useState("محاصيل");
   const [weightKg, setWeightKg] = useState("100");
   const [distanceKm, setDistanceKm] = useState("50");
@@ -58,9 +64,26 @@ export function TransportAssignPanel({ deal }: { deal: DealContext }) {
   }, [deal.orderType, deal.orderId]);
 
   useEffect(() => {
-    if (deal.farmCityId) setFromCityId(deal.farmCityId);
+    getGovernorates()
+      .then(setGovernorates)
+      .catch(() => setGovernorates([]));
+  }, []);
+
+  useEffect(() => {
+    if (deal.farmCityId) {
+      setFromCityId(deal.farmCityId);
+      const city = cities.find((c) => c.cityId === deal.farmCityId);
+      if (city?.governorateId) setFromGovernorateId(city.governorateId);
+    }
     loadExisting();
-  }, [deal.farmCityId, loadExisting]);
+  }, [deal.farmCityId, loadExisting, cities]);
+
+  const fromCities = fromGovernorateId
+    ? cities.filter((c) => c.governorateId === fromGovernorateId)
+    : [];
+  const toCities = toGovernorateId
+    ? cities.filter((c) => c.governorateId === toGovernorateId)
+    : [];
 
   async function handleSearch() {
     if (!fromCityId || !toCityId) {
@@ -238,47 +261,87 @@ export function TransportAssignPanel({ deal }: { deal: DealContext }) {
 
         {!isAssigned && (
           <>
-            <div className="grid gap-3 sm:grid-cols-2">
-              <label className="flex flex-col gap-1 text-xs">
-                <span className="font-medium text-slate-600">
+            <div className="space-y-4">
+              <div className="rounded-xl border border-gray-100 bg-white/80 p-3">
+                <p className="mb-2 text-xs font-semibold text-slate-700">
                   <MapPin className="inline h-3 w-3" /> من (استلام)
-                </span>
-                <select
-                  className="rounded-lg border border-gray-200 px-2 py-2 text-sm"
-                  value={fromCityId}
-                  disabled={loadingCities}
-                  onChange={(e) =>
-                    setFromCityId(e.target.value ? Number(e.target.value) : "")
-                  }
-                >
-                  <option value="">اختر المدينة</option>
-                  {cities.map((c) => (
-                    <option key={c.cityId} value={c.cityId}>
-                      {c.nameAr || c.name}
+                </p>
+                <div className="grid gap-2 sm:grid-cols-2">
+                  <select
+                    className="rounded-lg border border-gray-200 px-2 py-2 text-sm"
+                    value={fromGovernorateId}
+                    onChange={(e) => {
+                      const id = e.target.value ? Number(e.target.value) : "";
+                      setFromGovernorateId(id);
+                      setFromCityId("");
+                    }}
+                  >
+                    <option value="">المحافظة</option>
+                    {governorates.map((g) => (
+                      <option key={g.governorateId} value={g.governorateId}>
+                        {locationLabel(g)}
+                      </option>
+                    ))}
+                  </select>
+                  <select
+                    className="rounded-lg border border-gray-200 px-2 py-2 text-sm"
+                    value={fromCityId}
+                    disabled={!fromGovernorateId || loadingCities}
+                    onChange={(e) =>
+                      setFromCityId(e.target.value ? Number(e.target.value) : "")
+                    }
+                  >
+                    <option value="">
+                      {!fromGovernorateId ? "اختر المحافظة أولاً" : "المدينة"}
                     </option>
-                  ))}
-                </select>
-              </label>
-              <label className="flex flex-col gap-1 text-xs">
-                <span className="font-medium text-slate-600">
+                    {fromCities.map((c) => (
+                      <option key={c.cityId} value={c.cityId}>
+                        {c.nameAr || c.name}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              </div>
+              <div className="rounded-xl border border-gray-100 bg-white/80 p-3">
+                <p className="mb-2 text-xs font-semibold text-slate-700">
                   <MapPin className="inline h-3 w-3" /> إلى (تسليم)
-                </span>
-                <select
-                  className="rounded-lg border border-gray-200 px-2 py-2 text-sm"
-                  value={toCityId}
-                  disabled={loadingCities}
-                  onChange={(e) =>
-                    setToCityId(e.target.value ? Number(e.target.value) : "")
-                  }
-                >
-                  <option value="">اختر المدينة</option>
-                  {cities.map((c) => (
-                    <option key={c.cityId} value={c.cityId}>
-                      {c.nameAr || c.name}
+                </p>
+                <div className="grid gap-2 sm:grid-cols-2">
+                  <select
+                    className="rounded-lg border border-gray-200 px-2 py-2 text-sm"
+                    value={toGovernorateId}
+                    onChange={(e) => {
+                      const id = e.target.value ? Number(e.target.value) : "";
+                      setToGovernorateId(id);
+                      setToCityId("");
+                    }}
+                  >
+                    <option value="">المحافظة</option>
+                    {governorates.map((g) => (
+                      <option key={g.governorateId} value={g.governorateId}>
+                        {locationLabel(g)}
+                      </option>
+                    ))}
+                  </select>
+                  <select
+                    className="rounded-lg border border-gray-200 px-2 py-2 text-sm"
+                    value={toCityId}
+                    disabled={!toGovernorateId || loadingCities}
+                    onChange={(e) =>
+                      setToCityId(e.target.value ? Number(e.target.value) : "")
+                    }
+                  >
+                    <option value="">
+                      {!toGovernorateId ? "اختر المحافظة أولاً" : "المدينة"}
                     </option>
-                  ))}
-                </select>
-              </label>
+                    {toCities.map((c) => (
+                      <option key={c.cityId} value={c.cityId}>
+                        {c.nameAr || c.name}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              </div>
             </div>
 
             {mode === "request" && (

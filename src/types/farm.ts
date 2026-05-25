@@ -10,17 +10,23 @@ export interface Farm {
   area?: string;
   location?: string;
   village?: string;
+  latitude?: number;
+  longitude?: number;
 }
 
 export interface Crop {
   cropId: number;
   farmId?: number;
+  productId?: number;
   name?: string;
   nameAr?: string;
   cropName?: string;
   unit?: string;
   quantity?: number;
   categoryId?: number;
+  status?: string;
+  imageUrls?: string[];
+  harvestDate?: string;
 }
 
 export interface Product {
