@@ -1,0 +1,12 @@
+{"_e":"root:init","_t":1779842658625,"format":"v0-jsonl","version":"56.1.12"}
+{"_e":"env:mode","_t":1779842658627,"nodeEnv":"development","babelEnv":"development","mode":"development"}
+{"_e":"env:load","_t":1779842658648,"mode":"development","files":["../..\\..\\.env.local"],"env":{"NEXT_PUBLIC_API_URL":"https://alhal.awnak.net"}}
+{"_e":"devserver:start","_t":1779842662466,"mode":"development","web":true,"baseUrl":"","asyncRoutes":false,"routerRoot":"../..\\..\\src\\app","serverComponents":false,"serverActions":false,"serverRendering":false,"apiRoutes":false,"exporting":false}
+{"_e":"metro:config","_t":1779842670329,"serverRoot":"../..\\..","projectRoot":"../..\\..","exporting":false,"flags":{"autolinkingModuleResolution":false,"serverActions":false,"serverComponents":false,"reactCompiler":false,"optimizeGraph":false,"treeshaking":false,"logbox":false}}
+{"_e":"metro:instantiate","_t":1779842691457,"atlas":false,"workers":6,"host":"::","port":8081}
+{"_e":"root:init","_t":1779847277662,"format":"v0-jsonl","version":"56.1.12"}
+{"_e":"env:mode","_t":1779847277664,"nodeEnv":"development","babelEnv":"development","mode":"development"}
+{"_e":"env:load","_t":1779847277670,"mode":"development","files":["../..\\..\\.env.local"],"env":{"NEXT_PUBLIC_API_URL":"https://alhal.awnak.net"}}
+{"_e":"root:init","_t":1779847299594,"format":"v0-jsonl","version":"56.1.12"}
+{"_e":"env:mode","_t":1779847299595,"nodeEnv":"development","babelEnv":"development","mode":"development"}
+{"_e":"env:load","_t":1779847299599,"mode":"development","files":["../..\\..\\.env.local"],"env":{"NEXT_PUBLIC_API_URL":"https://alhal.awnak.net"}}
