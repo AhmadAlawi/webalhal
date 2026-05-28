@@ -85,6 +85,7 @@ export function InteractivePieChart({ items }: { items: PieChartItem[] }) {
                 }}
               />
               <span className="font-medium">{d.name}</span>
+              <span className="text-slate-500">{formatNumber(d.value)}</span>
               <span className="text-slate-400">{formatPercent(d.pct)}</span>
             </button>
           </li>

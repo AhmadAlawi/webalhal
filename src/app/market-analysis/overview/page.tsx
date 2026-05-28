@@ -51,6 +51,9 @@ const TYPE_LABELS: Record<string, string> = {
   direct: "بيع مباشر",
   auction: "مزادات",
   tender: "مناقصات",
+  directsale: "بيع مباشر",
+  auctions: "مزادات",
+  tenders: "مناقصات",
 };
 
 export default function MarketAnalysisOverviewPage() {
@@ -238,7 +241,9 @@ export default function MarketAnalysisOverviewPage() {
                   <h3 className="mb-4 font-semibold text-slate-800">توزيع قنوات البيع</h3>
                   <InteractivePieChart
                     items={txDist.map((t) => {
-                      const key = t.transactionType || t.label || t.name || "—";
+                      const key = String(t.transactionType || t.label || t.name || "—")
+                        .toLowerCase()
+                        .trim();
                       return {
                         label: TYPE_LABELS[key] ?? key,
                         value: t.value ?? 0,
@@ -255,8 +260,16 @@ export default function MarketAnalysisOverviewPage() {
                     horizontal
                     valueFormatter={(n) => formatCurrency(n)}
                     items={topProducts.map((p) => ({
-                      label: p.productName || p.name || `#${p.productId}`,
-                      value: p.totalRevenue ?? 0,
+                      label:
+                        p.productName ||
+                        p.name ||
+                        (p as { productNameAr?: string }).productNameAr ||
+                        `#${p.productId ?? "—"}`,
+                      value:
+                        p.totalRevenue ??
+                        (p as { revenue?: number; value?: number }).revenue ??
+                        (p as { revenue?: number; value?: number }).value ??
+                        0,
                     }))}
                   />
                 </section>

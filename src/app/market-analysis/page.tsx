@@ -139,7 +139,7 @@ export default function MarketChartPage() {
             <p className="text-lg text-slate-300">لا توجد صفقات في هذه الفترة</p>
             <p className="mt-2 text-sm text-slate-500">
               جرّب توسيع الفترة أو تغيير المحافظة. إن كان السوق جديداً، قد يحتاج المسؤول لتشغيل
-              backfill على الخادم.
+              تعبئة تاريخية للبيانات على الخادم.
             </p>
             <Link
               href="/market-analysis/overview"
