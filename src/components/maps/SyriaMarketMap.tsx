@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useMemo } from "react";
-import { MapContainer, TileLayer, CircleMarker, Popup, GeoJSON, useMap } from "react-leaflet";
+import { MapContainer, TileLayer, CircleMarker, Popup, GeoJSON, Tooltip, useMap } from "react-leaflet";
 import type { LatLngBoundsExpression } from "leaflet";
 import type { MapVolumePoint } from "@/lib/syria-governorates";
 import {
@@ -115,6 +115,17 @@ export function SyriaMarketMap({
                 weight: active ? 2 : 1,
               }}
             >
+              {active && (
+                <Tooltip
+                  permanent
+                  direction="top"
+                  offset={[0, -8]}
+                  opacity={1}
+                  className="!rounded-lg !border !border-emerald-200 !bg-white !px-2 !py-1 !text-[11px] !font-semibold !text-emerald-800 !shadow"
+                >
+                  {formatNumber(p.volume)}
+                </Tooltip>
+              )}
               <Popup>
                 <div className="text-end" dir="rtl" style={{ minWidth: 140 }}>
                   <strong>{p.name}</strong>
