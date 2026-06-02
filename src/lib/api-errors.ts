@@ -21,6 +21,15 @@ export function formatApiErrorMessage(
   if (!d || d === "One or more validation errors occurred") {
     return "بيانات غير صالحة — راجع الحقول المطلوبة";
   }
+  if (/an error occurred while processing your request/i.test(d)) {
+    return "حدث خطأ في الخادم — تحقق من البيانات وحاول مجدداً";
+  }
+  if (/invalid credentials|wrong password|incorrect password/i.test(d)) {
+    return "كلمة المرور غير صحيحة";
+  }
+  if (/user not found|email not found/i.test(d)) {
+    return "البريد أو الهاتف غير مسجّل";
+  }
   if (d.includes("validation")) {
     return "بيانات غير صالحة — راجع الحقول المطلوبة";
   }
@@ -37,7 +46,12 @@ const fieldLabelsAr: Record<string, string> = {
   endTime: "نهاية المناقصة",
   productId: "المنتج",
   quantity: "الكمية",
-  area: "المقاطعة",
+  governorateId: "المحافظة",
+  cityId: "المدينة",
   areaId: "المقاطعة",
+  phone: "الهاتف",
+  password: "كلمة المرور",
+  email: "البريد",
+  fullName: "الاسم",
   dto: "البيانات",
 };

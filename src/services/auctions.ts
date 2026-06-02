@@ -2,6 +2,14 @@ import { apiGet, apiPost, apiPut } from "@/lib/api";
 import { parseAuctionPricing } from "@/lib/auctionPricing";
 import type { Auction, Bid } from "@/types";
 
+function urlsFromCrop(raw: unknown): string[] {
+  if (!raw || typeof raw !== "object") return [];
+  const c = raw as Record<string, unknown>;
+  if (Array.isArray(c.imageUrls)) return c.imageUrls.filter((u): u is string => typeof u === "string");
+  if (Array.isArray(c.ImageUrls)) return c.ImageUrls.filter((u): u is string => typeof u === "string");
+  return [];
+}
+
 function normalizeAuction(raw: unknown): Auction {
   if (!raw || typeof raw !== "object") {
     return raw as Auction;
@@ -9,6 +17,16 @@ function normalizeAuction(raw: unknown): Auction {
   const r = raw as Record<string, unknown>;
   const auctionId = Number(r.auctionId ?? r.AuctionId ?? r.id);
   const pricingParsed = parseAuctionPricing(r.pricing ?? r.Pricing);
+  const cropRaw = r.crop ?? r.Crop;
+  const cropImages = urlsFromCrop(cropRaw);
+  const imageUrls = Array.isArray(r.imageUrls)
+    ? (r.imageUrls as string[])
+    : Array.isArray(r.ImageUrls)
+      ? (r.ImageUrls as string[])
+      : cropImages.length
+        ? cropImages
+        : undefined;
+
   const sellerUserId =
     Number(r.sellerUserId ?? r.SellerUserId ?? r.createdByUserId ?? r.CreatedByUserId) ||
     undefined;
@@ -31,7 +49,9 @@ function normalizeAuction(raw: unknown): Auction {
     isBiddable: (r.isBiddable ?? r.IsBiddable) as boolean | undefined,
     productMainImage: (r.productMainImage ?? r.ProductMainImage) as string | undefined,
     productImageUrl: (r.productImageUrl ?? r.ProductImageUrl) as string | undefined,
-    images: Array.isArray(r.images) ? (r.images as string[]) : undefined,
+    images: Array.isArray(r.images) ? (r.images as string[]) : imageUrls,
+    imageUrls,
+    cropImageUrls: cropImages.length ? cropImages : imageUrls,
     cropUnit: (r.cropUnit ?? r.CropUnit ?? pricingParsed?.unit) as string | undefined,
     cropQuantity: Number(r.cropQuantity ?? r.CropQuantity ?? pricingParsed?.quantity) || undefined,
     unit: (r.unit ?? r.Unit ?? r.cropUnit) as string | undefined,
@@ -142,7 +162,8 @@ export async function getAuctionsCreatedByUser(userId: number) {
   const data = await apiGet<Auction[] | { items: Auction[] }>(
     `/api/auctions/by-user/${userId}`,
   );
-  return Array.isArray(data) ? data : data?.items ?? [];
+  const list = Array.isArray(data) ? data : data?.items ?? [];
+  return list.map(normalizeAuction);
 }
 
 export async function updateAuction(

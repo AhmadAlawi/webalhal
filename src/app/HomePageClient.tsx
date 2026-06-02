@@ -3,7 +3,8 @@
 import dynamic from "next/dynamic";
 import { useEffect, useState } from "react";
 import { useSearchParams } from "next/navigation";
-import { Search } from "lucide-react";
+import Link from "next/link";
+import { Search, MessageCircle } from "lucide-react";
 import { BannerCarousel } from "@/components/home/BannerCarousel";
 import { BottomAdStrip } from "@/components/home/BottomAdStrip";
 import { MarketTabs, type MarketTab } from "@/components/home/MarketTabs";
@@ -11,6 +12,8 @@ import { MarketListings } from "@/components/home/MarketListings";
 import { ServicesSection } from "@/components/home/ServicesSection";
 import { PageContainer } from "@/components/layout/PageContainer";
 import { useCategories } from "@/hooks/useCategories";
+import { useHeaderBadges } from "@/hooks/useHeaderBadges";
+import { useAuth } from "@/context/AuthContext";
 import { getAppAds, getBottomAds } from "@/services/catalog";
 import type { Advertisement } from "@/types";
 
@@ -29,6 +32,8 @@ const MarketAnalysisWidget = dynamic(
 
 export default function HomePageClient() {
   const searchParams = useSearchParams();
+  const { isAuthenticated, user } = useAuth();
+  const { chatCount } = useHeaderBadges(isAuthenticated, user?.roleId, user?.userId);
   const [tab, setTab] = useState<MarketTab>("auctions");
   const [search, setSearch] = useState("");
   const [categoryId, setCategoryId] = useState<number | undefined>();
@@ -74,15 +79,31 @@ export default function HomePageClient() {
 
       <section className="border-b border-slate-200/60 bg-white py-6">
         <PageContainer>
-          <div className="relative w-full">
-            <Search className="absolute top-1/2 end-4 h-5 w-5 -translate-y-1/2 text-slate-400" />
-            <input
-              type="search"
-              placeholder="ابحث عن محصول، مزاد، أو مناقصة..."
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-              className="input-field w-full py-3.5 pe-12 ps-4"
-            />
+          <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
+            <div className="relative flex-1">
+              <Search className="absolute top-1/2 end-4 h-5 w-5 -translate-y-1/2 text-slate-400" />
+              <input
+                type="search"
+                placeholder="ابحث عن محصول، مزاد، أو مناقصة..."
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+                className="input-field w-full py-3.5 pe-12 ps-4"
+              />
+            </div>
+            {isAuthenticated && (
+              <Link
+                href="/chat"
+                className="relative inline-flex items-center justify-center gap-2 rounded-xl border border-slate-200 px-4 py-3 text-sm font-semibold text-slate-700 hover:border-emerald-200 hover:bg-emerald-50"
+              >
+                <MessageCircle className="h-5 w-5 text-emerald-600" />
+                الرسائل
+                {chatCount > 0 && (
+                  <span className="flex h-5 min-w-5 items-center justify-center rounded-full bg-red-500 px-1.5 text-[10px] font-bold text-white">
+                    {chatCount > 99 ? "99+" : chatCount}
+                  </span>
+                )}
+              </Link>
+            )}
           </div>
         </PageContainer>
       </section>

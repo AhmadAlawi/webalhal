@@ -8,9 +8,8 @@ import { Gavel } from "lucide-react";
 import { PageHeader } from "@/components/ui/PageHeader";
 import { PageContainer } from "@/components/layout/PageContainer";
 import { Button } from "@/components/ui/Button";
-import { Input } from "@/components/ui/Input";
 import { StatusBadge } from "@/components/ui/StatusBadge";
-import { getAuction, getAuctionBids, requestAuctionAccess } from "@/services/auctions";
+import { getAuction, getAuctionBids } from "@/services/auctions";
 import { getAuctionMainImage } from "@/lib/media";
 import { AuctionWinnerChatButton } from "@/components/auctions/AuctionWinnerChatButton";
 import {
@@ -151,9 +150,6 @@ export default function AuctionDetailPage() {
   const { canJoinAuction, roleLabel: accountRoleLabel } = useUserPermissions();
   const [auction, setAuction] = useState<Auction | null>(null);
   const [bids, setBids] = useState<Bid[]>([]);
-  const [inviteCode, setInviteCode] = useState("");
-  const [accessMsg, setAccessMsg] = useState("");
-  const [accessErr, setAccessErr] = useState("");
 
   const auctionId = Number(id);
 
@@ -188,28 +184,7 @@ export default function AuctionDetailPage() {
 
   function goToJoin() {
     if (!requireAuth()) return;
-    const q = inviteCode.trim() ? `?invite=${encodeURIComponent(inviteCode.trim())}` : "";
-    router.push(`/auctions/${auctionId}/join${q}`);
-  }
-
-  async function requestAccess() {
-    if (!requireAuth() || !user?.userId) return;
-    setAccessErr("");
-    setAccessMsg("");
-    try {
-      const res = await requestAuctionAccess(auctionId, user.userId);
-      const hasToken =
-        res &&
-        typeof res === "object" &&
-        ("accessToken" in (res as object) || "AccessToken" in (res as object));
-      setAccessMsg(
-        hasToken
-          ? "تم قبول طلبك — يمكنك الدخول للمزاد الآن"
-          : "تم إرسال طلب الدخول — انتظر موافقة صاحب المزاد",
-      );
-    } catch (e) {
-      setAccessErr(e instanceof Error ? e.message : "فشل طلب الدخول");
-    }
+    router.push(`/auctions/${auctionId}/join`);
   }
 
   const displayPrice =
@@ -288,17 +263,6 @@ export default function AuctionDetailPage() {
                 <p className="text-sm text-emerald-800">
                   للمشاركة في المزايدة اضغط انضمام — سيتم فتح صفحة المزايدة المباشرة.
                 </p>
-                <Button type="button" variant="outline" fullWidth onClick={requestAccess}>
-                  طلب دخول (مزاد خاص)
-                </Button>
-                {accessMsg && <p className="text-sm text-emerald-700">{accessMsg}</p>}
-                {accessErr && <p className="text-sm text-red-600">{accessErr}</p>}
-                <Input
-                  label="كود الدعوة (مزاد خاص — اختياري)"
-                  value={inviteCode}
-                  onChange={(e) => setInviteCode(e.target.value)}
-                  placeholder="اتركه فارغاً للمزاد العام"
-                />
                 <Button fullWidth size="lg" onClick={goToJoin}>
                   انضمام للمزاد والمزايدة
                 </Button>

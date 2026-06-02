@@ -70,6 +70,8 @@ export interface Auction {
   productMainImage?: string;
   productImageUrl?: string;
   images?: string[];
+  imageUrls?: string[];
+  cropImageUrls?: string[];
   unit?: string;
   cropUnit?: string;
   quantity?: number;
@@ -124,12 +126,14 @@ export interface MarketplaceListing {
   unitPrice?: number;
   availableQty?: number;
   minOrderQty?: number;
+  maxOrderQty?: number;
   unit?: string;
   farmCity?: string;
   governorateName?: string;
   farmGovernorate?: string;
   location?: string;
   productImageUrl?: string;
+  productMainImage?: string;
   imageUrls?: string[];
   status?: string;
   sellerUserId?: number;

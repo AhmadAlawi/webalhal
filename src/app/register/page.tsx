@@ -19,6 +19,8 @@ import {
   completePayout,
   submitRegistration,
 } from "@/services/registration";
+import { normalizePhoneForApi } from "@/lib/phone";
+import { formatApiErrorMessage } from "@/lib/api-errors";
 
 const ROLES = [
   { id: "farmer", label: "مزارع" },
@@ -67,13 +69,24 @@ function RegisterForm() {
 
   async function handleStep1(e: React.FormEvent) {
     e.preventDefault();
+    if (password.length < 6) {
+      setError("كلمة المرور يجب أن تكون 6 أحرف على الأقل");
+      return;
+    }
     setLoading(true);
     setError("");
     try {
-      await registrationStep1({ registrationId, fullName, email, phone, password });
+      await registrationStep1({
+        registrationId,
+        fullName: fullName.trim(),
+        email: email.trim(),
+        phone: normalizePhoneForApi(phone),
+        password,
+      });
       setStep(2);
     } catch (e) {
-      setError((e as Error).message);
+      const err = e as Error & { status?: number };
+      setError(formatApiErrorMessage(err.message) || err.message);
     } finally {
       setLoading(false);
     }
@@ -173,8 +186,8 @@ function RegisterForm() {
           <form onSubmit={handleStep1} className="space-y-4">
             <Input label="الاسم الكامل" value={fullName} onChange={(e) => setFullName(e.target.value)} required />
             <Input label="البريد" type="email" value={email} onChange={(e) => setEmail(e.target.value)} required />
-            <Input label="الهاتف" value={phone} onChange={(e) => setPhone(e.target.value)} required />
-            <Input label="كلمة المرور" type="password" value={password} onChange={(e) => setPassword(e.target.value)} required />
+            <Input label="الهاتف" value={phone} onChange={(e) => setPhone(e.target.value)} required placeholder="09xxxxxxxx أو +963..." />
+            <Input label="كلمة المرور" type="password" value={password} onChange={(e) => setPassword(e.target.value)} required minLength={6} />
             <Button type="submit" fullWidth disabled={loading}>التالي</Button>
           </form>
         )}
@@ -232,7 +245,9 @@ function RegisterForm() {
         )}
 
         {error && (
-          <p className="mt-4 rounded-xl bg-red-50 px-4 py-2 text-sm text-red-600">{error}</p>
+          <p className="mt-4 rounded-xl border border-red-200 bg-red-50 px-4 py-2.5 text-sm text-red-700">
+            {error}
+          </p>
         )}
       </Card>
 

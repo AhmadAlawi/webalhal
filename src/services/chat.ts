@@ -113,6 +113,15 @@ export async function getConversations(userId?: number) {
   return [];
 }
 
+export async function getChatUnreadCount(userId?: number): Promise<number> {
+  try {
+    const list = await getConversations(userId);
+    return list.reduce((sum, c) => sum + (c.unreadCount ?? 0), 0);
+  } catch {
+    return 0;
+  }
+}
+
 export async function getConversation(conversationId: number) {
   const raw = await apiGet<ConversationDetail>(API.chat.conversation(conversationId));
   const normalized = normalizeConversation(raw);

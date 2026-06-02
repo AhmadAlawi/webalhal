@@ -42,7 +42,11 @@ export function SiteHeader() {
   } = useUserPermissions();
   const [mobileOpen, setMobileOpen] = useState(false);
   const [createOpen, setCreateOpen] = useState(false);
-  const { notifCount, transportCount } = useHeaderBadges(isAuthenticated, roleId);
+  const { notifCount, chatCount, transportCount } = useHeaderBadges(
+    isAuthenticated,
+    roleId,
+    user?.userId,
+  );
 
   useEffect(() => {
     setMobileOpen(false);
@@ -146,6 +150,11 @@ export function SiteHeader() {
                 title="المحادثات"
               >
                 <MessageCircle className="h-5 w-5" />
+                {chatCount > 0 && (
+                  <span className="absolute top-0.5 start-0.5 flex h-4 min-w-4 items-center justify-center rounded-full bg-red-500 text-[10px] font-bold text-white">
+                    {chatCount > 99 ? "99+" : chatCount}
+                  </span>
+                )}
               </Link>
               <Link
                 href="/notifications"
@@ -220,8 +229,13 @@ export function SiteHeader() {
               </li>
             )}
             <li>
-              <Link href="/chat" className="block rounded-lg px-4 py-3 text-sm font-medium text-slate-700">
+              <Link href="/chat" className="flex items-center gap-2 rounded-lg px-4 py-3 text-sm font-medium text-slate-700">
                 المحادثات
+                {chatCount > 0 && (
+                  <span className="rounded-full bg-red-500 px-2 py-0.5 text-[10px] text-white">
+                    {chatCount > 99 ? "99+" : chatCount}
+                  </span>
+                )}
               </Link>
             </li>
             {isAuthenticated ? (

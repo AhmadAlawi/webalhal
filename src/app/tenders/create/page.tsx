@@ -7,17 +7,21 @@ import { PageContainer } from "@/components/layout/PageContainer";
 import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
 import { ProductSelect } from "@/components/forms/ProductSelect";
+import { LocationCascadeSelect } from "@/components/forms/LocationCascadeSelect";
 import { ImageUploadField } from "@/components/forms/ImageUploadField";
 import { useAuth } from "@/context/AuthContext";
 import { canCreateTender } from "@/lib/permissions";
 import { createTender } from "@/services/tenders";
 import type { Product } from "@/types/farm";
+import type { LocationSelection } from "@/types/location";
 
 function toIso(local: string): string {
   const d = new Date(local);
   if (Number.isNaN(d.getTime())) throw new Error("تاريخ غير صالح");
   return d.toISOString();
 }
+
+type DeliveryMode = "with_transport" | "without_transport";
 
 export default function CreateTenderPage() {
   const { user, requireAuth } = useAuth();
@@ -27,7 +31,12 @@ export default function CreateTenderPage() {
   const [selectedProduct, setSelectedProduct] = useState<Product | undefined>();
   const [quantity, setQuantity] = useState("");
   const [title, setTitle] = useState("");
-  const [deliveryLocation, setDeliveryLocation] = useState("");
+  const [location, setLocation] = useState<LocationSelection>({
+    governorateId: "",
+    cityId: "",
+    areaId: "",
+  });
+  const [deliveryMode, setDeliveryMode] = useState<DeliveryMode>("with_transport");
   const [maxBudget, setMaxBudget] = useState("");
   const [deliveryFrom, setDeliveryFrom] = useState("");
   const [deliveryTo, setDeliveryTo] = useState("");
@@ -46,6 +55,16 @@ export default function CreateTenderPage() {
     );
   }
 
+  function locationReady(): boolean {
+    return Boolean(location.governorateId && location.cityId && location.areaId);
+  }
+
+  function deliveryLocationLabel(): string {
+    return [location.governorateName, location.cityName, location.areaName]
+      .filter(Boolean)
+      .join(" — ");
+  }
+
   function validateDates(): string | null {
     const start = new Date(startTime);
     const end = new Date(endTime);
@@ -62,8 +81,8 @@ export default function CreateTenderPage() {
       setError("أدخل عنوان المناقصة");
       return;
     }
-    if (!deliveryLocation.trim()) {
-      setError("أدخل موقع التسليم");
+    if (!locationReady()) {
+      setError("اختر المحافظة والمدينة والمقاطعة لموقع التسليم");
       return;
     }
     if (!quantity || !deliveryFrom || !deliveryTo || !startTime || !endTime) {
@@ -86,7 +105,12 @@ export default function CreateTenderPage() {
         productId: Number(productId),
         title: title.trim(),
         cropName,
-        deliveryLocation: deliveryLocation.trim(),
+        deliveryLocation: deliveryLocationLabel(),
+        governorateId: Number(location.governorateId),
+        cityId: Number(location.cityId),
+        areaId: Number(location.areaId),
+        requiresTransport: deliveryMode === "with_transport",
+        withTransport: deliveryMode === "with_transport",
         quantity: Number(quantity),
         deliveryFrom: toIso(deliveryFrom),
         deliveryTo: toIso(deliveryTo),
@@ -108,6 +132,14 @@ export default function CreateTenderPage() {
     <>
       <PageHeader title="إنشاء مناقصة" backHref="/tenders" />
       <PageContainer narrow className="py-8">
+        <div className="mb-6 flex gap-2">
+          {[1, 2, 3].map((s) => (
+            <span
+              key={s}
+              className={`h-2 flex-1 rounded-full ${step >= s ? "bg-emerald-600" : "bg-slate-200"}`}
+            />
+          ))}
+        </div>
         <div className="space-y-4 rounded-2xl border border-gray-100 bg-white p-6 shadow-sm">
           {step === 1 && (
             <>
@@ -132,16 +164,36 @@ export default function CreateTenderPage() {
                 onChange={(e) => setTitle(e.target.value)}
                 required
               />
-              <Input
-                label="موقع التسليم"
-                value={deliveryLocation}
-                onChange={(e) => setDeliveryLocation(e.target.value)}
-                placeholder="مثال: دمشق — ريف دمشق"
-                required
-              />
+              <div>
+                <p className="mb-2 text-sm font-medium text-slate-700">موقع التسليم</p>
+                <LocationCascadeSelect value={location} onChange={setLocation} />
+              </div>
+              <fieldset className="space-y-2">
+                <legend className="text-sm font-medium text-slate-700">خيار النقل</legend>
+                <label className="flex cursor-pointer items-center gap-3 rounded-xl border p-3">
+                  <input
+                    type="radio"
+                    name="deliveryMode"
+                    checked={deliveryMode === "with_transport"}
+                    onChange={() => setDeliveryMode("with_transport")}
+                    className="accent-emerald-600"
+                  />
+                  <span className="text-sm">مع نقل (يشمل التوصيل)</span>
+                </label>
+                <label className="flex cursor-pointer items-center gap-3 rounded-xl border p-3">
+                  <input
+                    type="radio"
+                    name="deliveryMode"
+                    checked={deliveryMode === "without_transport"}
+                    onChange={() => setDeliveryMode("without_transport")}
+                    className="accent-emerald-600"
+                  />
+                  <span className="text-sm">بدون نقل (استلام من الموقع)</span>
+                </label>
+              </fieldset>
               <Button
                 fullWidth
-                disabled={!productId || !title.trim() || !deliveryLocation.trim()}
+                disabled={!productId || !title.trim() || !quantity || !locationReady()}
                 onClick={() => setStep(2)}
               >
                 التالي
@@ -171,9 +223,14 @@ export default function CreateTenderPage() {
                 required
               />
               <ImageUploadField value={imageUrls} onChange={setImageUrls} folder="tenders" />
-              <Button fullWidth onClick={() => setStep(3)}>
-                التالي
-              </Button>
+              <div className="flex gap-2">
+                <Button variant="outline" fullWidth onClick={() => setStep(1)}>
+                  رجوع
+                </Button>
+                <Button fullWidth onClick={() => setStep(3)}>
+                  التالي
+                </Button>
+              </div>
             </>
           )}
           {step === 3 && (
@@ -192,10 +249,19 @@ export default function CreateTenderPage() {
                 onChange={(e) => setEndTime(e.target.value)}
                 required
               />
+              <p className="text-xs text-slate-500">
+                الموقع: {deliveryLocationLabel()} ·{" "}
+                {deliveryMode === "with_transport" ? "مع نقل" : "بدون نقل"}
+              </p>
               {error && <p className="text-sm text-red-600">{error}</p>}
-              <Button fullWidth onClick={submit} disabled={submitting}>
-                {submitting ? "جاري النشر..." : "نشر المناقصة"}
-              </Button>
+              <div className="flex gap-2">
+                <Button variant="outline" fullWidth onClick={() => setStep(2)}>
+                  رجوع
+                </Button>
+                <Button fullWidth onClick={submit} disabled={submitting}>
+                  {submitting ? "جاري النشر..." : "نشر المناقصة"}
+                </Button>
+              </div>
             </>
           )}
         </div>

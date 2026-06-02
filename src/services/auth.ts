@@ -1,5 +1,6 @@
 import { apiGet } from "@/lib/api";
 import { unwrapEnvelopeData } from "@/lib/api-envelope";
+import { formatApiErrorMessage } from "@/lib/api-errors";
 import { getStoredUser, setStoredRoleName } from "@/lib/auth-storage";
 import { getApiBaseUrl } from "@/lib/config";
 import { API } from "@/lib/api-endpoints";
@@ -196,13 +197,13 @@ export async function login(
 
   if (!res.ok) {
     const payload = unwrapEnvelopeData(body);
-    const outer = body as { message?: string; error?: { detail?: string } };
-    throw new Error(
-      (payload.message as string) ||
-        outer.message ||
-        outer.error?.detail ||
-        "فشل تسجيل الدخول",
-    );
+    const outer = body as { message?: string; error?: { detail?: string; errors?: Record<string, string[]> } };
+    const detail = outer.error?.detail || (payload.message as string) || outer.message;
+    let msg = formatApiErrorMessage(detail, outer.error?.errors);
+    if (res.status === 401) {
+      msg = "البريد/الهاتف أو كلمة المرور غير صحيحة";
+    }
+    throw new Error(msg || "فشل تسجيل الدخول");
   }
 
   const data = unwrapEnvelopeData<{

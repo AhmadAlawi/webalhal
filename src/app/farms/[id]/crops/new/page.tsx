@@ -41,6 +41,8 @@ function NewCropForm() {
         ? `/farms/${farmId}`
         : "/farms";
 
+  const isDirectFlow = returnTo === "/direct/new" || returnTo?.includes("/direct/new");
+
   async function submit() {
     if (!user?.userId || !farmId) return;
     if (!productId || !name.trim() || !quantity || !harvestDate) {
@@ -135,7 +137,11 @@ function NewCropForm() {
           <ImageUploadField value={imageUrls} onChange={setImageUrls} />
           {error && <p className="text-sm text-red-600">{error}</p>}
           <Button fullWidth onClick={submit} disabled={saving}>
-            {saving ? "جاري الحفظ..." : "حفظ المحصول"}
+            {saving
+              ? "جاري الحفظ..."
+              : isDirectFlow
+                ? "التالي — متابعة البيع المباشر"
+                : "حفظ المحصول"}
           </Button>
         </div>
       </PageContainer>

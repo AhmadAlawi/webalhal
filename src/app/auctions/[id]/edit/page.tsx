@@ -9,6 +9,13 @@ import { Input } from "@/components/ui/Input";
 import { getAuction, getAuctionsCreatedByUser, updateAuction } from "@/services/auctions";
 import { useAuth } from "@/context/AuthContext";
 
+function toIso(local: string): string | undefined {
+  if (!local?.trim()) return undefined;
+  const d = new Date(local);
+  if (Number.isNaN(d.getTime())) return undefined;
+  return d.toISOString();
+}
+
 export default function EditAuctionPage() {
   const { id } = useParams();
   const router = useRouter();
@@ -31,10 +38,10 @@ export default function EditAuctionPage() {
     Promise.all([getAuction(auctionId), getAuctionsCreatedByUser(user.userId)])
       .then(([a, mine]) => {
         setCanEdit(mine.some((x) => x.auctionId === auctionId));
-        setTitle(a.auctionTitle ?? "");
-        setDesc((a as { auctionDescription?: string }).auctionDescription ?? "");
+        setTitle(a.auctionTitle ?? a.cropName ?? "");
+        setDesc(a.auctionDescription ?? "");
         setStartingPrice(String(a.startingPrice ?? ""));
-        setMinIncrement(String((a as { minIncrement?: number }).minIncrement ?? ""));
+        setMinIncrement(String(a.minIncrement ?? ""));
         if (a.startTime) setStartTime(a.startTime.slice(0, 16));
         if (a.endTime) setEndTime(a.endTime.slice(0, 16));
       })
@@ -50,12 +57,11 @@ export default function EditAuctionPage() {
     try {
       await updateAuction(auctionId, {
         auctionId,
-        auctionTitle: title.trim() || undefined,
-        auctionDescription: desc.trim() || undefined,
+        cropName: title.trim() || undefined,
         startingPrice: startingPrice ? Number(startingPrice) : undefined,
         minIncrement: minIncrement ? Number(minIncrement) : undefined,
-        startTime: startTime || undefined,
-        endTime: endTime || undefined,
+        startTime: toIso(startTime),
+        endTime: toIso(endTime),
       });
       router.push(`/auctions/${auctionId}`);
     } catch (err) {

@@ -339,7 +339,7 @@ function CreateAuctionForm() {
                 />
               </label>
               <ImageUploadField
-                label="صور المحصول (مطلوبة لنجاح المزاد)"
+                label="صور المحصول"
                 value={imageUrls}
                 onChange={setImageUrls}
                 folder="auctions"

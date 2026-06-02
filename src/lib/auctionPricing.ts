@@ -192,5 +192,6 @@ export function validateBid(pricing: AuctionPricing, inputAmount: number): strin
 }
 
 export function formatPrice(amount: number): string {
+  if (!Number.isFinite(amount) || amount < 0) return "—";
   return new Intl.NumberFormat("ar-SY").format(amount);
 }

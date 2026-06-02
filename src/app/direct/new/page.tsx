@@ -27,6 +27,8 @@ export default function NewDirectListingPage() {
   );
 }
 
+const DIRECT_RETURN = "/direct/new";
+
 function NewDirectListingForm() {
   const { user, requireAuth } = useAuth();
   const router = useRouter();
@@ -61,9 +63,19 @@ function NewDirectListingForm() {
 
   useEffect(() => {
     const fromUrl = searchParams.get("cropId");
+    const fromFarm = searchParams.get("farmId");
+    if (fromFarm) {
+      const fid = Number(fromFarm);
+      if (Number.isFinite(fid) && fid > 0) {
+        /* farm preselect handled in FarmCropSelect via controlledFarmId if needed */
+      }
+    }
     if (fromUrl) {
       const id = Number(fromUrl);
-      if (Number.isFinite(id) && id > 0) setCropId(id);
+      if (Number.isFinite(id) && id > 0) {
+        setCropId(id);
+        setStep(2);
+      }
     }
   }, [searchParams]);
 
@@ -106,9 +118,11 @@ function NewDirectListingForm() {
         unitPrice: Number(unitPrice),
         availableQty: Number(availableQty),
         minOrderQty: Number(minOrderQty) || 1,
-        maxOrderQty: maxOrderQty.trim() ? Number(maxOrderQty) : Number(availableQty),
+        maxOrderQty: maxOrderQty.trim()
+          ? Number(maxOrderQty)
+          : Number(availableQty),
         unit: unit.trim() || "كغ",
-        imageUrls: imageUrls.length ? imageUrls : undefined,
+        imageUrls: imageUrls.length ? imageUrls : selectedCrop?.imageUrls,
       });
       router.push("/direct");
     } catch (e) {
@@ -140,6 +154,7 @@ function NewDirectListingForm() {
                 cropId={cropId}
                 onCropChange={handleCropChange}
                 onlyAvailable
+                returnTo={DIRECT_RETURN}
               />
               <Button fullWidth disabled={!cropId} onClick={() => setStep(2)}>
                 التالي

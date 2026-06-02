@@ -4,7 +4,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import Image from "next/image";
 import { CheckCircle2, Gavel, Wifi, WifiOff } from "lucide-react";
-import { useParams, useSearchParams } from "next/navigation";
+import { useParams } from "next/navigation";
 import * as signalR from "@microsoft/signalr";
 import type { HubConnection } from "@microsoft/signalr";
 import { PageHeader } from "@/components/ui/PageHeader";
@@ -47,13 +47,11 @@ type ConnState = "idle" | "connecting" | "connected" | "reconnecting" | "error";
 
 export default function AuctionJoinPage() {
   const { id } = useParams();
-  const searchParams = useSearchParams();
   const { user, requireAuth, isAuthenticated } = useAuth();
   const auctionId = Number(id);
   const connectionRef = useRef<HubConnection | null>(null);
   const connectingRef = useRef(false);
   const feedbackRef = useRef<HTMLDivElement | null>(null);
-  const inviteFromUrl = searchParams.get("invite") ?? "";
 
   const [auction, setAuction] = useState<Auction | null>(null);
   const [bids, setBids] = useState<Bid[]>([]);
@@ -63,11 +61,9 @@ export default function AuctionJoinPage() {
   const [bidding, setBidding] = useState(false);
   const [pricing, setPricing] = useState<AuctionPricing | null>(null);
   const [bidInput, setBidInput] = useState("");
-  const [inviteCode, setInviteCode] = useState(inviteFromUrl);
   const [status, setStatus] = useState("");
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
-  const [accessBlocked, setAccessBlocked] = useState(false);
 
   const reloadBids = useCallback(() => {
     if (!auctionId) return;
@@ -194,12 +190,11 @@ export default function AuctionJoinPage() {
       return;
     }
 
-    const code = inviteCode.trim() || inviteFromUrl.trim();
+    const code = null;
     connectingRef.current = true;
     setConnState("connecting");
     setError("");
     setSuccess("");
-    setAccessBlocked(false);
 
     if (connectionRef.current) {
       await stopAuctionHub(connectionRef.current, auctionId);
@@ -211,15 +206,14 @@ export default function AuctionJoinPage() {
         await joinAuction(auctionId, user.userId);
       } catch (joinErr) {
         if (isAuctionJoinAccessError(joinErr)) {
-          setAccessBlocked(true);
-          setError("مزاد خاص — اطلب الدخول من صفحة المزاد أو أدخل رمز الدعوة");
+          setError("لا يمكنك الانضمام لهذا المزاد — تحقق من صلاحية حسابك");
         }
       }
 
       const conn = await startAuctionHub(
         auctionId,
         user.userId,
-        code || null,
+        code,
         {
           onPriceTick,
           onBidPlaced,
@@ -245,9 +239,8 @@ export default function AuctionJoinPage() {
       setStatus("متصل بالمزاد الحي — يمكنك المزايدة");
     } catch (e) {
       const msg = parseHubError(e);
-      setError(msg || "فشل الاتصال — تحقق من كود الدعوة للمزاد الخاص");
+      setError(msg || "فشل الاتصال بالمزاد");
       setConnState("error");
-      if (isAuctionJoinAccessError(e)) setAccessBlocked(true);
     } finally {
       connectingRef.current = false;
     }
@@ -255,8 +248,6 @@ export default function AuctionJoinPage() {
     auctionId,
     user?.userId,
     isAuthenticated,
-    inviteCode,
-    inviteFromUrl,
     onPriceTick,
     onBidPlaced,
     onAuctionUpdated,
@@ -399,13 +390,7 @@ export default function AuctionJoinPage() {
             </div>
 
             {!connected && (
-              <div className="space-y-3 rounded-2xl border border-gray-100 bg-white p-4">
-                <Input
-                  label="كود الدعوة (مزاد خاص)"
-                  value={inviteCode}
-                  onChange={(e) => setInviteCode(e.target.value)}
-                  placeholder="أدخل كود الدعوة إن وُجد"
-                />
+              <div className="rounded-2xl border border-gray-100 bg-white p-4">
                 <Button
                   type="button"
                   variant="outline"
@@ -416,13 +401,6 @@ export default function AuctionJoinPage() {
                   {connecting ? "جاري الاتصال..." : "إعادة الاتصال"}
                 </Button>
               </div>
-            )}
-
-            {accessBlocked && (
-              <p className="rounded-xl bg-amber-50 px-4 py-3 text-center text-sm text-amber-800">
-                إذا كان المزاد خاصاً: اطلب الدخول من صفحة تفاصيل المزاد ثم أعد المحاولة برمز
-                الدعوة.
-              </p>
             )}
 
             {pricing && (

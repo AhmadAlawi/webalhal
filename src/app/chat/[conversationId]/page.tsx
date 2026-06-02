@@ -213,7 +213,8 @@ export default function ChatConversationPage() {
 
       {(conversation?.transportRequestId ||
         conversation?.transportStatus ||
-        conversation?.orderType?.includes("transport")) && (
+        conversation?.orderType?.includes("transport") ||
+        dealContext) && (
         <TransportHandoffBar
           conversationId={convId}
           transportStatus={conversation?.transportStatus}

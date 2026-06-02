@@ -2,6 +2,51 @@ import { apiGet, apiPost } from "@/lib/api";
 import { API } from "@/lib/api-endpoints";
 import type { MarketplaceBrowseData, MarketplaceListing } from "@/types";
 
+function normalizeListing(raw: unknown): MarketplaceListing | null {
+  if (!raw || typeof raw !== "object") return null;
+  const r = raw as Record<string, unknown>;
+  const listingId = Number(r.listingId ?? r.ListingId ?? r.id ?? r.Id);
+  if (!Number.isFinite(listingId) || listingId <= 0) return null;
+
+  const imageUrls = Array.isArray(r.imageUrls)
+    ? (r.imageUrls as string[])
+    : Array.isArray(r.ImageUrls)
+      ? (r.ImageUrls as string[])
+      : undefined;
+
+  return {
+    listingId,
+    title: (r.title ?? r.Title) as string | undefined,
+    cropName: (r.cropName ?? r.CropName) as string | undefined,
+    productNameAr: (r.productNameAr ?? r.ProductNameAr) as string | undefined,
+    unitPrice:
+      Number(r.unitPrice ?? r.UnitPrice ?? r.price ?? r.Price) || undefined,
+    availableQty:
+      Number(
+        r.availableQty ??
+          r.AvailableQty ??
+          r.quantity ??
+          r.Quantity ??
+          r.availableQuantity ??
+          r.AvailableQuantity,
+      ) || undefined,
+    minOrderQty: Number(r.minOrderQty ?? r.MinOrderQty) || undefined,
+    maxOrderQty: Number(r.maxOrderQty ?? r.MaxOrderQty) || undefined,
+    unit: (r.unit ?? r.Unit) as string | undefined,
+    farmCity: (r.farmCity ?? r.FarmCity) as string | undefined,
+    governorateName: (r.governorateName ?? r.GovernorateName) as string | undefined,
+    farmGovernorate: (r.farmGovernorate ?? r.FarmGovernorate) as string | undefined,
+    location: (r.location ?? r.Location ?? r.deliveryLocation) as string | undefined,
+    productImageUrl: (r.productImageUrl ?? r.ProductImageUrl) as string | undefined,
+    productMainImage: (r.productMainImage ?? r.ProductMainImage) as string | undefined,
+    imageUrls,
+    status: String(r.status ?? r.Status ?? ""),
+    sellerUserId: Number(r.sellerUserId ?? r.SellerUserId) || undefined,
+    categoryId: Number(r.categoryId ?? r.CategoryId) || undefined,
+    categoryNameAr: (r.categoryNameAr ?? r.CategoryNameAr) as string | undefined,
+  };
+}
+
 function emptyBrowse(): MarketplaceBrowseData {
   return { auctions: [], tenders: [], direct: [] };
 }
@@ -38,7 +83,8 @@ export async function getFilteredDirectListings(params?: Record<string, string>)
 }
 
 export async function getListing(id: number) {
-  return apiGet<MarketplaceListing>(API.direct.listingById(id));
+  const data = await apiGet<unknown>(API.direct.listingById(id));
+  return normalizeListing(data) ?? (data as MarketplaceListing);
 }
 
 /** Swagger CreateListingDto — مطابق لتطبيق الموبايل */
