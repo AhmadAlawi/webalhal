@@ -87,9 +87,36 @@ export default function HomePageClient() {
         </PageContainer>
       </section>
 
-      <ServicesSection />
+      {categories.length > 0 && (
+        <section className="border-b border-slate-100 bg-white py-4">
+          <PageContainer>
+            <p className="mb-2 text-sm font-semibold text-slate-700">التصنيفات</p>
+            <div className="flex flex-wrap gap-2">
+              <button
+                type="button"
+                onClick={() => setCategoryId(undefined)}
+                className={`chip ${!categoryId ? "chip-active" : "chip-inactive"}`}
+              >
+                الكل
+              </button>
+              {categories.map((c) => (
+                <button
+                  key={c.categoryId}
+                  type="button"
+                  onClick={() => setCategoryId(c.categoryId)}
+                  className={`chip ${
+                    categoryId === c.categoryId ? "chip-active" : "chip-inactive"
+                  }`}
+                >
+                  {c.nameAr || c.name}
+                </button>
+              ))}
+            </div>
+          </PageContainer>
+        </section>
+      )}
 
-      <MarketAnalysisWidget />
+      <ServicesSection />
 
       <section className="py-10">
         <PageContainer>
@@ -100,35 +127,11 @@ export default function HomePageClient() {
             </div>
             <MarketTabs active={tab} onChange={setTab} />
           </div>
-          {categories.length > 0 && (
-            <div className="mb-5">
-              <p className="mb-2 text-sm font-semibold text-slate-700">التصنيفات</p>
-              <div className="flex flex-wrap gap-2">
-                <button
-                  type="button"
-                  onClick={() => setCategoryId(undefined)}
-                  className={`chip ${!categoryId ? "chip-active" : "chip-inactive"}`}
-                >
-                  الكل
-                </button>
-                {categories.map((c) => (
-                  <button
-                    key={c.categoryId}
-                    type="button"
-                    onClick={() => setCategoryId(c.categoryId)}
-                    className={`chip ${
-                      categoryId === c.categoryId ? "chip-active" : "chip-inactive"
-                    }`}
-                  >
-                    {c.nameAr || c.name}
-                  </button>
-                ))}
-              </div>
-            </div>
-          )}
           <MarketListings tab={tab} searchQuery={search} categoryId={categoryId} />
         </PageContainer>
       </section>
+
+      <MarketAnalysisWidget />
 
       <BottomAdStrip ads={bottomAds} />
     </>

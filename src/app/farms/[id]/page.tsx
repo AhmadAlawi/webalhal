@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { useParams } from "next/navigation";
-import { Gavel, Plus, Sprout } from "lucide-react";
+import { Gavel, Plus, ShoppingBag, Sprout } from "lucide-react";
 import { PageHeader } from "@/components/ui/PageHeader";
 import { PageContainer } from "@/components/layout/PageContainer";
 import { Button } from "@/components/ui/Button";
@@ -223,13 +223,22 @@ export default function FarmDetailPage() {
                       )}
                     </div>
                     {selectable && (
-                      <Link
-                        href={`/auctions/create?farmId=${farmId}&cropId=${c.cropId}`}
-                        className="inline-flex items-center gap-1 text-xs font-semibold text-emerald-700 hover:underline"
-                      >
-                        <Gavel className="h-3.5 w-3.5" />
-                        مزاد
-                      </Link>
+                      <div className="flex flex-col items-end gap-1">
+                        <Link
+                          href={`/auctions/create?farmId=${farmId}&cropId=${c.cropId}`}
+                          className="inline-flex items-center gap-1 text-xs font-semibold text-emerald-700 hover:underline"
+                        >
+                          <Gavel className="h-3.5 w-3.5" />
+                          مزاد
+                        </Link>
+                        <Link
+                          href={`/direct/new?cropId=${c.cropId}`}
+                          className="inline-flex items-center gap-1 text-xs font-semibold text-blue-700 hover:underline"
+                        >
+                          <ShoppingBag className="h-3.5 w-3.5" />
+                          بيع مباشر
+                        </Link>
+                      </div>
                     )}
                   </div>
                 </li>

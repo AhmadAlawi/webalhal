@@ -18,6 +18,7 @@ import {
   getListingLocation,
   getTenderLocation,
 } from "@/lib/marketplace";
+import { translateStatus } from "@/lib/status-labels";
 import type { MarketTab } from "./MarketTabs";
 import type { Auction, MarketplaceListing, Tender } from "@/types";
 
@@ -142,7 +143,7 @@ export function MarketListings({
             badge="مزاد"
             meta={[
               a.cropQuantity != null ? `${a.cropQuantity} ${a.cropUnit || a.unit || ""}` : null,
-              a.status,
+              translateStatus(a.status),
             ]
               .filter(Boolean)
               .join(" · ")}
@@ -163,7 +164,7 @@ export function MarketListings({
             meta={[
               t.quantity != null ? `${t.quantity} ${t.unit || ""}` : null,
               t.deliveryLocation,
-              t.status,
+              translateStatus(t.status),
             ]
               .filter(Boolean)
               .join(" · ")}
@@ -183,7 +184,7 @@ export function MarketListings({
             meta={[
               l.availableQty != null ? `متاح: ${l.availableQty} ${l.unit || ""}` : null,
               l.minOrderQty != null ? `أقل طلب: ${l.minOrderQty}` : null,
-              l.status,
+              translateStatus(l.status),
             ]
               .filter(Boolean)
               .join(" · ")}

@@ -168,6 +168,12 @@ function CreateAuctionForm() {
       setError("أدخل وصفاً للمزاد");
       return;
     }
+    const hasImages =
+      imageUrls.length > 0 || (selectedCrop?.imageUrls?.length ?? 0) > 0;
+    if (!hasImages) {
+      setError("أضف صورة واحدة على الأقل للمحصول");
+      return;
+    }
 
     setSubmitting(true);
     setError("");
@@ -344,7 +350,12 @@ function CreateAuctionForm() {
                 </Button>
                 <Button
                   fullWidth
-                  disabled={!startingPrice || !minIncrement || !description.trim()}
+                  disabled={
+                    !startingPrice ||
+                    !minIncrement ||
+                    !description.trim() ||
+                    (imageUrls.length === 0 && !(selectedCrop?.imageUrls?.length ?? 0))
+                  }
                   onClick={goNext}
                 >
                   التالي

@@ -43,7 +43,8 @@ export async function getMyFarms(userId: number) {
 }
 
 export async function getFarm(farmId: number) {
-  return apiGet<Farm>(`/api/farms/${farmId}`);
+  const data = await apiGet<unknown>(`/api/farms/${farmId}`);
+  return normalizeFarm(data) ?? (data as Farm);
 }
 
 export async function createFarm(userId: number, body: Record<string, unknown>) {

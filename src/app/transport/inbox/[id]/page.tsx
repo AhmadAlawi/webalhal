@@ -11,6 +11,7 @@ import { formatCurrency } from "@/lib/format";
 import {
   getTransportRequest,
   submitTransportOffer,
+  getMyTransportProvider,
 } from "@/services/transport";
 import type { TransportRequestDetail } from "@/types/transport";
 import { useAuth } from "@/context/AuthContext";
@@ -23,6 +24,7 @@ export default function TransportInboxDetailPage() {
   const [req, setReq] = useState<TransportRequestDetail | null>(null);
   const [price, setPrice] = useState("");
   const [providerId, setProviderId] = useState<number | "">("");
+  const [providerLocked, setProviderLocked] = useState(false);
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
   const [sending, setSending] = useState(false);
@@ -32,9 +34,22 @@ export default function TransportInboxDetailPage() {
     getTransportRequest(requestId).then(setReq).catch(() => setReq(null));
   }, [requestId, requireAuth]);
 
+  useEffect(() => {
+    if (!user?.userId) return;
+    getMyTransportProvider(user.userId)
+      .then((p) => {
+        const pid = p?.transportProviderId;
+        if (pid) {
+          setProviderId(pid);
+          setProviderLocked(true);
+        }
+      })
+      .catch(() => undefined);
+  }, [user?.userId]);
+
   async function submitOffer() {
     if (!user?.userId || !providerId || !price) {
-      setError("أدخل السعر ومعرف المزود");
+      setError("أدخل السعر — تأكد من تسجيلك كمزود نقل");
       return;
     }
     setSending(true);
@@ -87,12 +102,13 @@ export default function TransportInboxDetailPage() {
               <section className="rounded-2xl border border-emerald-100 bg-emerald-50/30 p-6">
                 <h2 className="mb-4 font-semibold text-slate-900">تقديم عرض</h2>
                 <Input
-                  label="معرف مزود النقل (TransportProviderId)"
+                  label="معرف مزود النقل"
                   type="number"
                   value={providerId === "" ? "" : String(providerId)}
                   onChange={(e) =>
                     setProviderId(e.target.value ? Number(e.target.value) : "")
                   }
+                  disabled={providerLocked}
                 />
                 <Input
                   label="السعر المقترح (ل.س)"

@@ -1,16 +1,11 @@
 /*
- * Jenkins pipeline: GitHub auto-pull + full deploy with PM2
+ * Jenkins pipeline: GitHub auto-pull + deploy via scripts/deploy.sh
  *
- * Jenkins job setup (one-time):
- * 1. Install plugins: GitHub, Pipeline, NodeJS (optional)
- * 2. Create a Pipeline job pointing to this repo / Jenkinsfile
- * 3. Add GitHub webhook: https://YOUR_JENKINS/github-webhook/
- *    Events: push (and optionally pull_request if you add a branch filter)
- * 4. Store production env as a "Secret file" credential (id: alhalnewweb-env)
- *    containing at least: NEXT_PUBLIC_API_URL=https://alhal.awnak.net
- * 5. Ensure the Jenkins agent has Node.js 20+ and npm (PM2 comes from project devDependencies)
- *
- * Optional: set DEPLOY_DIR if the app lives outside the Jenkins workspace.
+ * Server prep (one-time, as root):
+ *   ln -sf /path/to/node /usr/local/bin/node
+ *   ln -sf /path/to/npm  /usr/local/bin/npm
+ *   ln -sf /path/to/npx  /usr/local/bin/npx
+ * Jenkins runs as user 'jenkins' — use /usr/local/bin, not /root/.nvm
  */
 
 pipeline {
@@ -25,14 +20,12 @@ pipeline {
   environment {
     APP_NAME = 'alhalnewweb'
     NODE_ENV = 'production'
-    NODE_BIN_DIR = '/root/.nvm/versions/node/v24.12.0/bin'
+    NODE_BIN_DIR = '/usr/local/bin'
     PATH = "${NODE_BIN_DIR}:${env.PATH}"
-    // Override in Jenkins job or global env if deploying elsewhere
     DEPLOY_DIR = "${WORKSPACE}"
   }
 
   triggers {
-    // Poll every 5 minutes if GitHub webhook is unavailable
     pollSCM('H/5 * * * *')
   }
 
@@ -55,17 +48,12 @@ pipeline {
         script {
           try {
             withCredentials([file(credentialsId: 'alhalnewweb-env', variable: 'ENV_FILE')]) {
-              sh '''
-                cp "$ENV_FILE" .env.local
-                echo "Loaded production env from Jenkins credentials."
-              '''
+              sh 'cp "$ENV_FILE" .env.local'
             }
           } catch (ignored) {
             sh '''
-              if [ -f .env.local ]; then
-                echo "Using existing .env.local on the server."
-              else
-                echo "No Jenkins env credential and no .env.local; set NEXT_PUBLIC_API_URL on the agent."
+              if [ ! -f .env.local ]; then
+                echo "No Jenkins env credential — ensure .env.local exists on agent"
               fi
             '''
           }
@@ -73,39 +61,12 @@ pipeline {
       }
     }
 
-    stage('Install dependencies') {
-      steps {
-        sh '''
-          NODE=/root/.nvm/versions/node/v24.12.0/bin/node
-          NPM=/root/.nvm/versions/node/v24.12.0/bin/npm
-          test -x "$NODE" || { echo "Jenkins cannot access $NODE — symlink to /usr/local/bin"; exit 1; }
-          "$NPM" ci
-        '''
-      }
-    }
-
-    stage('Build') {
-      steps {
-        sh '''
-          NPM=/root/.nvm/versions/node/v24.12.0/bin/npm
-          "$NPM" run build
-        '''
-      }
-    }
-
-    stage('Deploy with PM2') {
+    stage('Deploy') {
       steps {
         sh '''
           set -e
-          mkdir -p logs
-          NPX=/root/.nvm/versions/node/v24.12.0/bin/npx
-          PM2="$NPX pm2"
-          if $PM2 describe alhalnewweb >/dev/null 2>&1; then
-            $PM2 reload ecosystem.config.cjs --env production --update-env
-          else
-            $PM2 start ecosystem.config.cjs --env production
-          fi
-          $PM2 save
+          test -x "${NODE_BIN_DIR}/node" || { echo "Node missing at ${NODE_BIN_DIR}/node"; exit 1; }
+          bash scripts/deploy.sh
         '''
       }
     }
@@ -113,8 +74,7 @@ pipeline {
     stage('Verify') {
       steps {
         sh '''
-          NPX=/root/.nvm/versions/node/v24.12.0/bin/npx
-          $NPX pm2 status alhalnewweb || true
+          npx pm2 status alhalnewweb || true
           echo "Deployed commit: $(git rev-parse --short HEAD)"
         '''
       }
@@ -126,10 +86,10 @@ pipeline {
       echo "Deploy succeeded for ${env.APP_NAME} (${env.GIT_COMMIT_SHORT})"
     }
     failure {
-      echo 'Deploy failed — check build logs and PM2 status on the server.'
+      echo 'Deploy failed — check build logs and /var/lib/jenkins/.pm2/logs/'
     }
     always {
-      sh '/root/.nvm/versions/node/v24.12.0/bin/npx pm2 status alhalnewweb || true'
+      sh 'npx pm2 status alhalnewweb || true'
     }
   }
 }

@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Calculator, Loader2 } from "lucide-react";
 import { PageHeader } from "@/components/ui/PageHeader";
 import { PageContainer } from "@/components/layout/PageContainer";
@@ -8,12 +8,14 @@ import { Card } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
 import {
-  fetchTransportRegions,
   getCheapestTransportPrice,
   getOfficialTransportPrice,
   type TransportPriceResult,
 } from "@/services/transport-prices";
+import { getGovernorates } from "@/services/locations";
+import { useCities } from "@/hooks/useCities";
 import { formatCurrency } from "@/lib/format";
+import type { Governorate } from "@/types/location";
 
 function PriceResultCard({
   title,
@@ -53,10 +55,17 @@ function PriceResultCard({
   );
 }
 
+function governorateLabel(g: Governorate): string {
+  return g.nameAr || g.name || `#${g.governorateId}`;
+}
+
 export default function TransportPricesPage() {
-  const [regions, setRegions] = useState<string[]>([]);
-  const [fromRegion, setFromRegion] = useState("");
-  const [toRegion, setToRegion] = useState("");
+  const { data: cities = [] } = useCities();
+  const [governorates, setGovernorates] = useState<Governorate[]>([]);
+  const [fromGovernorateId, setFromGovernorateId] = useState<number | "">("");
+  const [toGovernorateId, setToGovernorateId] = useState<number | "">("");
+  const [fromCityId, setFromCityId] = useState<number | "">("");
+  const [toCityId, setToCityId] = useState<number | "">("");
   const [distanceKm, setDistanceKm] = useState("");
   const [official, setOfficial] = useState<TransportPriceResult | null>(null);
   const [cheapest, setCheapest] = useState<TransportPriceResult | null>(null);
@@ -65,23 +74,48 @@ export default function TransportPricesPage() {
   const [error, setError] = useState("");
 
   useEffect(() => {
-    fetchTransportRegions()
-      .then(setRegions)
-      .catch(() => setRegions([]));
+    getGovernorates()
+      .then(setGovernorates)
+      .catch(() => setGovernorates([]));
   }, []);
+
+  const fromCities = useMemo(
+    () =>
+      fromGovernorateId
+        ? cities.filter((c) => c.governorateId === fromGovernorateId)
+        : [],
+    [cities, fromGovernorateId],
+  );
+  const toCities = useMemo(
+    () =>
+      toGovernorateId ? cities.filter((c) => c.governorateId === toGovernorateId) : [],
+    [cities, toGovernorateId],
+  );
+
+  function regionName(govId: number | "", cityId: number | ""): string | undefined {
+    if (cityId) {
+      const city = cities.find((c) => c.cityId === cityId);
+      if (city?.nameAr || city?.name) return city.nameAr || city.name;
+    }
+    if (govId) {
+      const gov = governorates.find((g) => g.governorateId === govId);
+      if (gov) return governorateLabel(gov);
+    }
+    return undefined;
+  }
 
   function buildDto() {
     const km = distanceKm.trim() ? Number(distanceKm) : undefined;
     return {
-      fromRegion: fromRegion || undefined,
-      toRegion: toRegion || undefined,
+      fromRegion: regionName(fromGovernorateId, fromCityId),
+      toRegion: regionName(toGovernorateId, toCityId),
       distanceKm: km != null && !Number.isNaN(km) ? km : undefined,
     };
   }
 
   function validate(): boolean {
-    if (!fromRegion || !toRegion) {
-      setError("اختر منطقة الانطلاق والوصول");
+    if (!fromGovernorateId || !toGovernorateId) {
+      setError("اختر محافظة الانطلاق والوصول");
       return false;
     }
     setError("");
@@ -118,7 +152,7 @@ export default function TransportPricesPage() {
     <>
       <PageHeader
         title="حاسبة أسعار النقل"
-        subtitle="تقدير السعر الرسمي وأرخص عرض بين المناطق"
+        subtitle="تقدير السعر الرسمي وأرخص عرض بين المحافظات والمدن"
         backHref="/account"
       />
       <PageContainer className="py-8">
@@ -128,37 +162,75 @@ export default function TransportPricesPage() {
               <Calculator className="h-6 w-6" />
             </span>
             <p className="text-sm text-slate-600">
-              اختر المناطق أو أدخل المسافة بالكيلومتر — كما في تطبيق الموبايل
+              اختر المحافظة والمدينة أو أدخل المسافة بالكيلومتر — كما في تطبيق الموبايل
             </p>
           </div>
 
           <div className="grid gap-4 sm:grid-cols-2">
             <label className="block text-sm font-medium text-slate-700">
-              من
+              من — المحافظة
               <select
-                value={fromRegion}
-                onChange={(e) => setFromRegion(e.target.value)}
+                value={fromGovernorateId === "" ? "" : String(fromGovernorateId)}
+                onChange={(e) => {
+                  setFromGovernorateId(e.target.value ? Number(e.target.value) : "");
+                  setFromCityId("");
+                }}
                 className="input-field mt-1"
               >
                 <option value="">— اختر —</option>
-                {regions.map((r) => (
-                  <option key={r} value={r}>
-                    {r}
+                {governorates.map((g) => (
+                  <option key={g.governorateId} value={g.governorateId}>
+                    {governorateLabel(g)}
                   </option>
                 ))}
               </select>
             </label>
             <label className="block text-sm font-medium text-slate-700">
-              إلى
+              إلى — المحافظة
               <select
-                value={toRegion}
-                onChange={(e) => setToRegion(e.target.value)}
+                value={toGovernorateId === "" ? "" : String(toGovernorateId)}
+                onChange={(e) => {
+                  setToGovernorateId(e.target.value ? Number(e.target.value) : "");
+                  setToCityId("");
+                }}
                 className="input-field mt-1"
               >
                 <option value="">— اختر —</option>
-                {regions.map((r) => (
-                  <option key={r} value={r}>
-                    {r}
+                {governorates.map((g) => (
+                  <option key={g.governorateId} value={g.governorateId}>
+                    {governorateLabel(g)}
+                  </option>
+                ))}
+              </select>
+            </label>
+            <label className="block text-sm font-medium text-slate-700">
+              من — المدينة (اختياري)
+              <select
+                value={fromCityId === "" ? "" : String(fromCityId)}
+                onChange={(e) => setFromCityId(e.target.value ? Number(e.target.value) : "")}
+                className="input-field mt-1"
+                disabled={!fromGovernorateId}
+              >
+                <option value="">— الكل —</option>
+                {fromCities.map((c) => (
+                  <option key={c.cityId} value={c.cityId}>
+                    {c.nameAr || c.name}
+                  </option>
+                ))}
+              </select>
+            </label>
+            <label className="block text-sm font-medium text-slate-700">
+              إلى — المدينة (اختياري)
+              <select
+                value={toCityId === "" ? "" : String(toCityId)}
+                onChange={(e) => setToCityId(e.target.value ? Number(e.target.value) : "")}
+                className="input-field mt-1"
+                disabled={!toGovernorateId}
+              >
+                <option value="">— الكل —</option>
+                {toCities.map((c) => (
+                  <option key={c.cityId} value={c.cityId}>
+                    {c.nameAr || c.name}
                   </option>
                 ))}
               </select>

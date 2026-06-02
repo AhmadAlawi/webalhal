@@ -20,7 +20,12 @@ export function resolveNotificationDeepLink(action?: string | null): string | nu
   if (lower.includes("chat") || lower.includes("conversation")) return `/chat/${id}`;
 
   if (lower.includes("transport")) {
-    if (lower.includes("inbox") || lower.includes("provider") || lower.includes("transporter")) {
+    if (
+      lower.includes("inbox") ||
+      lower.includes("provider") ||
+      lower.includes("transporter") ||
+      lower.includes("offer")
+    ) {
       return `/transport/inbox/${id}`;
     }
     if (lower.includes("buyer") || lower.includes("request")) {
@@ -36,6 +41,9 @@ export function resolveNotificationDeepLink(action?: string | null): string | nu
   if (lower.includes("direct")) return `/direct/${id}/buy`;
 
   if (lower.includes("farm")) return `/farms/${id}`;
+  if (lower.includes("activity") || lower.includes("my-activity")) return "/account/activity";
+  if (lower.includes("profile") || lower.includes("edit-profile")) return "/account/profile";
+  if (lower.includes("wallet")) return "/account";
   if (lower.includes("notification")) return "/notifications";
 
   return null;
@@ -43,6 +51,13 @@ export function resolveNotificationDeepLink(action?: string | null): string | nu
 
 function normalizeWebPath(path: string): string | null {
   const p = path.split("?")[0];
+
+  const aliases: Record<string, string> = {
+    "/my-activity": "/account/activity",
+    "/edit-profile": "/account/profile",
+    "/wallet": "/account",
+  };
+  if (aliases[p]) return aliases[p];
 
   const transportRequest = p.match(/^\/transport-requests\/(\d+)\/?$/i);
   if (transportRequest) return `/transport/requests/${transportRequest[1]}`;
@@ -54,9 +69,21 @@ function normalizeWebPath(path: string): string | null {
   const listing = p.match(/^\/listings\/(\d+)\/?$/i);
   if (listing) return `/direct/${listing[1]}/buy`;
 
-  if (p.startsWith("/transport/") || p.startsWith("/auctions/") || p.startsWith("/tenders/")) {
+  const knownPrefixes = [
+    "/transport/",
+    "/auctions/",
+    "/tenders/",
+    "/direct/",
+    "/orders/",
+    "/farms/",
+    "/chat/",
+    "/account/",
+    "/notifications",
+    "/market-analysis",
+  ];
+  if (knownPrefixes.some((prefix) => p.startsWith(prefix))) {
     return p;
   }
 
-  return p;
+  return null;
 }

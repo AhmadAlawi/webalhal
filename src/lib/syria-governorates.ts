@@ -74,9 +74,28 @@ export interface MapVolumePoint {
   volume: number;
 }
 
+export function registerApiGovernorateNames(
+  governorates: { governorateId?: number; id?: number; nameAr?: string; name?: string }[],
+): void {
+  for (const gov of governorates) {
+    const id = gov.governorateId ?? gov.id;
+    const name = gov.nameAr ?? gov.name;
+    if (!name?.trim()) continue;
+
+    let entry = id != null ? SYRIA_GOVERNORATES.find((g) => g.id === id) : undefined;
+    if (!entry) entry = resolveGovernorateCoords(undefined, name) ?? undefined;
+    if (!entry) continue;
+
+    if (id != null && entry.id == null) entry.id = id;
+    if (!entry.aliases.includes(name)) entry.aliases.push(name);
+  }
+}
+
 export function toMapVolumePoints(
   items: { governorateId?: number; governorateName?: string; name?: string; totalVolume?: number; value?: number }[],
+  apiGovernorates?: { governorateId?: number; id?: number; nameAr?: string; name?: string }[],
 ): MapVolumePoint[] {
+  if (apiGovernorates?.length) registerApiGovernorateNames(apiGovernorates);
   const points: MapVolumePoint[] = [];
   for (const item of items) {
     const name = item.governorateName ?? item.name ?? "";

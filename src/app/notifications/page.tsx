@@ -20,6 +20,7 @@ export default function NotificationsPage() {
   const router = useRouter();
   const [items, setItems] = useState<NotificationItem[]>([]);
   const [markingAll, setMarkingAll] = useState(false);
+  const [linkError, setLinkError] = useState("");
 
   useEffect(() => {
     if (!requireAuth()) return;
@@ -40,7 +41,12 @@ export default function NotificationsPage() {
       }
     }
     const href = resolveNotificationDeepLink(n.clickAction);
-    if (href) router.push(href);
+    if (href) {
+      setLinkError("");
+      router.push(href);
+    } else if (n.clickAction?.trim()) {
+      setLinkError("رابط الإشعار غير مدعوم على الويب — راجع الإشعار من التطبيق");
+    }
   }
 
   async function handleMarkAll() {
@@ -66,6 +72,9 @@ export default function NotificationsPage() {
               تعليم الكل كمقروء
             </Button>
           </div>
+        )}
+        {linkError && (
+          <p className="mb-4 rounded-xl bg-amber-50 px-4 py-2 text-sm text-amber-800">{linkError}</p>
         )}
         <ul className="divide-y divide-gray-100 overflow-hidden rounded-2xl border border-gray-200 bg-white">
           {items.map((n) => (

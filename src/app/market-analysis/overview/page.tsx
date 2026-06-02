@@ -29,7 +29,7 @@ const InteractivePieChart = dynamic(
   { ssr: false, loading: () => <div className="h-64 animate-pulse rounded-2xl bg-slate-100" /> },
 );
 import { FadeIn } from "@/components/motion/FadeIn";
-import { toMapVolumePoints } from "@/lib/syria-governorates";
+import { mergeGovernorateMapPoints, toMapVolumePoints } from "@/lib/syria-governorates";
 import {
   getAnalysisFiltersAvailable,
   getDashboardSummary,
@@ -116,7 +116,14 @@ export default function MarketAnalysisOverviewPage() {
       value: p.value ?? 0,
     })) ?? [];
 
-  const mapPoints = useMemo(() => toMapVolumePoints(volumeGov), [volumeGov]);
+  const mapPoints = useMemo(() => {
+    const govMeta = filtersMeta?.governorates?.map((g) => ({
+      governorateId: g.id,
+      nameAr: g.nameAr ?? g.name,
+    }));
+    const points = toMapVolumePoints(volumeGov, govMeta);
+    return points.length ? mergeGovernorateMapPoints(points) : points;
+  }, [volumeGov, filtersMeta?.governorates]);
 
   return (
     <>

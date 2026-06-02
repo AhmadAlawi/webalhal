@@ -25,6 +25,7 @@ const ROLES = [
   { id: "trader", label: "تاجر" },
   { id: "transporter", label: "ناقل" },
   { id: "gov_employee", label: "موظف حكومي" },
+  { id: "agri_service", label: "خدمات زراعية" },
 ];
 
 function RegisterForm() {

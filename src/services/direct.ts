@@ -82,17 +82,9 @@ export async function cancelDirectOrder(orderId: number) {
 
 export async function getMyDirectListings(userId: number) {
   const data = await apiGet<MarketplaceListing[] | { items?: MarketplaceListing[] }>(
-    `/api/direct/listings/filtered?sellerUserId=${userId}`,
+    `/api/direct/listings/filtered?sellerUserId=${encodeURIComponent(String(userId))}`,
   );
-  const list = Array.isArray(data) ? data : data?.items ?? [];
-  if (list.length) return list;
-  const all = await apiGet<MarketplaceListing[] | { items?: MarketplaceListing[] }>(
-    "/api/direct/listings/filtered",
-  );
-  const allList = Array.isArray(all) ? all : all?.items ?? [];
-  return allList.filter(
-    (l) => (l as { sellerUserId?: number }).sellerUserId === userId,
-  );
+  return Array.isArray(data) ? data : data?.items ?? [];
 }
 
 export function parseOrderFromCreate(res: unknown): {

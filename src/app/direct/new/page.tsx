@@ -1,7 +1,7 @@
 "use client";
 
-import { useCallback, useState } from "react";
-import { useRouter } from "next/navigation";
+import { Suspense, useCallback, useEffect, useState } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
 import { PageHeader } from "@/components/ui/PageHeader";
 import { PageContainer } from "@/components/layout/PageContainer";
 import { Button } from "@/components/ui/Button";
@@ -10,19 +10,34 @@ import { FarmCropSelect } from "@/components/forms/FarmCropSelect";
 import { ImageUploadField } from "@/components/forms/ImageUploadField";
 import { useAuth } from "@/context/AuthContext";
 import { canCreateDirectListing } from "@/lib/permissions";
+import { formatPrice } from "@/lib/auctionPricing";
 import { createListing } from "@/services/marketplace";
 import { updateCrop } from "@/services/farms";
 import type { Crop } from "@/types/farm";
 
 export default function NewDirectListingPage() {
+  return (
+    <Suspense
+      fallback={
+        <PageContainer className="py-16 text-center text-slate-500">جاري التحميل...</PageContainer>
+      }
+    >
+      <NewDirectListingForm />
+    </Suspense>
+  );
+}
+
+function NewDirectListingForm() {
   const { user, requireAuth } = useAuth();
   const router = useRouter();
+  const searchParams = useSearchParams();
   const [step, setStep] = useState(1);
   const [cropId, setCropId] = useState<number | "">("");
   const [selectedCrop, setSelectedCrop] = useState<Crop | null>(null);
   const [unitPrice, setUnitPrice] = useState("");
   const [availableQty, setAvailableQty] = useState("");
   const [minOrderQty, setMinOrderQty] = useState("1");
+  const [maxOrderQty, setMaxOrderQty] = useState("");
   const [unit, setUnit] = useState("كغ");
   const [title, setTitle] = useState("");
   const [imageUrls, setImageUrls] = useState<string[]>([]);
@@ -36,10 +51,21 @@ export default function NewDirectListingPage() {
       const name = crop.nameAr || crop.cropName || crop.name;
       if (name) setTitle((t) => t || name);
       if (crop.unit) setUnit(crop.unit);
-      if (crop.quantity != null) setAvailableQty(String(crop.quantity));
+      if (crop.quantity != null) {
+        setAvailableQty(String(crop.quantity));
+        setMaxOrderQty((m) => m || String(crop.quantity));
+      }
       if (crop.imageUrls?.length) setImageUrls(crop.imageUrls);
     }
   }, []);
+
+  useEffect(() => {
+    const fromUrl = searchParams.get("cropId");
+    if (fromUrl) {
+      const id = Number(fromUrl);
+      if (Number.isFinite(id) && id > 0) setCropId(id);
+    }
+  }, [searchParams]);
 
   if (!requireAuth()) return null;
   if (!canCreateDirectListing(user?.roleId)) {
@@ -80,6 +106,7 @@ export default function NewDirectListingPage() {
         unitPrice: Number(unitPrice),
         availableQty: Number(availableQty),
         minOrderQty: Number(minOrderQty) || 1,
+        maxOrderQty: maxOrderQty.trim() ? Number(maxOrderQty) : Number(availableQty),
         unit: unit.trim() || "كغ",
         imageUrls: imageUrls.length ? imageUrls : undefined,
       });
@@ -91,12 +118,15 @@ export default function NewDirectListingPage() {
     }
   }
 
+  const cropLabel =
+    selectedCrop?.nameAr || selectedCrop?.cropName || selectedCrop?.name || "—";
+
   return (
     <>
       <PageHeader title="عرض بيع مباشر" backHref="/direct" />
       <PageContainer narrow className="py-8">
         <div className="mb-6 flex gap-2">
-          {[1, 2].map((s) => (
+          {[1, 2, 3].map((s) => (
             <span
               key={s}
               className={`h-2 flex-1 rounded-full ${step >= s ? "bg-emerald-600" : "bg-slate-200"}`}
@@ -138,20 +168,69 @@ export default function NewDirectListingPage() {
                 value={minOrderQty}
                 onChange={(e) => setMinOrderQty(e.target.value)}
               />
+              <Input
+                label="أقصى كمية للطلب"
+                type="number"
+                value={maxOrderQty}
+                onChange={(e) => setMaxOrderQty(e.target.value)}
+                placeholder="افتراضياً = الكمية المتاحة"
+              />
               <Input label="الوحدة" value={unit} onChange={(e) => setUnit(e.target.value)} />
               <Input label="عنوان العرض" value={title} onChange={(e) => setTitle(e.target.value)} />
               <ImageUploadField value={imageUrls} onChange={setImageUrls} folder="direct" />
-              {error && <p className="text-sm text-red-600">{error}</p>}
               <div className="flex gap-2">
                 <Button variant="outline" fullWidth onClick={() => setStep(1)}>
                   رجوع
                 </Button>
                 <Button
                   fullWidth
-                  onClick={submit}
-                  disabled={submitting || !unitPrice || !availableQty}
+                  disabled={!unitPrice || !availableQty}
+                  onClick={() => setStep(3)}
                 >
-                  {submitting ? "جاري النشر..." : "نشر العرض"}
+                  مراجعة
+                </Button>
+              </div>
+            </>
+          )}
+          {step === 3 && (
+            <>
+              <h2 className="font-semibold text-slate-900">مراجعة العرض</h2>
+              <dl className="space-y-2 text-sm text-slate-700">
+                <div className="flex justify-between gap-4">
+                  <dt className="text-slate-500">المحصول</dt>
+                  <dd className="font-medium">{cropLabel}</dd>
+                </div>
+                <div className="flex justify-between gap-4">
+                  <dt className="text-slate-500">السعر</dt>
+                  <dd>{formatPrice(Number(unitPrice))} ل.س / {unit}</dd>
+                </div>
+                <div className="flex justify-between gap-4">
+                  <dt className="text-slate-500">الكمية</dt>
+                  <dd>
+                    {availableQty} {unit} (أقل {minOrderQty || 1}
+                    {maxOrderQty.trim() ? ` — أقصى ${maxOrderQty}` : ""})
+                  </dd>
+                </div>
+                {title && (
+                  <div className="flex justify-between gap-4">
+                    <dt className="text-slate-500">العنوان</dt>
+                    <dd>{title}</dd>
+                  </div>
+                )}
+                {imageUrls.length > 0 && (
+                  <div>
+                    <dt className="text-slate-500">الصور</dt>
+                    <dd className="mt-1 text-emerald-700">{imageUrls.length} صورة</dd>
+                  </div>
+                )}
+              </dl>
+              {error && <p className="text-sm text-red-600">{error}</p>}
+              <div className="flex gap-2">
+                <Button variant="outline" fullWidth onClick={() => setStep(2)}>
+                  رجوع
+                </Button>
+                <Button fullWidth onClick={submit} disabled={submitting}>
+                  {submitting ? "جاري النشر..." : "تأكيد النشر"}
                 </Button>
               </div>
             </>

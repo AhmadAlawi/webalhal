@@ -9,7 +9,8 @@ import { MiniSparkline } from "@/components/analysis/MiniSparkline";
 import { FadeIn } from "@/components/motion/FadeIn";
 import { SyriaMarketMapDynamic } from "@/components/maps/SyriaMarketMapDynamic";
 import { getDashboardSummary, getVolumeByGovernorate } from "@/services/market-analysis";
-import { toMapVolumePoints } from "@/lib/syria-governorates";
+import { getGovernorates } from "@/services/locations";
+import { mergeGovernorateMapPoints, toMapVolumePoints } from "@/lib/syria-governorates";
 import type { DashboardSummaryData } from "@/types/market-analysis";
 
 export function MarketAnalysisWidget() {
@@ -21,10 +22,12 @@ export function MarketAnalysisWidget() {
     Promise.all([
       getDashboardSummary({ days: 30 }),
       getVolumeByGovernorate({ days: 30 }),
+      getGovernorates().catch(() => []),
     ])
-      .then(([s, vol]) => {
+      .then(([s, vol, governorates]) => {
         setSummary(s);
-        setMapPoints(toMapVolumePoints(vol));
+        const points = toMapVolumePoints(vol, governorates);
+        setMapPoints(points.length ? mergeGovernorateMapPoints(points) : points);
       })
       .catch(() => {
         setSummary(null);

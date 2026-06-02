@@ -8,7 +8,8 @@ import { formatPrice } from "@/lib/auctionPricing";
 import { getAuctionLocation, getListingLocation, getTenderLocation } from "@/lib/marketplace";
 import { getAuctionsCreatedByUser } from "@/services/auctions";
 import { getTendersCreatedByUser } from "@/services/tenders";
-import { getMyDirectListings, getBuyerOrders } from "@/services/direct";
+import { getMyDirectListings, getBuyerOrders, getSellerOrders } from "@/services/direct";
+import { translateStatus } from "@/lib/status-labels";
 import { getOffersByUser } from "@/services/offers";
 import { useAuth } from "@/context/AuthContext";
 import type { Auction, Tender } from "@/types";
@@ -16,13 +17,14 @@ import type { DirectOrder } from "@/services/direct";
 import type { UserOffer } from "@/services/offers";
 import type { MarketplaceListing } from "@/types";
 
-type TabId = "tenders" | "auctions" | "listings" | "buyerOrders" | "offers";
+type TabId = "tenders" | "auctions" | "listings" | "buyerOrders" | "sellerOrders" | "offers";
 
 const TABS: { id: TabId; label: string }[] = [
   { id: "tenders", label: "مناقصاتي" },
   { id: "auctions", label: "مزاداتي" },
   { id: "listings", label: "عروض البيع" },
   { id: "buyerOrders", label: "طلبات شراء" },
+  { id: "sellerOrders", label: "طلبات بيع" },
   { id: "offers", label: "عروضي على مناقصات" },
 ];
 
@@ -38,6 +40,7 @@ export function MyActivityContent() {
   const [auctions, setAuctions] = useState<Auction[]>([]);
   const [listings, setListings] = useState<MarketplaceListing[]>([]);
   const [buyerOrders, setBuyerOrders] = useState<DirectOrder[]>([]);
+  const [sellerOrders, setSellerOrders] = useState<DirectOrder[]>([]);
   const [offers, setOffers] = useState<UserOffer[]>([]);
 
   useEffect(() => {
@@ -49,13 +52,15 @@ export function MyActivityContent() {
       getAuctionsCreatedByUser(uid).catch(() => []),
       getMyDirectListings(uid).catch(() => []),
       getBuyerOrders(uid).catch(() => []),
+      getSellerOrders(uid).catch(() => []),
       getOffersByUser(uid).catch(() => []),
     ])
-      .then(([t, a, l, o, of]) => {
+      .then(([t, a, l, bo, so, of]) => {
         setTenders(t);
         setAuctions(a);
         setListings(l);
-        setBuyerOrders(o);
+        setBuyerOrders(bo);
+        setSellerOrders(so);
         setOffers(of);
       })
       .finally(() => setLoading(false));
@@ -157,7 +162,7 @@ export function MyActivityContent() {
                       {[
                         l.availableQty != null ? `متاح ${l.availableQty} ${l.unit || ""}` : null,
                         getListingLocation(l),
-                        l.status,
+                        translateStatus(l.status),
                       ]
                         .filter(Boolean)
                         .join(" · ")}
@@ -190,6 +195,25 @@ export function MyActivityContent() {
             ))
           ) : (
             <li className="py-12 text-center text-slate-500">لا طلبات شراء</li>
+          ))}
+
+        {tab === "sellerOrders" &&
+          (sellerOrders.length ? (
+            sellerOrders.map((o) => (
+              <li key={o.orderId ?? o.id}>
+                <Link
+                  href={`/orders/direct/${o.orderId ?? o.id}`}
+                  className="flex items-center justify-between rounded-xl border bg-white px-5 py-4 hover:border-emerald-200"
+                >
+                  <span className="font-medium">
+                    {o.listingTitle || o.cropName || `طلب #${o.orderId}`}
+                  </span>
+                  <StatusBadge status={o.status} />
+                </Link>
+              </li>
+            ))
+          ) : (
+            <li className="py-12 text-center text-slate-500">لا طلبات بيع</li>
           ))}
 
         {tab === "offers" &&
