@@ -3,6 +3,14 @@ import { asApiList } from "@/lib/api-list";
 import { API } from "@/lib/api-endpoints";
 import type { Conversation } from "@/types";
 
+export interface LinkedConversation {
+  conversationId: number;
+  contextType?: string;
+  contextId?: number;
+  relation?: string;
+  tenderId?: number;
+}
+
 export interface ConversationDetail extends Conversation {
   buyerUserId?: number;
   sellerUserId?: number;
@@ -11,12 +19,17 @@ export interface ConversationDetail extends Conversation {
   orderId?: number;
   contextType?: string;
   contextId?: number;
+  tenderId?: number;
   farmCityId?: number;
   farmGovernorateId?: number;
   farmCity?: string;
   farmGovernorate?: string;
   transportRequestId?: number;
   transportStatus?: string;
+  transportAssigned?: boolean;
+  currentUserRole?: string;
+  status?: string;
+  linkedConversations?: LinkedConversation[];
 }
 
 const CONTEXT_LABELS: Record<string, string> = {
@@ -25,8 +38,114 @@ const CONTEXT_LABELS: Record<string, string> = {
   auction: "مزاد",
   tender: "مناقصة",
   tender_offer: "عرض مناقصة",
-  transport_delivery: "نقل",
+  transport_delivery: "تسليم",
+  transport_pickup: "استلام",
 };
+
+const LINK_RELATION_LABELS: Record<string, string> = {
+  main_deal: "المحادثة الرئيسية",
+  pickup_handoff: "استلام الشحنة",
+  delivery_handoff: "تسليم الشحنة",
+};
+
+export function linkedConversationLabel(link: LinkedConversation): string {
+  if (link.relation && LINK_RELATION_LABELS[link.relation]) {
+    return LINK_RELATION_LABELS[link.relation];
+  }
+  const type = link.contextType?.toLowerCase() ?? "";
+  if (CONTEXT_LABELS[type]) return CONTEXT_LABELS[type];
+  return `محادثة #${link.conversationId}`;
+}
+
+function parseLinkedConversations(raw: unknown): LinkedConversation[] {
+  if (!Array.isArray(raw)) return [];
+  const out: LinkedConversation[] = [];
+  for (const item of raw) {
+    if (!item || typeof item !== "object") continue;
+    const r = item as Record<string, unknown>;
+    const conversationId = Number(r.conversationId ?? r.ConversationId);
+    if (!Number.isFinite(conversationId) || conversationId <= 0) continue;
+    out.push({
+      conversationId,
+      contextType: (r.contextType ?? r.ContextType) as string | undefined,
+      contextId: Number(r.contextId ?? r.ContextId) || undefined,
+      relation: (r.relation ?? r.Relation) as string | undefined,
+      tenderId: Number(r.tenderId ?? r.TenderId) || undefined,
+    });
+  }
+  return out;
+}
+
+export function hasTransportLinkedChats(links?: LinkedConversation[]): boolean {
+  return (links ?? []).some(
+    (l) =>
+      l.relation === "pickup_handoff" ||
+      l.relation === "delivery_handoff" ||
+      l.contextType === "transport_pickup" ||
+      l.contextType === "transport_delivery",
+  );
+}
+
+export function isTransportHandoffChat(conv: ConversationDetail | null): boolean {
+  if (!conv) return false;
+  const type = (conv.contextType ?? conv.orderType ?? "").toLowerCase();
+  return type === "transport_pickup" || type === "transport_delivery";
+}
+
+export type DealUserRole = "buyer" | "seller" | "unknown";
+
+export function resolveDealUserRole(
+  conv: ConversationDetail | null,
+  userId?: number,
+): DealUserRole {
+  const fromApi = conv?.currentUserRole?.toLowerCase();
+  if (fromApi === "buyer" || fromApi === "seller") return fromApi;
+  if (!userId || !conv) return "unknown";
+  if (conv.buyerUserId === userId) return "buyer";
+  if (conv.sellerUserId === userId) return "seller";
+  return "unknown";
+}
+
+export function isPickupHandoffLink(link: LinkedConversation): boolean {
+  return (
+    link.relation === "pickup_handoff" || link.contextType === "transport_pickup"
+  );
+}
+
+export function isDeliveryHandoffLink(link: LinkedConversation): boolean {
+  return (
+    link.relation === "delivery_handoff" ||
+    link.contextType === "transport_delivery"
+  );
+}
+
+/** استلام الشحنة → البائع فقط | تسليم الشحنة → المشتري فقط */
+export function canUserAccessLinkedChat(
+  link: LinkedConversation,
+  role: DealUserRole,
+): boolean {
+  if (isPickupHandoffLink(link)) return role === "seller";
+  if (isDeliveryHandoffLink(link)) return role === "buyer";
+  return true;
+}
+
+export function filterLinkedConversationsForRole(
+  links: LinkedConversation[],
+  role: DealUserRole,
+): LinkedConversation[] {
+  return links.filter((l) => canUserAccessLinkedChat(l, role));
+}
+
+export function canUserAccessConversation(
+  conv: ConversationDetail | null,
+  role: DealUserRole,
+): boolean {
+  if (!conv || !isTransportHandoffChat(conv)) return true;
+  const type = (conv.contextType ?? conv.orderType ?? "").toLowerCase();
+  if (type === "transport_pickup") return role === "seller";
+  if (type === "transport_delivery") return role === "buyer";
+  return true;
+}
 
 function contextTitle(raw: Record<string, unknown>): string | undefined {
   const type = String(
@@ -123,9 +242,29 @@ export async function getChatUnreadCount(userId?: number): Promise<number> {
 }
 
 export async function getConversation(conversationId: number) {
-  const raw = await apiGet<ConversationDetail>(API.chat.conversation(conversationId));
+  const raw = await apiGet<unknown>(API.chat.conversation(conversationId));
+  const r = (raw && typeof raw === "object" ? raw : {}) as Record<string, unknown>;
   const normalized = normalizeConversation(raw);
-  return { ...raw, ...normalized } as ConversationDetail;
+  const linked = parseLinkedConversations(
+    r.linkedConversations ?? r.LinkedConversations,
+  );
+
+  return {
+    ...r,
+    ...normalized,
+    buyerUserId: Number(r.buyerUserId ?? r.BuyerUserId) || undefined,
+    sellerUserId: Number(r.sellerUserId ?? r.SellerUserId) || undefined,
+    tenderId: Number(r.tenderId ?? r.TenderId) || undefined,
+    transportAssigned: Boolean(r.transportAssigned ?? r.TransportAssigned),
+    transportRequestId:
+      Number(r.transportRequestId ?? r.TransportRequestId) || undefined,
+    transportStatus: (r.transportStatus ?? r.TransportStatus) as string | undefined,
+    farmCity: (r.farmCity ?? r.FarmCity) as string | undefined,
+    farmGovernorate: (r.farmGovernorate ?? r.FarmGovernorate) as string | undefined,
+    currentUserRole: (r.currentUserRole ?? r.CurrentUserRole) as string | undefined,
+    status: (r.status ?? r.Status) as string | undefined,
+    linkedConversations: linked,
+  } as ConversationDetail;
 }
 
 export async function getMessages(conversationId: number) {

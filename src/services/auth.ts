@@ -1,6 +1,10 @@
 import { apiGet } from "@/lib/api";
 import { unwrapEnvelopeData } from "@/lib/api-envelope";
 import { formatApiErrorMessage } from "@/lib/api-errors";
+import {
+  parseRegistrationProgress,
+  type RegistrationProgress,
+} from "@/lib/registration-progress";
 import { getStoredUser, setStoredRoleName } from "@/lib/auth-storage";
 import { getApiBaseUrl } from "@/lib/config";
 import { API } from "@/lib/api-endpoints";
@@ -181,18 +185,13 @@ export async function login(
   const body = await res.json();
 
   if (res.status === 409) {
-    const payload = unwrapEnvelopeData(body);
-    const err = new Error("registration_incomplete") as Error & {
-      registrationId?: string;
-      currentStep?: number;
-    };
-    err.registrationId = String(
-      payload.registrationId ?? (body as { registrationId?: string }).registrationId ?? "",
-    );
-    err.currentStep = Number(
-      payload.currentStep ?? (body as { currentStep?: number }).currentStep ?? 0,
-    );
-    throw err;
+    const payload = unwrapEnvelopeData(body) as Record<string, unknown>;
+    const registration = parseRegistrationProgress(payload);
+    if (registration.registrationId) {
+      const err = new Error("registration_incomplete") as Error & RegistrationProgress;
+      Object.assign(err, registration);
+      throw err;
+    }
   }
 
   if (!res.ok) {
@@ -206,37 +205,33 @@ export async function login(
     throw new Error(msg || "فشل تسجيل الدخول");
   }
 
-  const data = unwrapEnvelopeData<{
-    userId?: number;
-    roleId?: number | string;
-    accessToken?: string;
-    refreshToken?: string;
-    expiresAt?: string;
-    fullName?: string;
-    email?: string;
-    phone?: string;
-    user?: AuthUser;
-  }>(body);
+  const data = unwrapEnvelopeData<Record<string, unknown>>(body);
+  const registration = parseRegistrationProgress(data);
 
-  const userId = data.userId ?? data.user?.userId;
-  if (!data.accessToken || userId == null) {
+  const userId = Number(data.userId ?? (data.user as AuthUser)?.userId);
+  const accessToken = data.accessToken as string | undefined;
+  const refreshToken = data.refreshToken as string | undefined;
+  const expiresAt = data.expiresAt as string | undefined;
+
+  if (!accessToken || !Number.isFinite(userId) || userId <= 0) {
     throw new Error("استجابة غير صالحة من الخادم — لم يُعثر على رمز الدخول");
   }
 
   const user = await resolveAuthUser(userId, {
-    roleId: mapRoleId(data.roleId ?? data.user?.roleId),
-    roleName: data.user?.roleName,
-    fullName: data.fullName ?? data.user?.fullName,
-    email: data.email ?? data.user?.email,
-    phone: data.phone ?? data.user?.phone,
+    roleId: mapRoleId(data.roleId ?? (data.user as AuthUser)?.roleId),
+    roleName: (data.user as AuthUser)?.roleName,
+    fullName: (data.fullName ?? (data.user as AuthUser)?.fullName) as string | undefined,
+    email: (data.email ?? (data.user as AuthUser)?.email) as string | undefined,
+    phone: (data.phone ?? (data.user as AuthUser)?.phone) as string | undefined,
   });
 
   return {
-    accessToken: data.accessToken,
-    refreshToken: data.refreshToken,
+    accessToken,
+    refreshToken,
     userId,
-    expiresAt: data.expiresAt,
+    expiresAt,
     user,
+    registration: registration.registrationIncomplete ? registration : undefined,
   };
 }
 

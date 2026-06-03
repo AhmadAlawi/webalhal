@@ -65,3 +65,11 @@ export async function submitRegistration(registrationId: string) {
 export async function getRegistration(registrationId: string) {
   return apiGet(`/api/registration/${registrationId}`);
 }
+
+/** POST /api/registration/{registrationId}/step/{resumeStep} — استئناف الجلسة */
+export async function resumeRegistrationStep(
+  registrationId: string,
+  resumeStep: number,
+) {
+  return apiPost(API.registration.resumeStep(registrationId, resumeStep), {});
+}

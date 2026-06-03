@@ -8,22 +8,31 @@ import {
   useMemo,
   useState,
 } from "react";
-import { useRouter } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import {
   clearAuthSession,
   getAccessToken,
   getStoredUser,
   setAuthSession,
 } from "@/lib/auth-storage";
+import {
+  isRegistrationIncomplete,
+  parseRegistrationProgress,
+  registerResumePath,
+} from "@/lib/registration-progress";
 import { login as loginApi, getMyProfile, resolveAuthUser, mapRoleId } from "@/services/auth";
 import type { AuthUser } from "@/types";
 import { UserRole } from "@/types";
+
+interface LoginResult {
+  registrationIncomplete?: boolean;
+}
 
 interface AuthContextValue {
   user: AuthUser | null;
   isLoading: boolean;
   isAuthenticated: boolean;
-  login: (emailOrPhone: string, password: string) => Promise<void>;
+  login: (emailOrPhone: string, password: string) => Promise<LoginResult>;
   logout: () => void;
   refreshProfile: () => Promise<void>;
   requireAuth: (redirectTo?: string) => boolean;
@@ -33,8 +42,22 @@ const AuthContext = createContext<AuthContextValue | null>(null);
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const router = useRouter();
+  const pathname = usePathname();
   const [user, setUser] = useState<AuthUser | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+
+  const maybeRedirectIncompleteRegistration = useCallback(
+    (profile: Record<string, unknown>) => {
+      const progress = parseRegistrationProgress(profile);
+      if (!isRegistrationIncomplete(progress)) return false;
+      if (pathname?.startsWith("/register") || pathname?.startsWith("/login")) {
+        return true;
+      }
+      router.push(registerResumePath(progress));
+      return true;
+    },
+    [pathname, router],
+  );
 
   const refreshProfile = useCallback(async () => {
     const token = getAccessToken();
@@ -44,6 +67,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
     try {
       const profile = await getMyProfile();
+      if (maybeRedirectIncompleteRegistration(profile as Record<string, unknown>)) {
+        return;
+      }
       const userId =
         (profile as AuthUser).userId ?? getStoredUser()?.userId ?? 0;
       const u = await resolveAuthUser(userId, {
@@ -59,7 +85,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     } catch {
       setUser(getStoredUser());
     }
-  }, []);
+  }, [maybeRedirectIncompleteRegistration]);
 
   useEffect(() => {
     const stored = getStoredUser();
@@ -72,16 +98,28 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }, [refreshProfile]);
 
   const login = useCallback(
-    async (emailOrPhone: string, password: string) => {
+    async (emailOrPhone: string, password: string): Promise<LoginResult> => {
       const result = await loginApi(emailOrPhone, password);
-      const authUser =
-        result.user ??
-        (await resolveAuthUser(result.userId, { roleId: UserRole.Trader }));
+      let authUser = result.user;
+      if (!authUser) {
+        try {
+          authUser = await resolveAuthUser(result.userId, { roleId: UserRole.Trader });
+        } catch {
+          authUser = { userId: result.userId, roleId: UserRole.Trader };
+        }
+      }
       setAuthSession(result.accessToken, authUser, result.refreshToken);
       setUser(authUser);
+
+      if (result.registration && isRegistrationIncomplete(result.registration)) {
+        router.push(registerResumePath(result.registration));
+        return { registrationIncomplete: true };
+      }
+
       await refreshProfile();
+      return { registrationIncomplete: false };
     },
-    [refreshProfile],
+    [refreshProfile, router],
   );
 
   const logout = useCallback(() => {

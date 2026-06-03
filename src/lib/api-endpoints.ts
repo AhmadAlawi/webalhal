@@ -102,6 +102,8 @@ export const API = {
     resendOtp: "/api/registration/resend-otp",
     step2: "/api/registration/step/2",
     step3: (role: string) => `/api/registration/step/3/${role}`,
+    resumeStep: (registrationId: string, step: number) =>
+      `/api/registration/${encodeURIComponent(registrationId)}/step/${step}`,
     submit: "/api/registration/submit",
   },
   passwordReset: {

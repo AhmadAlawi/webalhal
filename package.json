@@ -3,8 +3,11 @@
   "version": "0.1.0",
   "private": true,
   "scripts": {
-    "dev": "next dev -p 3011",
-    "dev:3002": "next dev -p 5500",
+    "prebuild": "node scripts/prebuild-clean.mjs",
+    "dev": "next dev -p 5272 --webpack",
+    "dev:turbo": "next dev -p 5272 --turbopack",
+    "dev:open": "start http://localhost:5272 && next dev -p 5272 --webpack",
+    "dev:3002": "next dev -p 5500 --webpack",
     "build": "next build",
     "start": "next start -p 3011",
     "start:prod": "next start -p 3011",
@@ -15,7 +18,7 @@
     "pm2:reload": "pm2 reload ecosystem.config.cjs --env production --update-env",
     "pm2:stop": "pm2 stop alhalnewweb",
     "pm2:logs": "pm2 logs alhalnewweb",
-    
+
     "pm2:status": "pm2 status alhalnewweb"
   },
   "dependencies": {

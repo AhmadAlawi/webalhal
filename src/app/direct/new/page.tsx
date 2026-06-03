@@ -8,6 +8,7 @@ import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
 import { FarmCropSelect } from "@/components/forms/FarmCropSelect";
 import { ImageUploadField } from "@/components/forms/ImageUploadField";
+import { UnitSelect } from "@/components/forms/UnitSelect";
 import { useAuth } from "@/context/AuthContext";
 import { canCreateDirectListing } from "@/lib/permissions";
 import { formatPrice } from "@/lib/auctionPricing";
@@ -33,51 +34,57 @@ function NewDirectListingForm() {
   const { user, requireAuth } = useAuth();
   const router = useRouter();
   const searchParams = useSearchParams();
+  const cropIdFromUrl = searchParams.get("cropId");
+  const farmIdFromUrl = searchParams.get("farmId");
   const [step, setStep] = useState(1);
+  const [farmId, setFarmId] = useState<number | "">("");
   const [cropId, setCropId] = useState<number | "">("");
   const [selectedCrop, setSelectedCrop] = useState<Crop | null>(null);
-  const [unitPrice, setUnitPrice] = useState("");
+  const [totalPrice, setTotalPrice] = useState("");
   const [availableQty, setAvailableQty] = useState("");
-  const [minOrderQty, setMinOrderQty] = useState("1");
-  const [maxOrderQty, setMaxOrderQty] = useState("");
+  const [minOrderQty, setMinOrderQty] = useState("");
   const [unit, setUnit] = useState("كغ");
   const [title, setTitle] = useState("");
   const [imageUrls, setImageUrls] = useState<string[]>([]);
   const [error, setError] = useState("");
   const [submitting, setSubmitting] = useState(false);
+  const [justCreatedCrop, setJustCreatedCrop] = useState(false);
 
-  const handleCropChange = useCallback((id: number, crop?: Crop) => {
-    setCropId(id || "");
-    setSelectedCrop(crop ?? null);
-    if (crop) {
-      const name = crop.nameAr || crop.cropName || crop.name;
-      if (name) setTitle((t) => t || name);
-      if (crop.unit) setUnit(crop.unit);
-      if (crop.quantity != null) {
-        setAvailableQty(String(crop.quantity));
-        setMaxOrderQty((m) => m || String(crop.quantity));
-      }
-      if (crop.imageUrls?.length) setImageUrls(crop.imageUrls);
+  const applyCropFields = useCallback((crop: Crop) => {
+    const name = crop.nameAr || crop.cropName || crop.name;
+    if (name) setTitle((t) => t || name);
+    if (crop.unit) setUnit(crop.unit);
+    if (crop.quantity != null) {
+      const qty = String(crop.quantity);
+      setAvailableQty(qty);
+      setMinOrderQty(qty);
     }
+    if (crop.imageUrls?.length) setImageUrls(crop.imageUrls);
   }, []);
 
+  const handleCropChange = useCallback(
+    (id: number, crop?: Crop) => {
+      setCropId(id || "");
+      setSelectedCrop(crop ?? null);
+      if (crop) applyCropFields(crop);
+    },
+    [applyCropFields],
+  );
+
   useEffect(() => {
-    const fromUrl = searchParams.get("cropId");
-    const fromFarm = searchParams.get("farmId");
-    if (fromFarm) {
-      const fid = Number(fromFarm);
-      if (Number.isFinite(fid) && fid > 0) {
-        /* farm preselect handled in FarmCropSelect via controlledFarmId if needed */
-      }
+    if (farmIdFromUrl) {
+      const fid = Number(farmIdFromUrl);
+      if (Number.isFinite(fid) && fid > 0) setFarmId(fid);
     }
-    if (fromUrl) {
-      const id = Number(fromUrl);
+    if (cropIdFromUrl) {
+      const id = Number(cropIdFromUrl);
       if (Number.isFinite(id) && id > 0) {
         setCropId(id);
-        setStep(2);
+        setStep(1);
+        setJustCreatedCrop(true);
       }
     }
-  }, [searchParams]);
+  }, [cropIdFromUrl, farmIdFromUrl]);
 
   if (!requireAuth()) return null;
   if (!canCreateDirectListing(user?.roleId)) {
@@ -88,8 +95,13 @@ function NewDirectListingForm() {
     );
   }
 
+  const qtyNum = Number(availableQty);
+  const totalNum = Number(totalPrice);
+  const computedUnitPrice =
+    qtyNum > 0 && totalNum > 0 ? totalNum / qtyNum : 0;
+
   async function submit() {
-    if (!user?.userId || !cropId || !unitPrice || !availableQty) return;
+    if (!user?.userId || !cropId || !totalPrice || !availableQty || computedUnitPrice <= 0) return;
     setSubmitting(true);
     setError("");
     try {
@@ -114,14 +126,12 @@ function NewDirectListingForm() {
         cropId: Number(cropId),
         title: title || cropName,
         cropName,
-        price: Number(unitPrice),
-        unitPrice: Number(unitPrice),
+        price: computedUnitPrice,
+        unitPrice: computedUnitPrice,
         availableQty: Number(availableQty),
-        minOrderQty: Number(minOrderQty) || 1,
-        maxOrderQty: maxOrderQty.trim()
-          ? Number(maxOrderQty)
-          : Number(availableQty),
-        unit: unit.trim() || "كغ",
+        minOrderQty: Number(minOrderQty) || Number(availableQty),
+        maxOrderQty: Number(availableQty),
+        unit: unit.trim() || selectedCrop?.unit || "كغ",
         imageUrls: imageUrls.length ? imageUrls : selectedCrop?.imageUrls,
       });
       router.push("/direct");
@@ -150,11 +160,19 @@ function NewDirectListingForm() {
         <div className="space-y-4 rounded-2xl border border-gray-100 bg-white p-6 shadow-sm">
           {step === 1 && (
             <>
+              {justCreatedCrop && cropId && (
+                <p className="rounded-xl bg-emerald-50 px-4 py-2.5 text-sm text-emerald-800">
+                  تم إنشاء المحصول بنجاح — يمكنك متابعة إنشاء عرض البيع المباشر.
+                </p>
+              )}
               <FarmCropSelect
                 cropId={cropId}
+                farmId={farmId}
+                onFarmChange={(id) => setFarmId(id || "")}
                 onCropChange={handleCropChange}
                 onlyAvailable
                 returnTo={DIRECT_RETURN}
+                reloadKey={cropIdFromUrl ?? undefined}
               />
               <Button fullWidth disabled={!cropId} onClick={() => setStep(2)}>
                 التالي
@@ -164,33 +182,42 @@ function NewDirectListingForm() {
           {step === 2 && (
             <>
               <Input
-                label="سعر الوحدة (ل.س)"
+                label="السعر الإجمالي (ل.س)"
                 type="number"
-                value={unitPrice}
-                onChange={(e) => setUnitPrice(e.target.value)}
+                min={1}
+                value={totalPrice}
+                onChange={(e) => setTotalPrice(e.target.value)}
                 required
               />
+              {computedUnitPrice > 0 && (
+                <p className="rounded-xl bg-slate-50 px-4 py-2.5 text-sm text-slate-700">
+                  سعر الوحدة:{" "}
+                  <span className="font-semibold text-emerald-700">
+                    {formatPrice(computedUnitPrice)} ل.س / {unit}
+                  </span>
+                </p>
+              )}
               <Input
                 label="الكمية المتاحة"
                 type="number"
                 value={availableQty}
-                onChange={(e) => setAvailableQty(e.target.value)}
-                required
+                readOnly
+                disabled
+                className="bg-slate-100 text-slate-700"
               />
               <Input
                 label="أقل كمية للطلب"
                 type="number"
                 value={minOrderQty}
-                onChange={(e) => setMinOrderQty(e.target.value)}
+                readOnly
+                disabled
+                className="bg-slate-100 text-slate-700"
               />
-              <Input
-                label="أقصى كمية للطلب"
-                type="number"
-                value={maxOrderQty}
-                onChange={(e) => setMaxOrderQty(e.target.value)}
-                placeholder="افتراضياً = الكمية المتاحة"
+              <UnitSelect
+                value={unit}
+                onChange={setUnit}
+                disabled={Boolean(selectedCrop?.unit)}
               />
-              <Input label="الوحدة" value={unit} onChange={(e) => setUnit(e.target.value)} />
               <Input label="عنوان العرض" value={title} onChange={(e) => setTitle(e.target.value)} />
               <ImageUploadField value={imageUrls} onChange={setImageUrls} folder="direct" />
               <div className="flex gap-2">
@@ -199,7 +226,7 @@ function NewDirectListingForm() {
                 </Button>
                 <Button
                   fullWidth
-                  disabled={!unitPrice || !availableQty}
+                  disabled={!totalPrice || !availableQty || computedUnitPrice <= 0}
                   onClick={() => setStep(3)}
                 >
                   مراجعة
@@ -216,14 +243,19 @@ function NewDirectListingForm() {
                   <dd className="font-medium">{cropLabel}</dd>
                 </div>
                 <div className="flex justify-between gap-4">
-                  <dt className="text-slate-500">السعر</dt>
-                  <dd>{formatPrice(Number(unitPrice))} ل.س / {unit}</dd>
+                  <dt className="text-slate-500">السعر الإجمالي</dt>
+                  <dd className="font-medium">{formatPrice(totalNum)} ل.س</dd>
+                </div>
+                <div className="flex justify-between gap-4">
+                  <dt className="text-slate-500">سعر الوحدة</dt>
+                  <dd>
+                    {formatPrice(computedUnitPrice)} ل.س / {unit}
+                  </dd>
                 </div>
                 <div className="flex justify-between gap-4">
                   <dt className="text-slate-500">الكمية</dt>
                   <dd>
-                    {availableQty} {unit} (أقل {minOrderQty || 1}
-                    {maxOrderQty.trim() ? ` — أقصى ${maxOrderQty}` : ""})
+                    {availableQty} {unit} (الطلب بالكمية كاملة)
                   </dd>
                 </div>
                 {title && (

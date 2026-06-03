@@ -4,6 +4,10 @@ import { useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/context/AuthContext";
+import {
+  parseRegistrationProgress,
+  registerResumePath,
+} from "@/lib/registration-progress";
 import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
 import { AuthCard } from "@/components/ui/AuthCard";
@@ -21,12 +25,14 @@ export default function LoginPage() {
     setError("");
     setLoading(true);
     try {
-      await login(emailOrPhone, password);
-      router.push("/");
+      const result = await login(emailOrPhone, password);
+      if (!result.registrationIncomplete) {
+        router.push("/");
+      }
     } catch (err) {
-      const ex = err as Error & { registrationId?: string };
-      if (ex.message === "registration_incomplete" && ex.registrationId) {
-        router.push(`/register?registrationId=${ex.registrationId}`);
+      const ex = err as Error & Record<string, unknown>;
+      if (ex.message === "registration_incomplete") {
+        router.push(registerResumePath(parseRegistrationProgress(ex)));
         return;
       }
       setError(ex.message || "فشل تسجيل الدخول");

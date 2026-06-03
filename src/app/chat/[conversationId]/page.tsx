@@ -10,8 +10,18 @@ import { PageHeader } from "@/components/ui/PageHeader";
 import { Button } from "@/components/ui/Button";
 import { TransportAssignPanel } from "@/components/transport/TransportAssignPanel";
 import { TransportHandoffBar } from "@/components/chat/TransportHandoffBar";
+import { LinkedConversationsNav } from "@/components/chat/LinkedConversationsNav";
 import { ReportConversationDialog } from "@/components/chat/ReportConversationDialog";
-import { getConversation, getMessages, sendMessage } from "@/services/chat";
+import {
+  getConversation,
+  getMessages,
+  sendMessage,
+  hasTransportLinkedChats,
+  isTransportHandoffChat,
+  resolveDealUserRole,
+  filterLinkedConversationsForRole,
+  canUserAccessConversation,
+} from "@/services/chat";
 import type { ConversationDetail } from "@/services/chat";
 import { startChatHub, stopChatHub } from "@/lib/signalr";
 import type { NormalizedChatMessage } from "@/lib/hub-utils";
@@ -29,14 +39,16 @@ const DEAL_CONTEXT_TYPES = new Set(["auction", "tender", "direct", "tender_offer
 function resolveDealContext(conv: ConversationDetail | null) {
   if (!conv?.conversationId) return null;
   const orderType = conv.orderType ?? conv.contextType;
-  const orderId = conv.orderId ?? conv.contextId;
-  if (!orderType || orderId == null || !DEAL_CONTEXT_TYPES.has(orderType)) {
+  const contextId = conv.contextId ?? conv.orderId;
+  if (!orderType || contextId == null || !DEAL_CONTEXT_TYPES.has(orderType)) {
     return null;
   }
+  const transportOrderId =
+    orderType === "tender_offer" && conv.tenderId ? conv.tenderId : contextId;
   return {
     conversationId: conv.conversationId,
-    orderType,
-    orderId,
+    orderType: orderType === "tender_offer" ? "tender" : orderType,
+    orderId: transportOrderId,
     farmCityId: conv.farmCityId,
     farmGovernorateId: conv.farmGovernorateId,
   };
@@ -80,6 +92,19 @@ export default function ChatConversationPage() {
   const convId = Number(conversationId);
 
   const dealContext = resolveDealContext(conversation);
+  const linked = conversation?.linkedConversations ?? [];
+  const userRole = resolveDealUserRole(conversation, user?.userId);
+  const visibleLinks = filterLinkedConversationsForRole(linked, userRole);
+  const transportActive =
+    conversation?.transportAssigned === true || hasTransportLinkedChats(linked);
+  const showAssignTransport = dealContext && !transportActive;
+  const showHandoff =
+    isTransportHandoffChat(conversation) &&
+    canUserAccessConversation(conversation, userRole);
+  const accessDenied =
+    conversation != null &&
+    isTransportHandoffChat(conversation) &&
+    !canUserAccessConversation(conversation, userRole);
 
   const reportedUserId =
     conversation?.otherUserId ??
@@ -188,7 +213,7 @@ export default function ChatConversationPage() {
       <PageHeader title={conversation?.title ?? "محادثة"} backHref="/chat" />
 
       <div className="flex flex-wrap gap-2 border-b border-gray-100 bg-white px-4 py-2">
-        {dealContext && (
+        {dealContext && !transportActive && (
           <Link
             href={`/transport/flow?conversationId=${convId}&orderType=${dealContext.orderType}&orderId=${dealContext.orderId}`}
             className="inline-flex items-center gap-1 rounded-lg bg-emerald-50 px-3 py-1.5 text-xs font-medium text-emerald-800 hover:bg-emerald-100"
@@ -209,19 +234,31 @@ export default function ChatConversationPage() {
         )}
       </div>
 
-      {dealContext && <TransportAssignPanel deal={dealContext} />}
-
-      {(conversation?.transportRequestId ||
-        conversation?.transportStatus ||
-        conversation?.orderType?.includes("transport") ||
-        dealContext) && (
-        <TransportHandoffBar
-          conversationId={convId}
-          transportStatus={conversation?.transportStatus}
-        />
+      {transportActive && visibleLinks.length > 0 && (
+        <LinkedConversationsNav links={visibleLinks} currentConversationId={convId} />
       )}
 
-      <div className="mx-auto w-full max-w-3xl px-4 pb-6">
+      {showAssignTransport && dealContext && <TransportAssignPanel deal={dealContext} />}
+
+      {accessDenied ? (
+        <div className="mx-auto max-w-3xl px-4 py-12 text-center">
+          <p className="text-red-600">
+            هذه المحادثة مخصصة للطرف الآخر في عملية النقل.
+          </p>
+          <Link href="/chat" className="mt-4 inline-block text-emerald-600 hover:underline">
+            العودة للمحادثات
+          </Link>
+        </div>
+      ) : (
+        <>
+          {showHandoff && (
+            <TransportHandoffBar
+              conversationId={convId}
+              transportStatus={conversation?.transportStatus}
+            />
+          )}
+
+          <div className="mx-auto w-full max-w-3xl px-4 pb-6">
         <section
           className="card flex flex-col overflow-hidden"
           style={{ minHeight: "calc(100vh - 14rem)", maxHeight: "calc(100vh - 10rem)" }}
@@ -261,15 +298,17 @@ export default function ChatConversationPage() {
             </Button>
           </form>
         </section>
-      </div>
+          </div>
 
-      {showReport && user?.userId && reportedUserId && (
-        <ReportConversationDialog
-          conversationId={convId}
-          reporterUserId={user.userId}
-          reportedUserId={reportedUserId}
-          onClose={() => setShowReport(false)}
-        />
+          {showReport && user?.userId && reportedUserId && (
+            <ReportConversationDialog
+              conversationId={convId}
+              reporterUserId={user.userId}
+              reportedUserId={reportedUserId}
+              onClose={() => setShowReport(false)}
+            />
+          )}
+        </>
       )}
     </>
   );

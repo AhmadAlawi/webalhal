@@ -16,6 +16,7 @@ export function FarmCropSelect({
   returnTo,
   label = "المحصول",
   onlyAvailable = true,
+  reloadKey,
 }: {
   cropId: number | "";
   farmId?: number | "";
@@ -25,6 +26,8 @@ export function FarmCropSelect({
   label?: string;
   /** إخفاء المحاصيل المباعة أو المعروضة في مزاد/بيع مباشر */
   onlyAvailable?: boolean;
+  /** إعادة تحميل المحاصيل (مثلاً بعد إنشاء محصول جديد) */
+  reloadKey?: string | number;
 }) {
   const [farms, setFarms] = useState<Farm[]>([]);
   const [farmId, setFarmId] = useState<number | "">(controlledFarmId ?? "");
@@ -111,7 +114,7 @@ export function FarmCropSelect({
     return () => {
       cancelled = true;
     };
-  }, [farmId]);
+  }, [farmId, reloadKey]);
 
   const visibleCrops = onlyAvailable ? crops.filter(isCropSelectable) : crops;
 

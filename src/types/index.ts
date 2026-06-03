@@ -44,6 +44,7 @@ export interface LoginResponse {
   refreshToken?: string;
   userId: number;
   expiresAt?: string;
+  registration?: import("@/lib/registration-progress").RegistrationProgress;
 }
 
 export interface RegistrationIncomplete {

@@ -18,16 +18,19 @@ import {
   registrationPayout,
   completePayout,
   submitRegistration,
+  resumeRegistrationStep,
 } from "@/services/registration";
 import { normalizePhoneForApi } from "@/lib/phone";
 import { formatApiErrorMessage } from "@/lib/api-errors";
+import {
+  parseRegistrationProgress,
+  resumeStepToRegisterUiStep,
+} from "@/lib/registration-progress";
 
 const ROLES = [
   { id: "farmer", label: "مزارع" },
   { id: "trader", label: "تاجر" },
   { id: "transporter", label: "ناقل" },
-  { id: "gov_employee", label: "موظف حكومي" },
-  { id: "agri_service", label: "خدمات زراعية" },
 ];
 
 function RegisterForm() {
@@ -47,9 +50,31 @@ function RegisterForm() {
 
   useEffect(() => {
     const id = params.get("registrationId");
-    if (id) {
-      setRegistrationId(id);
-      setStep(1);
+    if (!id) return;
+
+    setRegistrationId(id);
+
+    const stepParam = params.get("step");
+    const resumeStepParam = params.get("resumeStep");
+    const otpVerified = params.get("otp") !== "0";
+
+    if (stepParam != null) {
+      const uiStep = Number(stepParam);
+      if (Number.isFinite(uiStep) && uiStep >= 0 && uiStep <= 5) {
+        setStep(uiStep);
+      }
+    } else {
+      const progress = parseRegistrationProgress({
+        registrationId: id,
+        resumeStep: resumeStepParam ? Number(resumeStepParam) : undefined,
+        otpVerified,
+      });
+      setStep(resumeStepToRegisterUiStep(progress));
+    }
+
+    const apiResume = resumeStepParam ? Number(resumeStepParam) : undefined;
+    if (apiResume != null && Number.isFinite(apiResume) && apiResume > 0) {
+      resumeRegistrationStep(id, apiResume).catch(() => {});
     }
   }, [params]);
 
