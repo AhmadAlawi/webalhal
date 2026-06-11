@@ -28,22 +28,32 @@ function urlsFromRecord(raw: unknown): string[] {
 }
 
 /** صور المحصول/العرض أولاً — تجنب صورة المنتج الافتراضية من لوحة التحكم */
-export function getAuctionMainImage(auction: {
+type AuctionImageSource = {
   productMainImage?: string;
   productImageUrl?: string;
   images?: string[];
   imageUrls?: string[];
   cropImageUrls?: string[];
   crop?: { imageUrls?: string[] };
-}): string {
+};
+
+export function getAuctionImages(auction: AuctionImageSource): string[] {
   const cropUrls = auction.cropImageUrls ?? urlsFromRecord(auction.crop);
-  const userUrl = pickFirstUrl(
-    cropUrls?.[0],
-    auction.imageUrls?.[0],
-    auction.images?.[0],
-  );
-  if (userUrl) return resolveMediaUrl(userUrl);
-  return resolveMediaUrl(auction.productImageUrl ?? auction.productMainImage);
+  const raw = [
+    ...(cropUrls ?? []),
+    ...(auction.imageUrls ?? []),
+    ...(auction.images ?? []),
+    auction.productImageUrl,
+    auction.productMainImage,
+  ].filter((u): u is string => Boolean(u?.trim()));
+
+  const unique = [...new Set(raw.map((u) => u.trim()))];
+  if (unique.length) return unique.map(resolveMediaUrl);
+  return [resolveMediaUrl(undefined)];
+}
+
+export function getAuctionMainImage(auction: AuctionImageSource): string {
+  return getAuctionImages(auction)[0];
 }
 
 export function getDirectMainImage(listing: {

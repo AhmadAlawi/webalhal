@@ -2,7 +2,6 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
-import Image from "next/image";
 import { CheckCircle2, Gavel, Wifi, WifiOff } from "lucide-react";
 import { useParams } from "next/navigation";
 import * as signalR from "@microsoft/signalr";
@@ -11,7 +10,9 @@ import { PageHeader } from "@/components/ui/PageHeader";
 import { PageContainer } from "@/components/layout/PageContainer";
 import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
+import { AuctionBiddersList } from "@/components/auctions/AuctionBiddersList";
 import { AuctionEndedOverlay } from "@/components/auctions/AuctionEndedOverlay";
+import { AuctionImageGallery } from "@/components/auctions/AuctionImageGallery";
 import { AuctionSuggestionsSidebar } from "@/components/auctions/AuctionSuggestionsSidebar";
 import { AuctionWinnerChatButton } from "@/components/auctions/AuctionWinnerChatButton";
 import { useAuth } from "@/context/AuthContext";
@@ -23,7 +24,6 @@ import {
   placeBidHttp,
   isAuctionJoinAccessError,
 } from "@/services/auctions";
-import { getAuctionMainImage } from "@/lib/media";
 import {
   startAuctionHub,
   stopAuctionHub,
@@ -330,10 +330,22 @@ export default function AuctionJoinPage() {
     <>
       <PageHeader title="مزايدة حية" backHref={`/auctions/${id}`} />
 
+      <AuctionImageGallery auction={auction} title={title} />
+
       <PageContainer className="py-6 lg:py-8">
-        <div className="grid gap-8 lg:grid-cols-[minmax(0,1fr)_300px]">
-          {/* يمين في RTL: الصورة + المزايدة + سجل المزايدات */}
-          <div className="relative mx-auto w-full max-w-xl space-y-6">
+        <div className="mb-6 text-center lg:text-right">
+          <h1 className="text-xl font-bold text-slate-900 lg:text-2xl">{title}</h1>
+          <Link
+            href={`/auctions/${id}`}
+            className="mt-1 inline-block text-sm text-emerald-700 hover:underline"
+          >
+            تفاصيل المزاد
+          </Link>
+        </div>
+
+        <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_minmax(280px,340px)] lg:items-start">
+          {/* يمين في RTL: المزاد الحالي + المزايدة + مزادات مقترحة */}
+          <div className="relative order-2 space-y-6 lg:order-1">
             {auctionEnded && auction && (
               <AuctionEndedOverlay message={endState.message}>
                 <AuctionWinnerChatButton
@@ -346,28 +358,6 @@ export default function AuctionJoinPage() {
                 />
               </AuctionEndedOverlay>
             )}
-
-            <div className="text-center">
-              <h1 className="text-xl font-bold text-slate-900 lg:text-2xl">{title}</h1>
-              <Link
-                href={`/auctions/${id}`}
-                className="mt-1 inline-block text-sm text-emerald-700 hover:underline"
-              >
-                تفاصيل المزاد
-              </Link>
-            </div>
-
-            <div className="relative mx-auto aspect-square w-full max-w-sm overflow-hidden rounded-3xl border border-gray-100 bg-slate-50 shadow-md">
-              <Image
-                src={getAuctionMainImage(auction ?? {})}
-                alt={title}
-                fill
-                className="object-cover"
-                unoptimized
-                priority
-                sizes="(max-width: 640px) 100vw, 400px"
-              />
-            </div>
 
             <div
               className={`flex items-center justify-center gap-2 rounded-2xl px-4 py-2.5 text-sm ${
@@ -476,42 +466,21 @@ export default function AuctionJoinPage() {
               </Button>
             </div>
 
-            <div className="rounded-2xl border border-gray-100 bg-white p-5 shadow-sm">
-              <h2 className="mb-4 font-semibold text-slate-900">سجل المزايدات</h2>
-              {bids.length === 0 ? (
-                <p className="py-8 text-center text-sm text-slate-500">لا توجد مزايدات بعد</p>
-              ) : (
-                <ul className="max-h-72 space-y-2 overflow-y-auto">
-                  {bids.map((b, i) => (
-                    <li
-                      key={b.bidId ?? i}
-                      className="flex items-center justify-between rounded-xl bg-slate-50 px-4 py-3 text-sm"
-                    >
-                      <span className="font-medium text-slate-700">
-                        {b.bidderName || "مزايد"}
-                      </span>
-                      <span className="font-bold text-emerald-700">
-                        {formatPrice(b.bidAmount)} ل.س
-                      </span>
-                    </li>
-                  ))}
-                </ul>
-              )}
-            </div>
-
             {!connected && connState === "error" && (
               <p className="text-center text-xs text-slate-500">
                 يمكنك إعادة الاتصال أو استخدام المزايدة عبر الخادم عند فشل الاتصال الحي.
               </p>
             )}
+
+            <AuctionSuggestionsSidebar
+              auctions={suggested}
+              loading={suggestionsLoading}
+              currentAuctionId={auctionId}
+            />
           </div>
 
-          {/* يسار في RTL: مزادات مقترحة */}
-          <AuctionSuggestionsSidebar
-            auctions={suggested}
-            loading={suggestionsLoading}
-            currentAuctionId={auctionId}
-          />
+          {/* يسار في RTL: قائمة المزايدين */}
+          <AuctionBiddersList bids={bids} className="order-1 lg:order-2" />
         </div>
       </PageContainer>
     </>

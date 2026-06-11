@@ -3,14 +3,15 @@
 import { useEffect, useMemo, useState, type ReactNode } from "react";
 import Link from "next/link";
 import { useParams, useRouter } from "next/navigation";
-import Image from "next/image";
 import { Gavel } from "lucide-react";
 import { PageHeader } from "@/components/ui/PageHeader";
 import { PageContainer } from "@/components/layout/PageContainer";
 import { Button } from "@/components/ui/Button";
 import { StatusBadge } from "@/components/ui/StatusBadge";
-import { getAuction, getAuctionBids } from "@/services/auctions";
-import { getAuctionMainImage } from "@/lib/media";
+import { getAuction, getAuctionBids, getOpenAuctions } from "@/services/auctions";
+import { AuctionBiddersList } from "@/components/auctions/AuctionBiddersList";
+import { AuctionImageGallery } from "@/components/auctions/AuctionImageGallery";
+import { AuctionSuggestionsSidebar } from "@/components/auctions/AuctionSuggestionsSidebar";
 import { AuctionWinnerChatButton } from "@/components/auctions/AuctionWinnerChatButton";
 import {
   formatPrice,
@@ -150,6 +151,8 @@ export default function AuctionDetailPage() {
   const { canJoinAuction, roleLabel: accountRoleLabel } = useUserPermissions();
   const [auction, setAuction] = useState<Auction | null>(null);
   const [bids, setBids] = useState<Bid[]>([]);
+  const [suggested, setSuggested] = useState<Auction[]>([]);
+  const [suggestionsLoading, setSuggestionsLoading] = useState(true);
 
   const auctionId = Number(id);
 
@@ -158,6 +161,13 @@ export default function AuctionDetailPage() {
     getAuction(auctionId).then(setAuction).catch(() => {});
     getAuctionBids(auctionId).then(setBids).catch(() => setBids([]));
   }, [auctionId]);
+
+  useEffect(() => {
+    getOpenAuctions({ pageSize: "8", sortOrder: "desc" })
+      .then(setSuggested)
+      .catch(() => setSuggested([]))
+      .finally(() => setSuggestionsLoading(false));
+  }, []);
 
   const pricing = useMemo(
     () => (auction ? parseAuctionPricing(auction.pricing ?? auction) : null),
@@ -190,22 +200,15 @@ export default function AuctionDetailPage() {
   const displayPrice =
     pricing?.currentPriceTotal ?? auction.currentPrice ?? auction.startingPrice ?? 0;
 
+  const pageTitle = auction.auctionTitle || auction.cropName || "مزاد";
+
   return (
     <>
-      <PageHeader title={auction.auctionTitle || auction.cropName || "مزاد"} backHref="/auctions" />
+      <PageHeader title={pageTitle} backHref="/auctions" />
+      <AuctionImageGallery auction={auction} title={pageTitle} />
       <PageContainer className="py-8">
-        <div className="grid gap-8 lg:grid-cols-2">
-          <div className="relative aspect-[4/3] overflow-hidden rounded-2xl bg-slate-100 lg:aspect-auto lg:min-h-[400px]">
-            <Image
-              src={getAuctionMainImage(auction)}
-              alt=""
-              fill
-              className="object-cover"
-              unoptimized
-            />
-          </div>
-
-          <div className="space-y-6">
+        <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_minmax(280px,340px)] lg:items-start">
+          <div className="order-2 space-y-6 lg:order-1">
             <div>
               <div className="mb-3 flex flex-wrap items-center gap-2">
                 <StatusBadge status={statusLabel} />
@@ -319,25 +322,14 @@ export default function AuctionDetailPage() {
 
             <AuctionBuyerDetails auction={auction} pricing={pricing} />
 
-            {bids.length > 0 && (
-              <div className="rounded-2xl border border-gray-200 bg-white p-6">
-                <h3 className="mb-4 font-semibold text-slate-900">آخر المزايدات</h3>
-                <ul className="space-y-2">
-                  {bids.slice(0, 8).map((b, i) => (
-                    <li
-                      key={b.bidId ?? i}
-                      className="flex justify-between rounded-lg bg-slate-50 px-4 py-2.5 text-sm"
-                    >
-                      <span>{b.bidderName || "مزايد"}</span>
-                      <span className="font-semibold text-emerald-700">
-                        {formatPrice(b.bidAmount)} ل.س
-                      </span>
-                    </li>
-                  ))}
-                </ul>
-              </div>
-            )}
+            <AuctionSuggestionsSidebar
+              auctions={suggested}
+              loading={suggestionsLoading}
+              currentAuctionId={auctionId}
+            />
           </div>
+
+          <AuctionBiddersList bids={bids} className="order-1 lg:order-2" />
         </div>
       </PageContainer>
     </>
