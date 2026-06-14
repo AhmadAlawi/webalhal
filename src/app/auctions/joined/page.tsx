@@ -9,9 +9,11 @@ import { getJoinedAuctions } from "@/services/auctions";
 import { getAuctionDisplayPrice, getAuctionLocation } from "@/lib/marketplace";
 import { getAuctionMainImage } from "@/lib/media";
 import { useAuth } from "@/context/AuthContext";
+import { useI18n } from "@/context/I18nContext";
 import type { Auction } from "@/types";
 
 export default function JoinedAuctionsPage() {
+  const { t } = useI18n();
   const { user, requireAuth } = useAuth();
   const [items, setItems] = useState<Auction[]>([]);
   const [loading, setLoading] = useState(true);
@@ -26,34 +28,34 @@ export default function JoinedAuctionsPage() {
 
   return (
     <>
-      <PageHeader title="مزاداتي — مشاركاتي" backHref="/account" />
+      <PageHeader title={t("auctions.joinedTitle")} backHref="/account" />
       <PageContainer className="py-8">
         {loading ? (
           <div className="flex justify-center py-16">
             <div className="h-8 w-8 animate-spin rounded-full border-4 border-emerald-600 border-t-transparent" />
           </div>
         ) : items.length === 0 ? (
-          <p className="py-16 text-center text-slate-500">لم تشارك في مزادات بعد</p>
+          <p className="py-16 text-center text-slate-500">{t("auctions.joinedEmpty")}</p>
         ) : (
           <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
             {items.map((a) => (
               <ListingCard
                 key={a.auctionId}
                 href={`/auctions/${a.auctionId}`}
-                title={a.auctionTitle || a.cropName || `مزاد #${a.auctionId}`}
+                title={a.auctionTitle || a.cropName || t("auctions.auctionFallback", undefined, { id: a.auctionId })}
                 imageUrl={getAuctionMainImage(a)}
                 price={getAuctionDisplayPrice(a)}
-                priceLabel="السعر"
+                priceLabel={t("auctions.price")}
                 location={getAuctionLocation(a)}
                 endTime={a.endTime}
-                badge="مزاد"
+                badge={t("auctions.badge")}
               />
             ))}
           </div>
         )}
         <p className="mt-8 text-center text-sm">
           <Link href="/auctions" className="text-emerald-600 hover:underline">
-            تصفح كل المزادات
+            {t("auctions.browseAll")}
           </Link>
         </p>
       </PageContainer>

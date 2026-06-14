@@ -1,4 +1,7 @@
+"use client";
+
 import { clsx } from "clsx";
+import { useI18n } from "@/context/I18nContext";
 import { translateStatus } from "@/lib/status-labels";
 
 const STATUS_STYLES: Record<string, string> = {
@@ -21,8 +24,11 @@ const STATUS_STYLES: Record<string, string> = {
 };
 
 export function StatusBadge({ status }: { status?: string }) {
+  const { t } = useI18n();
+
   if (!status) return null;
   const key = status.toLowerCase().replace(/[\s_-]/g, "");
+
   return (
     <span
       className={clsx(
@@ -30,7 +36,7 @@ export function StatusBadge({ status }: { status?: string }) {
         STATUS_STYLES[key] ?? "bg-slate-100 text-slate-600",
       )}
     >
-      {translateStatus(status) ?? status}
+      {t(`status.${key}`, translateStatus(status) ?? status)}
     </span>
   );
 }

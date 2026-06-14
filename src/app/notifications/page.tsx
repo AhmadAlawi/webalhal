@@ -12,10 +12,12 @@ import {
   markNotificationRead,
 } from "@/services/notifications";
 import { useAuth } from "@/context/AuthContext";
+import { useI18n } from "@/context/I18nContext";
 import { resolveNotificationDeepLink } from "@/lib/notificationDeepLinks";
 import type { NotificationItem } from "@/types";
 
 export default function NotificationsPage() {
+  const { t, language } = useI18n();
   const { requireAuth } = useAuth();
   const router = useRouter();
   const [items, setItems] = useState<NotificationItem[]>([]);
@@ -45,7 +47,7 @@ export default function NotificationsPage() {
       setLinkError("");
       router.push(href);
     } else if (n.clickAction?.trim()) {
-      setLinkError("رابط الإشعار غير مدعوم على الويب — راجع الإشعار من التطبيق");
+      setLinkError(t("notifications.unsupportedLink"));
     }
   }
 
@@ -60,16 +62,17 @@ export default function NotificationsPage() {
   }
 
   const unread = items.filter((n) => !n.isRead).length;
+  const dateLocale = language === "ar" ? "ar-SY" : "en-US";
 
   return (
     <>
-      <PageHeader title="الإشعارات" backHref="/" />
+      <PageHeader title={t("notifications.title")} backHref="/" />
       <PageContainer className="py-8">
         {unread > 0 && (
           <div className="mb-4 flex justify-end">
             <Button variant="outline" size="sm" disabled={markingAll} onClick={handleMarkAll}>
               <CheckCheck className="h-4 w-4" />
-              تعليم الكل كمقروء
+              {t("notifications.markAllRead")}
             </Button>
           </div>
         )}
@@ -90,14 +93,14 @@ export default function NotificationsPage() {
                 <p className="text-sm text-slate-500">{n.body}</p>
                 {n.createdAt && (
                   <p className="mt-1 text-xs text-slate-400">
-                    {new Date(n.createdAt).toLocaleString("ar-SY")}
+                    {new Date(n.createdAt).toLocaleString(dateLocale)}
                   </p>
                 )}
               </button>
             </li>
           ))}
           {items.length === 0 && (
-            <li className="py-16 text-center text-slate-500">لا توجد إشعارات</li>
+            <li className="py-16 text-center text-slate-500">{t("notifications.empty")}</li>
           )}
         </ul>
       </PageContainer>

@@ -3,6 +3,7 @@
 import { Area, AreaChart, ResponsiveContainer, Tooltip } from "recharts";
 import type { SparkPoint } from "@/types/market-analysis";
 import { formatCurrency, formatNumber } from "@/lib/format";
+import { useI18n } from "@/context/I18nContext";
 
 export function MiniSparkline({
   points,
@@ -11,6 +12,8 @@ export function MiniSparkline({
   points?: SparkPoint[];
   isCurrency?: boolean;
 }) {
+  const { t } = useI18n();
+
   if (!points?.length) {
     return (
       <div className="flex h-20 items-end gap-0.5 opacity-30">
@@ -38,7 +41,7 @@ export function MiniSparkline({
           </linearGradient>
         </defs>
         <Tooltip
-          formatter={(v) => [fmt(Number(v)), "القيمة"]}
+          formatter={(v) => [fmt(Number(v)), t("analysis.value")]}
           contentStyle={{
             borderRadius: 8,
             border: "1px solid #e2e8f0",

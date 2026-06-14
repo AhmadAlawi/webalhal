@@ -11,6 +11,8 @@ import { LocationCascadeSelect } from "@/components/forms/LocationCascadeSelect"
 import { ImageUploadField } from "@/components/forms/ImageUploadField";
 import { useAuth } from "@/context/AuthContext";
 import { useUserPermissions } from "@/hooks/useUserPermissions";
+import { useI18n } from "@/context/I18nContext";
+import { useLocalizedLabel } from "@/hooks/useLocalizedLabel";
 import { createAuction } from "@/services/auctions";
 import { getFarm, updateFarm, updateCrop } from "@/services/farms";
 import type { Crop, Farm } from "@/types/farm";
@@ -18,9 +20,9 @@ import type { LocationSelection } from "@/types/location";
 
 type StepId = "farm" | "location" | "details" | "schedule";
 
-function toIso(local: string): string {
+function toIso(local: string, invalidMessage: string): string {
   const d = new Date(local);
-  if (Number.isNaN(d.getTime())) throw new Error("تاريخ غير صالح");
+  if (Number.isNaN(d.getTime())) throw new Error(invalidMessage);
   return d.toISOString();
 }
 
@@ -49,6 +51,8 @@ const AUCTION_RETURN = "/auctions/create";
 function CreateAuctionForm() {
   const { user, isLoading, isAuthenticated, requireAuth } = useAuth();
   const { canCreateAuction } = useUserPermissions();
+  const { t } = useI18n();
+  const { localized } = useLocalizedLabel();
   const router = useRouter();
   const searchParams = useSearchParams();
   const [step, setStep] = useState<StepId>("farm");
@@ -100,15 +104,22 @@ function CreateAuctionForm() {
     setLocation(farmToLocation(farm));
   }, []);
 
-  const handleCropChange = useCallback((id: number, crop?: Crop) => {
-    setCropId(id || "");
-    setSelectedCrop(crop ?? null);
-    if (crop) {
-      const name = crop.nameAr || crop.cropName || crop.name;
-      if (name) setTitle((t) => t || `مزاد ${name}`);
-      if (crop.imageUrls?.length) setImageUrls(crop.imageUrls);
-    }
-  }, []);
+  const handleCropChange = useCallback(
+    (id: number, crop?: Crop) => {
+      setCropId(id || "");
+      setSelectedCrop(crop ?? null);
+      if (crop) {
+        const name =
+          localized(crop as unknown as Record<string, unknown>, "name") ||
+          crop.nameAr ||
+          crop.cropName ||
+          crop.name;
+        if (name) setTitle((prev) => prev || t("auctions.titleWithCrop", "", { name }));
+        if (crop.imageUrls?.length) setImageUrls(crop.imageUrls);
+      }
+    },
+    [localized, t],
+  );
 
   function goNext() {
     const i = steps.indexOf(step);
@@ -123,7 +134,7 @@ function CreateAuctionForm() {
   if (isLoading) {
     return (
       <PageContainer className="py-16 text-center text-slate-500">
-        جاري التحميل...
+        {t("common.loadingEllipsis")}
       </PageContainer>
     );
   }
@@ -133,7 +144,7 @@ function CreateAuctionForm() {
   if (!canCreateAuction) {
     return (
       <PageContainer className="py-16 text-center text-red-600">
-        ليس لديك صلاحية إنشاء مزاد
+        {t("auctions.noCreatePermission")}
       </PageContainer>
     );
   }
@@ -145,10 +156,10 @@ function CreateAuctionForm() {
     const start = new Date(startTime);
     const end = new Date(endTime);
     const second = secondEndTime ? new Date(secondEndTime) : null;
-    if (end <= start) return "وقت النهاية يجب أن يكون بعد وقت البداية";
+    if (end <= start) return t("auctions.endAfterStart");
     if (second) {
-      if (second > end) return "وقت النهاية الثانية يجب أن يكون قبل أو يساوي وقت النهاية";
-      if (second <= start) return "وقت النهاية الثانية يجب أن يكون بعد وقت البداية";
+      if (second > end) return t("auctions.secondEndBeforeEnd");
+      if (second <= start) return t("auctions.secondEndAfterStart");
     }
     return null;
   }
@@ -156,7 +167,7 @@ function CreateAuctionForm() {
   async function submit() {
     if (!user?.userId || !cropId) return;
     if (!skipLocationStep && !locationReady) {
-      setError("موقع المزرعة غير مكتمل");
+      setError(t("auctions.farmLocationIncomplete"));
       return;
     }
     const timeErr = validateTimes();
@@ -165,13 +176,13 @@ function CreateAuctionForm() {
       return;
     }
     if (!description.trim()) {
-      setError("أدخل وصفاً للمزاد");
+      setError(t("auctions.descriptionRequired"));
       return;
     }
     const hasImages =
       imageUrls.length > 0 || (selectedCrop?.imageUrls?.length ?? 0) > 0;
     if (!hasImages) {
-      setError("أضف صورة واحدة على الأقل للمحصول");
+      setError(t("auctions.imageRequired"));
       return;
     }
 
@@ -193,7 +204,7 @@ function CreateAuctionForm() {
             farmName = full?.name?.trim() || full?.nameAr?.trim();
           }
           if (!farmName) {
-            throw new Error("تعذر تحديث المزرعة: اسم المزرعة مطلوب");
+            throw new Error(t("auctions.farmUpdateNameRequired"));
           }
 
           await updateFarm(fid, user.userId, {
@@ -224,9 +235,9 @@ function CreateAuctionForm() {
         }
       }
 
-      const endIso = toIso(endTime);
-      const startIso = toIso(startTime);
-      const secondIso = secondEndTime ? toIso(secondEndTime) : endIso;
+      const endIso = toIso(endTime, t("auctions.invalidDate"));
+      const startIso = toIso(startTime, t("auctions.invalidDate"));
+      const secondIso = secondEndTime ? toIso(secondEndTime, t("auctions.invalidDate")) : endIso;
 
       await createAuction(user.userId, {
         cropId: Number(cropId),
@@ -240,7 +251,7 @@ function CreateAuctionForm() {
       });
       router.push("/auctions");
     } catch (e) {
-      setError(e instanceof Error ? e.message : "فشل إنشاء المزاد");
+      setError(e instanceof Error ? e.message : t("auctions.createFailed"));
     } finally {
       setSubmitting(false);
     }
@@ -248,7 +259,7 @@ function CreateAuctionForm() {
 
   return (
     <>
-      <PageHeader title="إنشاء مزاد" backHref="/auctions" />
+      <PageHeader title={t("auctions.createTitle")} backHref="/auctions" />
       <PageContainer narrow className="py-8">
         <div className="mb-6 flex gap-2">
           {steps.map((s, i) => (
@@ -261,14 +272,14 @@ function CreateAuctionForm() {
         <div className="space-y-4 rounded-2xl border border-gray-100 bg-white p-6 shadow-sm">
           {step === "farm" && (
             <>
-              <p className="text-sm text-slate-600">الخطوة 1: اختر المزرعة والمحصول</p>
+              <p className="text-sm text-slate-600">{t("auctions.stepFarm")}</p>
               {skipLocationStep && selectedFarm && (
                 <p className="rounded-lg bg-emerald-50 px-3 py-2 text-xs text-emerald-800">
-                  موقع المزرعة محفوظ:{" "}
-                  {[selectedFarm.governorateName, selectedFarm.cityName, selectedFarm.area]
-                    .filter(Boolean)
-                    .join(" — ")}
-                  . لن نطلب المحافظة مرة أخرى.
+                  {t("auctions.farmLocationSaved", "", {
+                    location: [selectedFarm.governorateName, selectedFarm.cityName, selectedFarm.area]
+                      .filter(Boolean)
+                      .join(" — "),
+                  })}
                 </p>
               )}
               <FarmCropSelect
@@ -280,27 +291,22 @@ function CreateAuctionForm() {
                 onlyAvailable
               />
               <Button fullWidth disabled={!cropId} onClick={goNext}>
-                التالي
+                {t("common.next")}
               </Button>
             </>
           )}
 
           {step === "location" && (
             <>
-              <p className="text-sm text-slate-600">
-                الخطوة 2: أكمل موقع المزرعة (المحافظة → المدينة → المقاطعة)
-              </p>
-              <p className="text-xs text-amber-700">
-                المزرعة المختارة لا تحتوي موقعاً كاملاً في النظام — أضفه مرة واحدة وسيُحفظ
-                مع المزرعة.
-              </p>
+              <p className="text-sm text-slate-600">{t("auctions.stepLocation")}</p>
+              <p className="text-xs text-amber-700">{t("auctions.farmLocationMissing")}</p>
               <LocationCascadeSelect value={location} onChange={setLocation} />
               <div className="flex gap-2">
                 <Button variant="outline" fullWidth onClick={goBack}>
-                  رجوع
+                  {t("common.back")}
                 </Button>
                 <Button fullWidth disabled={!locationReady} onClick={goNext}>
-                  التالي
+                  {t("common.next")}
                 </Button>
               </div>
             </>
@@ -308,45 +314,45 @@ function CreateAuctionForm() {
 
           {step === "details" && (
             <>
-              <p className="text-sm text-slate-600">تفاصيل المزاد والصور</p>
+              <p className="text-sm text-slate-600">{t("auctions.stepDetails")}</p>
               <Input
-                label="سعر البداية (ل.س)"
+                label={t("auctions.startingPriceCurrency", "", { currency: t("common.currency") })}
                 type="number"
                 value={startingPrice}
                 onChange={(e) => setStartingPrice(e.target.value)}
                 required
               />
               <Input
-                label="أقل زيادة"
+                label={t("auctions.minIncrementShort")}
                 type="number"
                 value={minIncrement}
                 onChange={(e) => setMinIncrement(e.target.value)}
                 required
               />
               <Input
-                label="عنوان المزاد"
+                label={t("auctions.auctionTitleLabel")}
                 value={title}
                 onChange={(e) => setTitle(e.target.value)}
               />
               <label className="flex flex-col gap-1 text-sm">
-                <span className="font-medium text-slate-700">وصف المزاد *</span>
+                <span className="font-medium text-slate-700">{t("auctions.descriptionLabel")}</span>
                 <textarea
                   className="min-h-[88px] rounded-xl border border-gray-200 px-3 py-2.5"
                   value={description}
                   onChange={(e) => setDescription(e.target.value)}
-                  placeholder="تفاصيل المحصول والمزاد..."
+                  placeholder={t("auctions.descriptionPlaceholder")}
                   required
                 />
               </label>
               <ImageUploadField
-                label="صور المحصول"
+                label={t("auctions.cropImages")}
                 value={imageUrls}
                 onChange={setImageUrls}
                 folder="auctions"
               />
               <div className="flex gap-2">
                 <Button variant="outline" fullWidth onClick={goBack}>
-                  رجوع
+                  {t("common.back")}
                 </Button>
                 <Button
                   fullWidth
@@ -358,7 +364,7 @@ function CreateAuctionForm() {
                   }
                   onClick={goNext}
                 >
-                  التالي
+                  {t("common.next")}
                 </Button>
               </div>
             </>
@@ -367,35 +373,33 @@ function CreateAuctionForm() {
           {step === "schedule" && (
             <>
               <Input
-                label="وقت البداية"
+                label={t("auctions.startTime")}
                 type="datetime-local"
                 value={startTime}
                 onChange={(e) => setStartTime(e.target.value)}
                 required
               />
               <Input
-                label="وقت النهاية"
+                label={t("auctions.endTime")}
                 type="datetime-local"
                 value={endTime}
                 onChange={(e) => setEndTime(e.target.value)}
                 required
               />
               <Input
-                label="وقت النهاية الثانية (اختياري)"
+                label={t("auctions.secondEndTime")}
                 type="datetime-local"
                 value={secondEndTime}
                 onChange={(e) => setSecondEndTime(e.target.value)}
               />
-              <p className="text-xs text-slate-500">
-                إن وُجد، يجب أن يكون وقت النهاية الثانية بين البداية ونهاية المزاد.
-              </p>
+              <p className="text-xs text-slate-500">{t("auctions.secondEndHint")}</p>
               {error && <p className="text-sm text-red-600">{error}</p>}
               <div className="flex gap-2">
                 <Button variant="outline" fullWidth onClick={goBack}>
-                  رجوع
+                  {t("common.back")}
                 </Button>
                 <Button fullWidth onClick={submit} disabled={submitting}>
-                  {submitting ? "جاري النشر..." : "نشر المزاد"}
+                  {submitting ? t("auctions.publishing") : t("auctions.publishAuction")}
                 </Button>
               </div>
             </>
@@ -407,10 +411,14 @@ function CreateAuctionForm() {
 }
 
 export default function CreateAuctionPage() {
+  const { t } = useI18n();
+
   return (
     <Suspense
       fallback={
-        <PageContainer className="py-16 text-center text-slate-500">جاري التحميل...</PageContainer>
+        <PageContainer className="py-16 text-center text-slate-500">
+          {t("common.loadingEllipsis")}
+        </PageContainer>
       }
     >
       <CreateAuctionForm />

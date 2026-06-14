@@ -10,9 +10,14 @@ import { EmptyState } from "@/components/ui/EmptyState";
 import { FadeIn } from "@/components/motion/FadeIn";
 import { getMyFarms } from "@/services/farms";
 import { useAuth } from "@/context/AuthContext";
+import { useI18n } from "@/context/I18nContext";
+import type { LocalizableRecord } from "@/lib/localized-value";
+import { useLocalizedLabel } from "@/hooks/useLocalizedLabel";
 import type { Farm } from "@/types/farm";
 
 export default function FarmsPage() {
+  const { t } = useI18n();
+  const { localized } = useLocalizedLabel();
   const { user, requireAuth, isAuthenticated } = useAuth();
   const [farms, setFarms] = useState<Farm[]>([]);
   const [loading, setLoading] = useState(true);
@@ -30,13 +35,13 @@ export default function FarmsPage() {
 
   return (
     <>
-      <PageHeader title="مزارعي" backHref="/account" />
+      <PageHeader title={t("farms.title")} backHref="/account" />
       <PageContainer className="py-8">
         <div className="mb-6 flex justify-end">
           <Link href="/farms/new">
             <Button size="sm">
               <Plus className="h-4 w-4" />
-              إضافة مزرعة
+              {t("farms.addFarm")}
             </Button>
           </Link>
         </div>
@@ -50,11 +55,11 @@ export default function FarmsPage() {
         ) : farms.length === 0 ? (
           <EmptyState
             icon={Sprout}
-            title="لا توجد مزارع"
-            description="أضف مزرعتك الأولى لربط المحاصيل بالمزادات والبيع المباشر"
+            title={t("farms.noFarms")}
+            description={t("farms.noFarmsDesc")}
             action={
               <Link href="/farms/new">
-                <Button>إضافة مزرعة</Button>
+                <Button>{t("farms.addFarm")}</Button>
               </Link>
             }
           />
@@ -72,7 +77,7 @@ export default function FarmsPage() {
                     </span>
                     <div>
                       <h3 className="font-semibold text-slate-900">
-                        {f.nameAr || f.name || `مزرعة #${f.farmId}`}
+                        {localized(f as unknown as LocalizableRecord) || t("farms.farmFallback", undefined, { id: f.farmId })}
                       </h3>
                       <p className="mt-1 text-sm text-slate-500">
                         {[f.governorateName, f.cityName].filter(Boolean).join(" — ") ||

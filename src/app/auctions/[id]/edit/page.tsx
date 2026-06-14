@@ -8,6 +8,9 @@ import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
 import { getAuction, getAuctionsCreatedByUser, updateAuction } from "@/services/auctions";
 import { useAuth } from "@/context/AuthContext";
+import { useI18n } from "@/context/I18nContext";
+import { useLocalizedLabel } from "@/hooks/useLocalizedLabel";
+import type { LocalizableRecord } from "@/lib/localized-value";
 
 function toIso(local: string): string | undefined {
   if (!local?.trim()) return undefined;
@@ -20,6 +23,8 @@ export default function EditAuctionPage() {
   const { id } = useParams();
   const router = useRouter();
   const { user, requireAuth } = useAuth();
+  const { t } = useI18n();
+  const { marketTitle } = useLocalizedLabel();
   const auctionId = Number(id);
 
   const [title, setTitle] = useState("");
@@ -38,16 +43,17 @@ export default function EditAuctionPage() {
     Promise.all([getAuction(auctionId), getAuctionsCreatedByUser(user.userId)])
       .then(([a, mine]) => {
         setCanEdit(mine.some((x) => x.auctionId === auctionId));
-        setTitle(a.auctionTitle ?? a.cropName ?? "");
+        const resolvedTitle = marketTitle(a as unknown as LocalizableRecord, "auction", auctionId);
+        setTitle(resolvedTitle || (a.auctionTitle ?? a.cropName ?? ""));
         setDesc(a.auctionDescription ?? "");
         setStartingPrice(String(a.startingPrice ?? ""));
         setMinIncrement(String(a.minIncrement ?? ""));
         if (a.startTime) setStartTime(a.startTime.slice(0, 16));
         if (a.endTime) setEndTime(a.endTime.slice(0, 16));
       })
-      .catch(() => setError("تعذّر تحميل المزاد"))
+      .catch(() => setError(t("auctions.loadFailed")))
       .finally(() => setLoading(false));
-  }, [auctionId, user?.userId, requireAuth]);
+  }, [auctionId, user?.userId, requireAuth, marketTitle, t]);
 
   async function handleSave(e: React.FormEvent) {
     e.preventDefault();
@@ -65,7 +71,7 @@ export default function EditAuctionPage() {
       });
       router.push(`/auctions/${auctionId}`);
     } catch (err) {
-      setError(err instanceof Error ? err.message : "فشل الحفظ");
+      setError(err instanceof Error ? err.message : t("auctions.saveFailed"));
     } finally {
       setSaving(false);
     }
@@ -74,8 +80,10 @@ export default function EditAuctionPage() {
   if (loading) {
     return (
       <>
-        <PageHeader title="تعديل المزاد" backHref={`/auctions/${id}`} />
-        <PageContainer className="py-16 text-center text-slate-500">جاري التحميل...</PageContainer>
+        <PageHeader title={t("auctions.editTitle")} backHref={`/auctions/${id}`} />
+        <PageContainer className="py-16 text-center text-slate-500">
+          {t("common.loadingEllipsis")}
+        </PageContainer>
       </>
     );
   }
@@ -83,9 +91,9 @@ export default function EditAuctionPage() {
   if (!canEdit) {
     return (
       <>
-        <PageHeader title="تعديل المزاد" backHref={`/auctions/${id}`} />
+        <PageHeader title={t("auctions.editTitle")} backHref={`/auctions/${id}`} />
         <PageContainer className="py-16 text-center text-red-600">
-          لا يمكنك تعديل هذا المزاد
+          {t("auctions.cannotEdit")}
         </PageContainer>
       </>
     );
@@ -93,12 +101,16 @@ export default function EditAuctionPage() {
 
   return (
     <>
-      <PageHeader title="تعديل المزاد" backHref={`/auctions/${id}`} />
+      <PageHeader title={t("auctions.editTitle")} backHref={`/auctions/${id}`} />
       <PageContainer narrow className="py-8">
         <form onSubmit={handleSave} className="space-y-4 rounded-2xl border bg-white p-8 shadow-sm">
-          <Input label="عنوان المزاد" value={title} onChange={(e) => setTitle(e.target.value)} />
+          <Input
+            label={t("auctions.auctionTitleLabel")}
+            value={title}
+            onChange={(e) => setTitle(e.target.value)}
+          />
           <label className="block text-sm">
-            <span className="font-medium text-slate-600">الوصف</span>
+            <span className="font-medium text-slate-600">{t("auctions.description")}</span>
             <textarea
               className="mt-1 w-full rounded-lg border border-gray-200 px-3 py-2"
               rows={4}
@@ -107,32 +119,32 @@ export default function EditAuctionPage() {
             />
           </label>
           <Input
-            label="سعر البداية"
+            label={t("auctions.startingPrice")}
             type="number"
             value={startingPrice}
             onChange={(e) => setStartingPrice(e.target.value)}
           />
           <Input
-            label="الحد الأدنى للزيادة"
+            label={t("auctions.minIncrementLabel")}
             type="number"
             value={minIncrement}
             onChange={(e) => setMinIncrement(e.target.value)}
           />
           <Input
-            label="يبدأ"
+            label={t("auctions.startsAt")}
             type="datetime-local"
             value={startTime}
             onChange={(e) => setStartTime(e.target.value)}
           />
           <Input
-            label="ينتهي"
+            label={t("auctions.endsAtLabel")}
             type="datetime-local"
             value={endTime}
             onChange={(e) => setEndTime(e.target.value)}
           />
           {error && <p className="text-sm text-red-600">{error}</p>}
           <Button type="submit" fullWidth disabled={saving}>
-            {saving ? "جاري الحفظ..." : "حفظ التعديلات"}
+            {saving ? t("common.saving") : t("auctions.saveChanges")}
           </Button>
         </form>
       </PageContainer>

@@ -16,6 +16,9 @@ import {
 } from "@/services/tenders";
 import { formatPrice } from "@/lib/auctionPricing";
 import { useAuth } from "@/context/AuthContext";
+import { useI18n } from "@/context/I18nContext";
+import type { LocalizableRecord } from "@/lib/localized-value";
+import { useLocalizedLabel } from "@/hooks/useLocalizedLabel";
 import { canJoinTender } from "@/lib/permissions";
 import type { Tender } from "@/types";
 
@@ -27,14 +30,9 @@ interface TenderOffer {
   status?: string;
 }
 
-const OFFER_STATUS_AR: Record<string, string> = {
-  pending: "قيد المراجعة",
-  accepted: "مقبول",
-  awarded: "مُرسى",
-  rejected: "مرفوض",
-};
-
 export default function TenderDetailPage() {
+  const { t } = useI18n();
+  const { localized } = useLocalizedLabel();
   const { id } = useParams();
   const { user, requireAuth } = useAuth();
   const [tender, setTender] = useState<Tender | null>(null);
@@ -69,10 +67,10 @@ export default function TenderDetailPage() {
         price: Number(price),
         quantityOffered: Number(qty),
       });
-      setMsg("تم إرسال العرض");
+      setMsg(t("tenders.detail.offerSent"));
       await reloadOffers();
     } catch (e) {
-      setError(e instanceof Error ? e.message : "فشل إرسال العرض");
+      setError(e instanceof Error ? e.message : t("tenders.detail.offerFailed"));
     }
   }
 
@@ -81,11 +79,11 @@ export default function TenderDetailPage() {
     setError("");
     try {
       await awardTender(tenderId, offerId);
-      setMsg("تم ترسية المناقصة على العرض المختار");
+      setMsg(t("tenders.detail.tenderAwarded"));
       getTender(tenderId).then(setTender);
       await reloadOffers();
     } catch (e) {
-      setError(e instanceof Error ? e.message : "فشل الترسية");
+      setError(e instanceof Error ? e.message : t("tenders.detail.awardFailed"));
     } finally {
       setActing(null);
     }
@@ -95,10 +93,10 @@ export default function TenderDetailPage() {
     setActing(-1);
     try {
       await finishTender(tenderId);
-      setMsg("تم إنهاء المناقصة");
+      setMsg(t("tenders.detail.tenderFinished"));
       getTender(tenderId).then(setTender);
     } catch (e) {
-      setError(e instanceof Error ? e.message : "فشل الإنهاء");
+      setError(e instanceof Error ? e.message : t("tenders.detail.finishFailed"));
     } finally {
       setActing(null);
     }
@@ -107,68 +105,80 @@ export default function TenderDetailPage() {
   if (!tender) {
     return (
       <>
-        <PageHeader title="مناقصة" backHref="/tenders" />
-        <PageContainer className="py-16 text-center text-slate-500">جاري التحميل...</PageContainer>
+        <PageHeader title={t("tenders.detail.title")} backHref="/tenders" />
+        <PageContainer className="py-16 text-center text-slate-500">
+          {t("common.loadingEllipsis")}
+        </PageContainer>
       </>
     );
   }
 
+  const tenderTitle =
+    localized(tender as unknown as LocalizableRecord) || tender.title || tender.cropName || t("tenders.detail.title");
+
   return (
     <>
-      <PageHeader title={tender.title || tender.cropName || "مناقصة"} backHref="/tenders" />
+      <PageHeader title={tenderTitle} backHref="/tenders" />
       <PageContainer className="py-8">
         <div className="mb-8 rounded-2xl border border-gray-100 bg-white p-6 shadow-sm">
           <div className="mb-3 flex items-center gap-2">
             <StatusBadge status={tender.status} />
-            {isOwner && <span className="text-xs text-emerald-600">أنت صاحب المناقصة</span>}
+            {isOwner && <span className="text-xs text-emerald-600">{t("tenders.detail.owner")}</span>}
           </div>
-          <h2 className="text-xl font-bold text-slate-900">{tender.cropName || tender.title}</h2>
+          <h2 className="text-xl font-bold text-slate-900">
+            {localized(tender as unknown as LocalizableRecord) || tender.cropName || tender.title}
+          </h2>
           {tender.quantity != null && (
             <p className="mt-2 text-slate-600">
-              الكمية: {tender.quantity} {tender.unit}
+              {t("tenders.detail.quantity", undefined, {
+                qty: tender.quantity,
+                unit: tender.unit ?? "",
+              })}
             </p>
           )}
           {tender.maxBudget != null && (
             <p className="mt-1 font-bold text-emerald-600">
-              الميزانية: {formatPrice(tender.maxBudget)} ل.س
+              {t("tenders.detail.budgetLabel", undefined, {
+                price: formatPrice(tender.maxBudget),
+              })}
             </p>
           )}
           {tender.deliveryLocation && (
-            <p className="mt-1 text-sm text-slate-500">التسليم: {tender.deliveryLocation}</p>
+            <p className="mt-1 text-sm text-slate-500">
+              {t("tenders.detail.delivery", undefined, { location: tender.deliveryLocation })}
+            </p>
           )}
         </div>
 
         {canAward && (
           <section className="mb-8 rounded-2xl border border-amber-100 bg-amber-50/50 p-6">
-            <h3 className="mb-3 font-semibold text-amber-900">إدارة المناقصة (مالك)</h3>
-            <p className="mb-4 text-sm text-amber-800">
-              اختر عرضاً للترسية (لا يمكن إلغاء الترسية بعدها)، ثم أنهِ المناقصة بعد التعاقد.
-            </p>
+            <h3 className="mb-3 font-semibold text-amber-900">{t("tenders.detail.manage")}</h3>
+            <p className="mb-4 text-sm text-amber-800">{t("tenders.detail.manageHint")}</p>
             <Button variant="outline" disabled={acting != null} onClick={handleFinish}>
-              إنهاء المناقصة
+              {t("tenders.detail.finish")}
             </Button>
           </section>
         )}
 
         {!isOwner && canJoinTender(user?.roleId) && tender.status?.toLowerCase() === "open" && (
           <section className="mb-8 rounded-2xl border border-emerald-100 bg-emerald-50/40 p-6">
-            <h3 className="mb-4 font-semibold">تقديم عرض</h3>
+            <h3 className="mb-4 font-semibold">{t("tenders.detail.submitOffer")}</h3>
             <div className="grid gap-4 sm:grid-cols-2">
               <Input
-                label="السعر المقترح"
+                label={t("tenders.detail.offeredPrice")}
                 type="number"
                 value={price}
                 onChange={(e) => setPrice(e.target.value)}
               />
               <Input
-                label="الكمية"
+                label={t("tenders.detail.quantityLabel")}
                 type="number"
                 value={qty}
                 onChange={(e) => setQty(e.target.value)}
               />
             </div>
             <Button fullWidth className="mt-4" onClick={submitOffer}>
-              إرسال العرض
+              {t("tenders.detail.sendOffer")}
             </Button>
           </section>
         )}
@@ -178,7 +188,9 @@ export default function TenderDetailPage() {
 
         {offers.length > 0 && (
           <section>
-            <h3 className="mb-4 font-semibold text-slate-900">العروض ({offers.length})</h3>
+            <h3 className="mb-4 font-semibold text-slate-900">
+              {t("tenders.detail.offers", undefined, { count: offers.length })}
+            </h3>
             <ul className="space-y-3">
               {offers.map((o, i) => {
                 const st = o.status?.toLowerCase() ?? "";
@@ -190,18 +202,16 @@ export default function TenderDetailPage() {
                     className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-gray-100 bg-white px-4 py-4"
                   >
                     <div>
-                      <p className="font-medium">{o.supplierName || "مورّد"}</p>
+                      <p className="font-medium">{o.supplierName || t("tenders.detail.supplier")}</p>
                       <p className="font-bold text-emerald-600">
-                        {formatPrice(o.price ?? 0)} ل.س
+                        {formatPrice(o.price ?? 0)} {t("common.currency")}
                         {o.quantityOffered != null && (
                           <span className="ms-2 text-sm font-normal text-slate-500">
-                            · {o.quantityOffered} وحدة
+                            · {t("tenders.detail.units", undefined, { qty: o.quantityOffered })}
                           </span>
                         )}
                       </p>
-                      <p className="text-xs text-slate-500">
-                        {OFFER_STATUS_AR[st] ?? o.status}
-                      </p>
+                      <StatusBadge status={o.status} />
                     </div>
                     {isOwner && isPending && o.offerId && (
                       <Button
@@ -209,12 +219,12 @@ export default function TenderDetailPage() {
                         disabled={acting != null}
                         onClick={() => handleAward(o.offerId!)}
                       >
-                        ترسية
+                        {t("tenders.detail.award")}
                       </Button>
                     )}
                     {isOwner && isAwarded && (
                       <span className="rounded-full bg-emerald-100 px-3 py-1 text-xs font-semibold text-emerald-800">
-                        مُرسى — لا يمكن الإلغاء
+                        {t("tenders.detail.awarded")}
                       </span>
                     )}
                   </li>

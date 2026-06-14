@@ -1,41 +1,41 @@
-/** ترجمة حالات العرض الموحدة (مزاد، مناقصة، بيع مباشر، طلب، نقل) */
+import type { AppLanguage } from "@/context/I18nContext";
 
-const STATUS_AR: Record<string, string> = {
-  open: "مفتوح",
-  active: "نشط",
-  live: "جارٍ",
-  running: "جارٍ",
-  closed: "مغلق",
-  completed: "مكتمل",
-  cancelled: "ملغى",
-  canceled: "ملغى",
-  pending: "قيد المراجعة",
-  negotiating: "تفاوض",
-  assigned: "مُعيَّن",
-  accepted: "مقبول",
-  rejected: "مرفوض",
-  sold: "مُباع",
-  listed: "معروض",
-  inauction: "في مزاد",
-  inauctionactive: "في مزاد",
-  directlisted: "بيع مباشر",
-  unavailable: "غير متاح",
-  reserved: "محجوز",
-  draft: "مسودة",
-  expired: "منتهي",
-  awarded: "مُرسى",
-  finished: "منتهٍ",
-};
+type TranslateFn = (key: string, fallback?: string) => string;
 
-export function translateStatus(status?: string | null): string | null {
+/** Maps API status codes to translated labels via i18n keys under `status.*`. */
+export function translateStatus(
+  status: string | null | undefined,
+  t?: TranslateFn,
+): string | null {
   if (!status?.trim()) return null;
   const key = status.toLowerCase().replace(/[\s_-]/g, "");
-  return STATUS_AR[key] ?? status;
+  if (t) return t(`status.${key}`, status);
+  return status;
 }
 
-export function statusMetaLine(...parts: (string | null | undefined)[]): string {
+export function statusMetaLine(
+  t: TranslateFn,
+  ...parts: (string | null | undefined)[]
+): string {
   return parts
-    .map((p) => (typeof p === "string" && !p.match(/^(open|active|closed|pending)$/i) ? p : translateStatus(p)))
+    .map((part) => {
+      if (!part) return null;
+      if (/^(open|active|closed|pending)$/i.test(part)) {
+        return translateStatus(part, t);
+      }
+      return part;
+    })
     .filter(Boolean)
     .join(" · ");
+}
+
+export function formatCurrencyLocalized(
+  n: number | null | undefined,
+  language: AppLanguage,
+): string {
+  if (n == null || Number.isNaN(n)) return "—";
+  const locale = language === "ar" ? "ar-SY" : "en-US";
+  const formatted = new Intl.NumberFormat(locale, { maximumFractionDigits: 0 }).format(n);
+  const suffix = language === "ar" ? "ل.س" : "SYP";
+  return `${formatted} ${suffix}`;
 }

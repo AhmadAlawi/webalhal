@@ -62,7 +62,8 @@ export async function getCategories() {
       (c): Category => ({
         categoryId: c.categoryId,
         nameAr: c.nameAr,
-        name: c.nameAr ?? c.nameEn,
+        nameEn: c.nameEn,
+        name: c.nameEn ?? c.nameAr,
       }),
     );
   } catch {

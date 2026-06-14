@@ -9,8 +9,10 @@ import { PageContainer } from "@/components/layout/PageContainer";
 import { StatusBadge } from "@/components/ui/StatusBadge";
 import { getNotifiedRequests, getAssignedRequests } from "@/services/transport";
 import { useAuth } from "@/context/AuthContext";
+import { useI18n } from "@/context/I18nContext";
 
 export default function TransportInboxPage() {
+  const { t } = useI18n();
   const { isAuthenticated, requireAuth } = useAuth();
   const [tab, setTab] = useState<"notified" | "assigned">("notified");
 
@@ -26,7 +28,7 @@ export default function TransportInboxPage() {
 
   return (
     <>
-      <PageHeader title="طلبات النقل" backHref="/" />
+      <PageHeader title={t("transport.inbox.title")} backHref="/" />
       <PageContainer className="py-6">
         <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
           <nav className="flex gap-2">
@@ -37,7 +39,7 @@ export default function TransportInboxPage() {
                 tab === "notified" ? "bg-emerald-600 text-white" : "border bg-white"
               }`}
             >
-              الوارد
+              {t("transport.inbox.notified")}
             </button>
             <button
               type="button"
@@ -46,7 +48,7 @@ export default function TransportInboxPage() {
                 tab === "assigned" ? "bg-emerald-600 text-white" : "border bg-white"
               }`}
             >
-              المعيّن لي
+              {t("transport.inbox.assigned")}
             </button>
           </nav>
           <Link
@@ -54,7 +56,7 @@ export default function TransportInboxPage() {
             className="inline-flex items-center gap-1 text-sm font-medium text-emerald-600 hover:underline"
           >
             <Settings className="h-4 w-4" />
-            خطوط الأسعار
+            {t("transport.inbox.priceLinesLink")}
           </Link>
         </div>
 
@@ -72,7 +74,10 @@ export default function TransportInboxPage() {
                 >
                   <span>
                     <p className="font-medium text-slate-900">
-                      طلب #{r.requestId} — {r.productType || r.orderType}
+                      {t("transport.inbox.request", undefined, {
+                        id: r.requestId,
+                        type: r.productType || r.orderType,
+                      })}
                     </p>
                     <p className="text-sm text-slate-500">
                       {r.fromRegion} → {r.toRegion}
@@ -83,7 +88,7 @@ export default function TransportInboxPage() {
               </li>
             ))}
             {items.length === 0 && (
-              <li className="py-16 text-center text-slate-500">لا توجد طلبات</li>
+              <li className="py-16 text-center text-slate-500">{t("transport.inbox.empty")}</li>
             )}
           </ul>
         )}

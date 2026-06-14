@@ -8,9 +8,11 @@ import { Button } from "@/components/ui/Button";
 import { StatusBadge } from "@/components/ui/StatusBadge";
 import { getTicket, getTicketMessages, sendTicketMessage } from "@/services/ticketing";
 import { useAuth } from "@/context/AuthContext";
+import { useI18n } from "@/context/I18nContext";
 import type { SupportTicket, TicketMessage } from "@/types/ticket";
 
 export default function TicketDetailPage() {
+  const { t, language } = useI18n();
   const { id } = useParams();
   const { user, requireAuth } = useAuth();
   const ticketId = Number(id);
@@ -18,6 +20,8 @@ export default function TicketDetailPage() {
   const [messages, setMessages] = useState<TicketMessage[]>([]);
   const [text, setText] = useState("");
   const [sending, setSending] = useState(false);
+
+  const dateLocale = language === "ar" ? "ar-SY" : "en-US";
 
   const load = () => {
     getTicket(ticketId).then(setTicket).catch(() => setTicket(null));
@@ -45,7 +49,11 @@ export default function TicketDetailPage() {
   return (
     <>
       <PageHeader
-        title={ticket?.subject || ticket?.title || `تذكرة #${id}`}
+        title={
+          ticket?.subject ||
+          ticket?.title ||
+          t("tickets.ticketFallback", undefined, { id: ticketId })
+        }
         backHref="/tickets"
       />
       <PageContainer className="py-6">
@@ -54,7 +62,7 @@ export default function TicketDetailPage() {
             <StatusBadge status={ticket.status} />
             {ticket.createdAt && (
               <span className="text-xs text-slate-400">
-                {new Date(ticket.createdAt).toLocaleString("ar-SY")}
+                {new Date(ticket.createdAt).toLocaleString(dateLocale)}
               </span>
             )}
           </div>
@@ -79,7 +87,9 @@ export default function TicketDetailPage() {
             </li>
           ))}
           {messages.length === 0 && (
-            <li className="py-8 text-center text-sm text-slate-400">لا رسائل بعد</li>
+            <li className="py-8 text-center text-sm text-slate-400">
+              {t("tickets.detail.noMessages")}
+            </li>
           )}
         </ul>
 
@@ -87,11 +97,11 @@ export default function TicketDetailPage() {
           <input
             value={text}
             onChange={(e) => setText(e.target.value)}
-            placeholder="رد على التذكرة..."
+            placeholder={t("tickets.detail.replyPlaceholder")}
             className="flex-1 rounded-xl border border-gray-200 px-4 py-2.5"
           />
           <Button type="submit" size="sm" disabled={sending}>
-            إرسال
+            {t("chat.send")}
           </Button>
         </form>
       </PageContainer>

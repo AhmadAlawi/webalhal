@@ -74,10 +74,16 @@ export async function getAreasByCity(cityId: number, isActive = true): Promise<A
     .filter((a): a is Area => a != null);
 }
 
-export function locationLabel(item: {
-  nameAr?: string;
-  nameEn?: string;
-  name?: string;
-}): string {
-  return item.nameAr || item.name || item.nameEn || "";
+import { getLocalizedValue } from "@/lib/localized-value";
+import type { AppLanguage } from "@/context/I18nContext";
+
+export function locationLabel(
+  item: {
+    nameAr?: string;
+    nameEn?: string;
+    name?: string;
+  },
+  language: AppLanguage = "ar",
+): string {
+  return getLocalizedValue(item, "name", language);
 }

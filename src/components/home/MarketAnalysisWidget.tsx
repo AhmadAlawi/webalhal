@@ -11,9 +11,11 @@ import { SyriaMarketMapDynamic } from "@/components/maps/SyriaMarketMapDynamic";
 import { getDashboardSummary, getVolumeByGovernorate } from "@/services/market-analysis";
 import { getGovernorates } from "@/services/locations";
 import { mergeGovernorateMapPoints, toMapVolumePoints } from "@/lib/syria-governorates";
+import { useI18n } from "@/context/I18nContext";
 import type { DashboardSummaryData } from "@/types/market-analysis";
 
 export function MarketAnalysisWidget() {
+  const { t } = useI18n();
   const [summary, setSummary] = useState<DashboardSummaryData | null>(null);
   const [mapPoints, setMapPoints] = useState<ReturnType<typeof toMapVolumePoints>>([]);
   const [loading, setLoading] = useState(true);
@@ -49,17 +51,15 @@ export function MarketAnalysisWidget() {
               <BarChart3 className="h-6 w-6" />
             </span>
             <div>
-              <h2 className="text-xl font-bold text-slate-900">تحليلات السوق</h2>
-              <p className="text-sm text-slate-600">
-                مؤشرات تفاعلية وخريطة حجم المبيعات — آخر 30 يوماً
-              </p>
+              <h2 className="text-xl font-bold text-slate-900">{t("home.analysis.title")}</h2>
+              <p className="text-sm text-slate-600">{t("home.analysis.subtitle")}</p>
             </div>
           </div>
           <Link
             href="/market-analysis"
             className="inline-flex items-center justify-center gap-2 rounded-xl bg-emerald-600 px-6 py-3 text-sm font-semibold text-white shadow-md shadow-emerald-600/20 transition-colors hover:bg-emerald-700"
           >
-            مخطط الشموع التفاعلي
+            {t("home.analysis.cta")}
             <ArrowLeft className="h-4 w-4" />
           </Link>
         </FadeIn>
@@ -84,7 +84,7 @@ export function MarketAnalysisWidget() {
               </div>
               {summary.revenueSparkline && summary.revenueSparkline.length > 0 && (
                 <FadeIn delay={0.15} className="card mt-6 p-5">
-                  <p className="mb-3 text-sm font-medium text-slate-600">اتجاه الإيرادات</p>
+                  <p className="mb-3 text-sm font-medium text-slate-600">{t("home.analysis.revenueTrend")}</p>
                   <MiniSparkline points={summary.revenueSparkline} isCurrency />
                 </FadeIn>
               )}
@@ -93,19 +93,19 @@ export function MarketAnalysisWidget() {
               <div className="card p-4">
                 <div className="mb-3 flex items-center gap-2 text-sm font-semibold text-slate-800">
                   <Map className="h-4 w-4 text-emerald-600" />
-                  خريطة سوريا — الحجم حسب المحافظة
+                  {t("home.analysis.mapTitle")}
                 </div>
                 <SyriaMarketMapDynamic points={mapPoints} height={280} />
                 {!mapPoints.length && (
                   <p className="mt-2 text-center text-xs text-slate-500">
-                    المحافظات معروضة — ستظهر أحجام المبيعات عند توفر البيانات
+                    {t("home.analysis.mapEmpty")}
                   </p>
                 )}
                 <Link
                   href="/market-analysis/overview"
                   className="mt-3 block text-center text-xs font-medium text-emerald-600 hover:underline"
                 >
-                  نظرة عامة تفصيلية + خرائط
+                  {t("home.analysis.detailLink")}
                 </Link>
               </div>
             </FadeIn>
@@ -113,12 +113,12 @@ export function MarketAnalysisWidget() {
         ) : (
           <FadeIn>
             <div className="rounded-2xl border border-dashed border-emerald-200 bg-white/60 px-6 py-10 text-center">
-              <p className="text-slate-600">لا تتوفر بيانات تحليلية حالياً</p>
+              <p className="text-slate-600">{t("home.analysis.noData")}</p>
               <Link
                 href="/market-analysis"
                 className="mt-4 inline-block text-sm font-semibold text-emerald-600 hover:underline"
               >
-                انتقل لصفحة التحليلات
+                {t("home.analysis.goToAnalysis")}
               </Link>
             </div>
           </FadeIn>

@@ -4,8 +4,11 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { Plus } from "lucide-react";
 import { getMyFarms, getCropsByFarm } from "@/services/farms";
-import { isCropSelectable, cropStatusLabel } from "@/lib/crop-status";
+import { isCropSelectable, cropStatusLabel, normalizeCropStatusKey } from "@/lib/crop-status";
 import { useAuth } from "@/context/AuthContext";
+import { useI18n } from "@/context/I18nContext";
+import type { LocalizableRecord } from "@/lib/localized-value";
+import { useLocalizedLabel } from "@/hooks/useLocalizedLabel";
 import type { Crop, Farm } from "@/types/farm";
 
 export function FarmCropSelect({
@@ -14,7 +17,7 @@ export function FarmCropSelect({
   onCropChange,
   onFarmChange,
   returnTo,
-  label = "المحصول",
+  label,
   onlyAvailable = true,
   reloadKey,
 }: {
@@ -24,11 +27,12 @@ export function FarmCropSelect({
   onFarmChange?: (farmId: number, farm?: Farm) => void;
   returnTo?: string;
   label?: string;
-  /** إخفاء المحاصيل المباعة أو المعروضة في مزاد/بيع مباشر */
   onlyAvailable?: boolean;
-  /** إعادة تحميل المحاصيل (مثلاً بعد إنشاء محصول جديد) */
   reloadKey?: string | number;
 }) {
+  const { t } = useI18n();
+  const { localized } = useLocalizedLabel();
+  const cropLabel = label ?? t("farms.cropSelect.crop");
   const [farms, setFarms] = useState<Farm[]>([]);
   const [farmId, setFarmId] = useState<number | "">(controlledFarmId ?? "");
   const [crops, setCrops] = useState<Crop[]>([]);
@@ -44,6 +48,12 @@ export function FarmCropSelect({
   useEffect(() => {
     onCropChangeRef.current = onCropChange;
   }, [onCropChange]);
+
+  function getCropStatus(status?: string | null): string | null {
+    const key = normalizeCropStatusKey(status);
+    if (!key || key === "available" || key === "active") return null;
+    return t(`farms.cropStatus.${key}`, cropStatusLabel(status) ?? status ?? "");
+  }
 
   const loadFarms = useCallback(() => {
     if (!user?.userId) return Promise.resolve([]);
@@ -137,13 +147,13 @@ export function FarmCropSelect({
   return (
     <div className="space-y-3">
       <div className="flex flex-wrap items-center justify-between gap-2">
-        <span className="text-sm font-medium text-slate-700">المزرعة</span>
+        <span className="text-sm font-medium text-slate-700">{t("farms.cropSelect.farm")}</span>
         <Link
           href={farmNewHref}
           className="inline-flex items-center gap-1 text-xs font-semibold text-emerald-700 hover:underline"
         >
           <Plus className="h-3.5 w-3.5" />
-          مزرعة جديدة
+          {t("farms.cropSelect.newFarm")}
         </Link>
       </div>
       <select
@@ -158,10 +168,12 @@ export function FarmCropSelect({
           onCropChangeRef.current(0);
         }}
       >
-        <option value="">{loadingFarms ? "جاري التحميل..." : "اختر المزرعة"}</option>
+        <option value="">
+          {loadingFarms ? t("common.loadingEllipsis") : t("farms.cropSelect.selectFarm")}
+        </option>
         {farms.map((f) => (
           <option key={f.farmId} value={f.farmId}>
-            {f.nameAr || f.name || `مزرعة #${f.farmId}`}
+            {localized(f as unknown as LocalizableRecord) || t("farms.farmFallback", undefined, { id: f.farmId })}
             {f.governorateName || f.cityName
               ? ` — ${[f.governorateName, f.cityName].filter(Boolean).join("، ")}`
               : ""}
@@ -170,7 +182,7 @@ export function FarmCropSelect({
       </select>
 
       <div className="flex flex-wrap items-center justify-between gap-2">
-        <span className="text-sm font-medium text-slate-700">{label}</span>
+        <span className="text-sm font-medium text-slate-700">{cropLabel}</span>
         {cropNewHref && (
           <Link
             href={cropNewHref}
@@ -179,7 +191,7 @@ export function FarmCropSelect({
             }`}
           >
             <Plus className="h-3.5 w-3.5" />
-            محصول جديد
+            {t("farms.cropSelect.newCrop")}
           </Link>
         )}
       </div>
@@ -195,31 +207,33 @@ export function FarmCropSelect({
       >
         <option value="">
           {!farmId
-            ? "اختر المزرعة أولاً"
+            ? t("farms.cropSelect.selectFarmFirst")
             : loadingCrops
-              ? "جاري تحميل المحاصيل..."
+              ? t("farms.cropSelect.loadingCrops")
               : visibleCrops.length === 0
                 ? onlyAvailable && crops.length > 0
-                  ? "لا محاصيل متاحة — المحاصيل الحالية مباعة أو في مزاد"
-                  : "لا محاصيل — أضف محصولاً"
-                : "اختر المحصول"}
+                  ? t("farms.cropSelect.noAvailable")
+                  : t("farms.cropSelect.noCrops")
+                : t("farms.cropSelect.selectCrop")}
         </option>
         {visibleCrops.map((c) => {
-          const status = cropStatusLabel(c.status);
-          const label =
-            (c.nameAr || c.cropName || c.name || `#${c.cropId}`) +
+          const status = getCropStatus(c.status);
+          const optionLabel =
+            (localized(c as unknown as LocalizableRecord) || `#${c.cropId}`) +
             (c.quantity != null ? ` — ${c.quantity} ${c.unit || ""}` : "") +
             (status ? ` (${status})` : "");
           return (
             <option key={c.cropId} value={c.cropId}>
-              {label}
+              {optionLabel}
             </option>
           );
         })}
       </select>
       {onlyAvailable && crops.length > visibleCrops.length && (
         <p className="text-xs text-amber-700">
-          {crops.length - visibleCrops.length} محصول مخفي (مباع أو معروض مسبقاً)
+          {t("farms.cropSelect.hiddenCrops", undefined, {
+            count: crops.length - visibleCrops.length,
+          })}
         </p>
       )}
     </div>

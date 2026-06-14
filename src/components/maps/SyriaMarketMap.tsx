@@ -10,6 +10,7 @@ import {
   mergeGovernorateMapPoints,
 } from "@/lib/syria-governorates";
 import { formatNumber } from "@/lib/format";
+import { useI18n } from "@/context/I18nContext";
 import syriaOutline from "@/data/syria-outline.json";
 import "leaflet/dist/leaflet.css";
 
@@ -62,6 +63,7 @@ export function SyriaMarketMap({
   height?: number;
   className?: string;
 }) {
+  const { t, direction, isRtl } = useI18n();
   const { center, zoom } = getSyriaMapDefaults();
   const displayPoints = useMemo(() => mergeGovernorateMapPoints(points), [points]);
   const volumePoints = useMemo(
@@ -127,12 +129,12 @@ export function SyriaMarketMap({
                 </Tooltip>
               )}
               <Popup>
-                <div className="text-end" dir="rtl" style={{ minWidth: 140 }}>
+                <div className={isRtl ? "text-end" : "text-start"} dir={direction} style={{ minWidth: 140 }}>
                   <strong>{p.name}</strong>
                   <p className="mt-1 text-sm text-slate-600">
                     {active
-                      ? `الحجم: ${formatNumber(p.volume)} كغ`
-                      : "لا توجد بيانات حجم في هذه الفترة"}
+                      ? t("analysis.volumeLabel", "", { value: formatNumber(p.volume) })
+                      : t("analysis.noVolumeData")}
                   </p>
                 </div>
               </Popup>
