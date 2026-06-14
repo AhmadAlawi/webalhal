@@ -16,6 +16,8 @@ import { AuctionImageGallery } from "@/components/auctions/AuctionImageGallery";
 import { AuctionSuggestionsSidebar } from "@/components/auctions/AuctionSuggestionsSidebar";
 import { AuctionWinnerChatButton } from "@/components/auctions/AuctionWinnerChatButton";
 import { useAuth } from "@/context/AuthContext";
+import { useI18n } from "@/context/I18nContext";
+import { useLocalizedLabel } from "@/hooks/useLocalizedLabel";
 import {
   getAuction,
   getAuctionBids,
@@ -40,14 +42,52 @@ import {
   parseAuctionPricing,
   resolvePlaceBidAmount,
   validateBid,
+  type AuctionEndReason,
 } from "@/lib/auctionPricing";
+import type { LocalizableRecord } from "@/lib/localized-value";
 import type { Auction, AuctionPricing, Bid } from "@/types";
 
 type ConnState = "idle" | "connecting" | "connected" | "reconnecting" | "error";
 
+type TranslateFn = (
+  key: string,
+  fallback?: string,
+  values?: Record<string, string | number | null | undefined>,
+) => string;
+
+function translateAuctionEndMessage(reason: AuctionEndReason, t: TranslateFn): string {
+  if (reason === "max_price") return t("auctions.endReasonMaxPrice");
+  if (reason === "time") return t("auctions.endReasonTime");
+  return t("auctions.ended");
+}
+
+function translateValidateBidError(
+  msg: string | null,
+  t: TranslateFn,
+  pricing: AuctionPricing | null,
+): string | null {
+  if (!msg) return null;
+  if (msg === "أدخل مبلغاً صالحاً") return t("auctions.bidInvalidAmount");
+  if (msg === "انتهى المزاد — وُصل للسقف الأعلى") return t("auctions.endReasonMaxPrice");
+  if (msg === "يجب أن يكون المبلغ أعلى من السعر الحالي") return t("auctions.bidMustExceedCurrent");
+  if (msg === "تجاوزت السقف الأعلى للسعر") return t("auctions.bidExceedsMax");
+  if (msg.startsWith("أقل مزايدة مقبولة:") && pricing) {
+    return t("auctions.bidMinAccepted", "", {
+      amount: `${formatPrice(getMinNextBid(pricing))} ${t("common.currency")}`,
+    });
+  }
+  return msg;
+}
+
+function formatPriceWithCurrency(amount: number, t: TranslateFn): string {
+  return `${formatPrice(amount)} ${t("common.currency")}`;
+}
+
 export default function AuctionJoinPage() {
   const { id } = useParams();
   const { user, requireAuth, isAuthenticated } = useAuth();
+  const { t } = useI18n();
+  const { marketTitle } = useLocalizedLabel();
   const auctionId = Number(id);
   const connectionRef = useRef<HubConnection | null>(null);
   const connectingRef = useRef(false);
@@ -126,29 +166,29 @@ export default function AuctionJoinPage() {
       applyPricing(data, auction);
       reloadBids();
       if (isAuctionEndedPayload(data)) {
-        setStatus("انتهى المزاد");
+        setStatus(t("auctions.ended"));
         setSuccess("");
       } else {
-        setStatus("تم تسجيل مزايدة جديدة على المزاد");
+        setStatus(t("auctions.newBidRecorded"));
         const raw = data as Record<string, unknown> | null;
         if (raw && Number(raw.userId) === user?.userId) {
-          setSuccess("تم تقديم عرضك بنجاح");
+          setSuccess(t("auctions.yourBidSubmitted"));
         }
       }
     },
-    [applyPricing, auction, reloadBids],
+    [applyPricing, auction, reloadBids, t, user?.userId],
   );
 
   const onAuctionUpdated = useCallback(
     (data: unknown) => {
       applyPricing(data, auction);
       if (isAuctionEndedPayload(data)) {
-        setStatus("انتهى المزاد");
+        setStatus(t("auctions.ended"));
         setError("");
         setSuccess("");
       }
     },
-    [applyPricing, auction],
+    [applyPricing, auction, t],
   );
 
   useEffect(() => {
@@ -206,7 +246,7 @@ export default function AuctionJoinPage() {
         await joinAuction(auctionId, user.userId);
       } catch (joinErr) {
         if (isAuctionJoinAccessError(joinErr)) {
-          setError("لا يمكنك الانضمام لهذا المزاد — تحقق من صلاحية حسابك");
+          setError(t("auctions.joinAccessDenied"));
         }
       }
 
@@ -236,10 +276,10 @@ export default function AuctionJoinPage() {
       }
 
       setConnState("connected");
-      setStatus("متصل بالمزاد الحي — يمكنك المزايدة");
+      setStatus(t("auctions.connectedLive"));
     } catch (e) {
       const msg = parseHubError(e);
-      setError(msg || "فشل الاتصال بالمزاد");
+      setError(msg || t("auctions.hubConnectFailed"));
       setConnState("error");
     } finally {
       connectingRef.current = false;
@@ -252,6 +292,7 @@ export default function AuctionJoinPage() {
     onBidPlaced,
     onAuctionUpdated,
     applyPricing,
+    t,
   ]);
 
   useEffect(() => {
@@ -268,15 +309,18 @@ export default function AuctionJoinPage() {
     [auction, pricing],
   );
   const auctionEnded = endState.ended;
+  const endMessage = auctionEnded
+    ? translateAuctionEndMessage(endState.reason, t)
+    : "";
 
   async function placeBid() {
     if (!user?.userId || !pricing) return;
     if (auctionEnded) {
-      setError(endState.message);
+      setError(endMessage);
       return;
     }
     const amount = Number(bidInput);
-    const validationError = validateBid(pricing, amount);
+    const validationError = translateValidateBidError(validateBid(pricing, amount), t, pricing);
     if (validationError) {
       setError(validationError);
       return;
@@ -295,19 +339,19 @@ export default function AuctionJoinPage() {
           BidderUserId: user.userId,
           bidAmount,
         });
-        setSuccess("تم إرسال مزايدتك بنجاح ✓");
-        setStatus("تم تسجيل مزايدتك على المزاد");
+        setSuccess(t("auctions.yourBidSent"));
+        setStatus(t("auctions.yourBidRegistered"));
       } else {
         await placeBidHttp(auctionId, user.userId, bidAmount);
-        setSuccess("تم إرسال مزايدتك بنجاح ✓");
-        setStatus("تم تسجيل مزايدتك (اتصال حي غير متاح)");
+        setSuccess(t("auctions.yourBidSent"));
+        setStatus(t("auctions.yourBidRegisteredOffline"));
       }
       const refreshed = await getAuction(auctionId).catch(() => null);
       if (refreshed) {
         setAuction(refreshed);
         applyPricing(refreshed, refreshed);
         if (getAuctionEndState(refreshed, parseAuctionPricing(refreshed)).ended) {
-          setStatus("انتهى المزاد");
+          setStatus(t("auctions.ended"));
         }
       }
       reloadBids();
@@ -320,15 +364,27 @@ export default function AuctionJoinPage() {
 
   const connected = connState === "connected";
   const connecting = connState === "connecting" || connState === "reconnecting";
+  const fromTitle = auction
+    ? marketTitle(auction as unknown as LocalizableRecord, "auction", auctionId)
+    : "";
   const title =
-    auction?.auctionTitle ||
-    auction?.cropName ||
-    auction?.productNameAr ||
-    `مزاد #${auctionId}`;
+    fromTitle && fromTitle !== String(auctionId)
+      ? fromTitle
+      : t("auctions.auctionFallback", "", { id: auctionId });
+
+  const connStatusLabel =
+    connState === "reconnecting"
+      ? t("auctions.reconnecting")
+      : status ||
+        (connecting
+          ? t("auctions.connecting")
+          : connected
+            ? t("auctions.connected")
+            : t("auctions.disconnected"));
 
   return (
     <>
-      <PageHeader title="مزايدة حية" backHref={`/auctions/${id}`} />
+      <PageHeader title={t("auctions.liveBidding")} backHref={`/auctions/${id}`} />
 
       <AuctionImageGallery auction={auction} title={title} />
 
@@ -339,20 +395,19 @@ export default function AuctionJoinPage() {
             href={`/auctions/${id}`}
             className="mt-1 inline-block text-sm text-emerald-700 hover:underline"
           >
-            تفاصيل المزاد
+            {t("auctions.viewAuctionDetails")}
           </Link>
         </div>
 
         <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_minmax(280px,340px)] lg:items-start">
-          {/* يمين في RTL: المزاد الحالي + المزايدة + مزادات مقترحة */}
           <div className="relative order-2 space-y-6 lg:order-1">
             {auctionEnded && auction && (
-              <AuctionEndedOverlay message={endState.message}>
+              <AuctionEndedOverlay message={endMessage}>
                 <AuctionWinnerChatButton
                   auction={auction}
                   bids={bids}
                   userId={user?.userId}
-                  sublabel="مبروك! فزت بهذا المزاد"
+                  sublabel={t("auctions.winnerCongrats")}
                   variant="primary"
                   className="w-full"
                 />
@@ -373,10 +428,7 @@ export default function AuctionJoinPage() {
               ) : (
                 <WifiOff className="h-4 w-4 shrink-0" />
               )}
-              {connState === "reconnecting"
-                ? "إعادة الاتصال بالمزاد..."
-                : status ||
-                  (connecting ? "جاري الاتصال..." : connected ? "متصل" : "غير متصل")}
+              {connStatusLabel}
             </div>
 
             {!connected && (
@@ -388,33 +440,45 @@ export default function AuctionJoinPage() {
                   disabled={connecting}
                   onClick={() => void connectHub()}
                 >
-                  {connecting ? "جاري الاتصال..." : "إعادة الاتصال"}
+                  {connecting ? t("auctions.connecting") : t("auctions.reconnect")}
                 </Button>
               </div>
             )}
 
             {pricing && (
               <div className="rounded-3xl border border-emerald-100 bg-gradient-to-b from-emerald-50/80 to-white p-6 text-center shadow-sm">
-                <p className="text-sm text-slate-500">السعر الحالي</p>
+                <p className="text-sm text-slate-500">{t("auctions.currentPrice")}</p>
                 <p className="text-4xl font-bold text-emerald-600">
-                  {formatPrice(pricing.currentPriceTotal)} ل.س
+                  {formatPriceWithCurrency(pricing.currentPriceTotal, t)}
                 </p>
                 {pricing.currentPricePerUnit > 0 && (
                   <p className="mt-1 text-sm text-slate-500">
-                    {formatPrice(pricing.currentPricePerUnit)} ل.س / {pricing.unit}
+                    {t("auctions.pricePerUnit", "", {
+                      price: formatPriceWithCurrency(pricing.currentPricePerUnit, t),
+                      unit: pricing.unit,
+                    })}
                   </p>
                 )}
                 {pricing.maxPriceTotal != null && (
                   <p className="mt-2 text-xs font-medium text-amber-700">
-                    السقف الأعلى: {formatPrice(pricing.maxPriceTotal)} ل.س
+                    {t("auctions.maxPriceLabel", "", {
+                      price: formatPriceWithCurrency(pricing.maxPriceTotal, t),
+                    })}
                   </p>
                 )}
                 <p className="mt-2 text-xs text-slate-500">
                   {auctionEnded
-                    ? endState.message
+                    ? endMessage
                     : isNearMaxPrice(pricing)
-                      ? `قرب السقف — يمكن المزايدة بمبالغ صغيرة حتى ${formatPrice(getMaxBidInput(pricing) ?? pricing.maxPriceTotal ?? 0)} ل.س`
-                      : `أقل مزايدة تالية: ${formatPrice(getMinNextBid(pricing))} ل.س`}
+                      ? t("auctions.nearMaxHint", "", {
+                          price: formatPriceWithCurrency(
+                            getMaxBidInput(pricing) ?? pricing.maxPriceTotal ?? 0,
+                            t,
+                          ),
+                        })
+                      : t("auctions.nextMinBid", "", {
+                          price: formatPriceWithCurrency(getMinNextBid(pricing), t),
+                        })}
                 </p>
               </div>
             )}
@@ -424,10 +488,10 @@ export default function AuctionJoinPage() {
             >
               <div className="mb-4 flex items-center gap-2">
                 <Gavel className="h-5 w-5 text-emerald-600" />
-                <h2 className="font-semibold text-slate-900">تقديم مزايدة</h2>
+                <h2 className="font-semibold text-slate-900">{t("auctions.placeBid")}</h2>
               </div>
               <Input
-                label="مبلغ المزايدة"
+                label={t("auctions.bidAmount")}
                 type="number"
                 value={bidInput}
                 onChange={(e) => setBidInput(e.target.value)}
@@ -459,17 +523,15 @@ export default function AuctionJoinPage() {
                 disabled={!pricing || connecting || bidding || auctionEnded}
               >
                 {bidding
-                  ? "جاري إرسال المزايدة..."
+                  ? t("auctions.submittingBid")
                   : success
-                    ? "إرسال مزايدة أخرى"
-                    : "تأكيد المزايدة"}
+                    ? t("auctions.submitAnotherBid")
+                    : t("auctions.confirmBid")}
               </Button>
             </div>
 
             {!connected && connState === "error" && (
-              <p className="text-center text-xs text-slate-500">
-                يمكنك إعادة الاتصال أو استخدام المزايدة عبر الخادم عند فشل الاتصال الحي.
-              </p>
+              <p className="text-center text-xs text-slate-500">{t("auctions.offlineBidHint")}</p>
             )}
 
             <AuctionSuggestionsSidebar
@@ -479,7 +541,6 @@ export default function AuctionJoinPage() {
             />
           </div>
 
-          {/* يسار في RTL: قائمة المزايدين */}
           <AuctionBiddersList bids={bids} className="order-1 lg:order-2" />
         </div>
       </PageContainer>

@@ -11,6 +11,7 @@ import { createFarm } from "@/services/farms";
 import { navigateAfterCreate, parseEntityId } from "@/lib/return-navigation";
 import type { LocationSelection } from "@/types/location";
 import { useAuth } from "@/context/AuthContext";
+import { useI18n } from "@/context/I18nContext";
 
 const emptyLocation = (): LocationSelection => ({
   governorateId: "",
@@ -19,6 +20,7 @@ const emptyLocation = (): LocationSelection => ({
 });
 
 function NewFarmForm() {
+  const { t } = useI18n();
   const { user, requireAuth } = useAuth();
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -45,11 +47,11 @@ function NewFarmForm() {
       return;
     }
     if (!name.trim()) {
-      setError("أدخل اسم المزرعة");
+      setError(t("farms.enterFarmName"));
       return;
     }
     if (!location.governorateId || !location.cityId || !location.areaId) {
-      setError("اختر المحافظة والمدينة والمقاطعة");
+      setError(t("farms.selectLocation"));
       return;
     }
 
@@ -72,7 +74,7 @@ function NewFarmForm() {
 
       navigateAfterCreate(router, returnTo, { farmId: newFarmId }, "/farms");
     } catch (e) {
-      setError(e instanceof Error ? e.message : "فشل إنشاء المزرعة");
+      setError(e instanceof Error ? e.message : t("farms.createFailed"));
     } finally {
       setSaving(false);
     }
@@ -83,23 +85,28 @@ function NewFarmForm() {
 
   return (
     <>
-      <PageHeader title="مزرعة جديدة" backHref={backHref} />
+      <PageHeader title={t("farms.newFarm")} backHref={backHref} />
       <PageContainer narrow className="py-8">
         <div className="space-y-4 rounded-2xl border border-gray-100 bg-white p-6 shadow-sm">
-          <Input label="اسم المزرعة" value={name} onChange={(e) => setName(e.target.value)} required />
+          <Input
+            label={t("farms.farmName")}
+            value={name}
+            onChange={(e) => setName(e.target.value)}
+            required
+          />
 
           <LocationCascadeSelect value={location} onChange={setLocation} />
 
           <Input
-            label="القرية / وصف الموقع (اختياري)"
+            label={t("farms.village")}
             value={village}
             onChange={(e) => setVillage(e.target.value)}
-            placeholder="اسم القرية أو معلم قريب"
+            placeholder={t("farms.villagePlaceholder")}
             disabled={!locationReady}
           />
           <div className="grid grid-cols-2 gap-3">
             <Input
-              label="خط العرض (اختياري)"
+              label={t("farms.latitude")}
               type="number"
               step="any"
               value={latitude}
@@ -107,7 +114,7 @@ function NewFarmForm() {
               placeholder="33.5138"
             />
             <Input
-              label="خط الطول (اختياري)"
+              label={t("farms.longitude")}
               type="number"
               step="any"
               value={longitude}
@@ -115,13 +122,11 @@ function NewFarmForm() {
               placeholder="36.2765"
             />
           </div>
-          <p className="text-xs text-slate-500">
-            يمكنك لاحقاً فتح الموقع على الخريطة من تطبيق الجوال؛ هنا نحفظ الإحداثيات كنص.
-          </p>
+          <p className="text-xs text-slate-500">{t("farms.coordsHint")}</p>
 
           {error && <p className="text-sm text-red-600">{error}</p>}
           <Button fullWidth onClick={submit} disabled={saving || !locationReady}>
-            {saving ? "جاري الحفظ..." : "حفظ المزرعة"}
+            {saving ? t("common.saving") : t("farms.saveFarm")}
           </Button>
         </div>
       </PageContainer>
@@ -130,10 +135,14 @@ function NewFarmForm() {
 }
 
 export default function NewFarmPage() {
+  const { t } = useI18n();
+
   return (
     <Suspense
       fallback={
-        <PageContainer className="py-16 text-center text-slate-500">جاري التحميل...</PageContainer>
+        <PageContainer className="py-16 text-center text-slate-500">
+          {t("common.loadingEllipsis")}
+        </PageContainer>
       }
     >
       <NewFarmForm />

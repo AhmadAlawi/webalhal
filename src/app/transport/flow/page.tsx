@@ -20,8 +20,10 @@ import {
 import type { TransportRequestDetail } from "@/types/transport";
 import { getConversation } from "@/services/chat";
 import { useAuth } from "@/context/AuthContext";
+import { useI18n } from "@/context/I18nContext";
 
 function TransportFlowContent() {
+  const { t } = useI18n();
   const searchParams = useSearchParams();
   const router = useRouter();
   const { requireAuth } = useAuth();
@@ -73,11 +75,11 @@ function TransportFlowContent() {
       const res = await notifyTransportRequest(request.requestId);
       setMsg(
         res.notifiedTransporters != null
-          ? `تم إشعار ${res.notifiedTransporters} ناقل`
-          : res.notifyHint || "تم الإرسال",
+          ? t("transport.flow.notifyCount", undefined, { count: res.notifiedTransporters })
+          : res.notifyHint || t("transport.flow.notifySent"),
       );
     } catch (e) {
-      setError(e instanceof Error ? e.message : "فشل الإشعار");
+      setError(e instanceof Error ? e.message : t("transport.flow.notifyFailed"));
     }
   }
 
@@ -86,9 +88,9 @@ function TransportFlowContent() {
     try {
       await acceptOffer(offerId);
       await loadRequest();
-      setMsg("تم قبول العرض");
+      setMsg(t("transport.flow.offerAccepted"));
     } catch (e) {
-      setError(e instanceof Error ? e.message : "فشل القبول");
+      setError(e instanceof Error ? e.message : t("transport.flow.acceptFailed"));
     } finally {
       setActing(null);
     }
@@ -100,7 +102,7 @@ function TransportFlowContent() {
       await rejectOffer(offerId);
       await loadRequest();
     } catch (e) {
-      setError(e instanceof Error ? e.message : "فشل الرفض");
+      setError(e instanceof Error ? e.message : t("transport.flow.rejectFailed"));
     } finally {
       setActing(null);
     }
@@ -109,7 +111,7 @@ function TransportFlowContent() {
   if (!deal) {
     return (
       <PageContainer className="py-16 text-center text-slate-500">
-        افتح هذه الصفحة من محادثة صفقة (مزاد / مناقصة / بيع مباشر)
+        {t("transport.flow.openFromChat")}
       </PageContainer>
     );
   }
@@ -117,7 +119,7 @@ function TransportFlowContent() {
   return (
     <>
       <PageHeader
-        title="إدارة نقل الصفقة"
+        title={t("transport.flow.title")}
         backHref={conversationId ? `/chat/${conversationId}` : "/chat"}
       />
 
@@ -127,7 +129,9 @@ function TransportFlowContent() {
         {request && (
           <article className="mb-8 rounded-2xl border bg-white p-6 shadow-sm">
             <div className="mb-3 flex items-center gap-2">
-              <h2 className="font-semibold">طلب النقل #{request.requestId}</h2>
+              <h2 className="font-semibold">
+                {t("transport.flow.requestTitle", undefined, { id: request.requestId })}
+              </h2>
               <StatusBadge status={request.status} />
             </div>
             <p className="text-sm text-slate-600">
@@ -135,21 +139,21 @@ function TransportFlowContent() {
             </p>
             {["open", "negotiating"].includes(request.status?.toLowerCase() ?? "") && (
               <Button type="button" variant="outline" size="sm" className="mt-4" onClick={handleNotify}>
-                إعادة إشعار الناقلين
+                {t("transport.flow.notifyTransporters")}
               </Button>
             )}
             <Link
               href={`/transport/requests/${request.requestId}`}
               className="mt-3 block text-sm font-medium text-emerald-600 hover:underline"
             >
-              تفاصيل كاملة للطلب
+              {t("transport.flow.fullDetails")}
             </Link>
           </article>
         )}
 
         {offers.length > 0 && (
           <section>
-            <h3 className="mb-4 font-semibold">عروض الناقلين</h3>
+            <h3 className="mb-4 font-semibold">{t("transport.flow.transporterOffers")}</h3>
             <ul className="space-y-3">
               {offers.map((o) => (
                 <li
@@ -157,14 +161,19 @@ function TransportFlowContent() {
                   className="flex flex-wrap items-center justify-between gap-3 rounded-xl border bg-white p-4"
                 >
                   <div>
-                    <p className="font-medium">{o.transporterName || `ناقل #${o.transportProviderId}`}</p>
+                    <p className="font-medium">
+                      {o.transporterName ||
+                        t("transport.requestDetail.transporter", undefined, {
+                          id: o.transportProviderId,
+                        })}
+                    </p>
                     <p className="font-bold text-emerald-600">{formatCurrency(o.offeredPrice ?? 0)}</p>
                     <StatusBadge status={o.status} />
                   </div>
                   {o.status === "pending" && (
                     <div className="flex gap-2">
                       <Button size="sm" disabled={acting != null} onClick={() => handleAccept(o.offerId)}>
-                        قبول
+                        {t("transport.requestDetail.accept")}
                       </Button>
                       <Button
                         size="sm"
@@ -172,7 +181,7 @@ function TransportFlowContent() {
                         disabled={acting != null}
                         onClick={() => handleReject(o.offerId)}
                       >
-                        رفض
+                        {t("transport.requestDetail.reject")}
                       </Button>
                     </div>
                   )}
@@ -191,7 +200,7 @@ function TransportFlowContent() {
             className="mt-8"
             onClick={() => router.push(`/chat/${conversationId}`)}
           >
-            العودة للمحادثة
+            {t("transport.flow.backToChat")}
           </Button>
         )}
       </PageContainer>
@@ -200,10 +209,14 @@ function TransportFlowContent() {
 }
 
 export default function TransportFlowPage() {
+  const { t } = useI18n();
+
   return (
     <Suspense
       fallback={
-        <PageContainer className="py-16 text-center text-slate-500">جاري التحميل...</PageContainer>
+        <PageContainer className="py-16 text-center text-slate-500">
+          {t("common.loadingEllipsis")}
+        </PageContainer>
       }
     >
       <TransportFlowContent />

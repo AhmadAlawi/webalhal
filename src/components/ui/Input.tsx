@@ -7,8 +7,9 @@ interface InputProps extends InputHTMLAttributes<HTMLInputElement> {
 }
 
 export const Input = forwardRef<HTMLInputElement, InputProps>(
-  ({ className, label, error, id, ...props }, ref) => {
+  ({ className, label, error, id, placeholder, ...props }, ref) => {
     const inputId = id ?? label;
+
     return (
       <div className="w-full">
         {label && (
@@ -25,6 +26,7 @@ export const Input = forwardRef<HTMLInputElement, InputProps>(
             error && "border-red-400",
             className,
           )}
+          placeholder={placeholder}
           {...props}
         />
         {error && <p className="mt-1 text-sm text-red-500">{error}</p>}

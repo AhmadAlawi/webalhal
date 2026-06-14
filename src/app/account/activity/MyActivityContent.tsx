@@ -4,14 +4,16 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import { StatusBadge } from "@/components/ui/StatusBadge";
-import { formatPrice } from "@/lib/auctionPricing";
 import { getAuctionLocation, getListingLocation, getTenderLocation } from "@/lib/marketplace";
+import { formatCurrencyLocalized, translateStatus } from "@/lib/status-labels";
 import { getAuctionsCreatedByUser } from "@/services/auctions";
 import { getTendersCreatedByUser } from "@/services/tenders";
 import { getMyDirectListings, getBuyerOrders, getSellerOrders } from "@/services/direct";
-import { translateStatus } from "@/lib/status-labels";
 import { getOffersByUser } from "@/services/offers";
 import { useAuth } from "@/context/AuthContext";
+import { useI18n } from "@/context/I18nContext";
+import { useLocalizedLabel } from "@/hooks/useLocalizedLabel";
+import type { LocalizableRecord } from "@/lib/localized-value";
 import type { Auction, Tender } from "@/types";
 import type { DirectOrder } from "@/services/direct";
 import type { UserOffer } from "@/services/offers";
@@ -19,21 +21,37 @@ import type { MarketplaceListing } from "@/types";
 
 type TabId = "tenders" | "auctions" | "listings" | "buyerOrders" | "sellerOrders" | "offers";
 
-const TABS: { id: TabId; label: string }[] = [
-  { id: "tenders", label: "مناقصاتي" },
-  { id: "auctions", label: "مزاداتي" },
-  { id: "listings", label: "عروض البيع" },
-  { id: "buyerOrders", label: "طلبات شراء" },
-  { id: "sellerOrders", label: "طلبات بيع" },
-  { id: "offers", label: "عروضي على مناقصات" },
+const TABS: { id: TabId; labelKey: string }[] = [
+  { id: "tenders", labelKey: "account.activityTabs.tenders" },
+  { id: "auctions", labelKey: "account.activityTabs.auctions" },
+  { id: "listings", labelKey: "account.activityTabs.listings" },
+  { id: "buyerOrders", labelKey: "account.activityTabs.buyerOrders" },
+  { id: "sellerOrders", labelKey: "account.activityTabs.sellerOrders" },
+  { id: "offers", labelKey: "account.activityTabs.offers" },
 ];
+
+function displayTitle(
+  marketTitle: ReturnType<typeof useLocalizedLabel>["marketTitle"],
+  item: Auction | Tender | MarketplaceListing,
+  kind: "auction" | "tender" | "direct",
+  id: number | string,
+  fallbackKey: string,
+  t: ReturnType<typeof useI18n>["t"],
+) {
+  const fromHook = marketTitle(item as unknown as LocalizableRecord, kind);
+  const idStr = String(id);
+  if (fromHook && fromHook !== idStr) return fromHook;
+  return t(fallbackKey, "", { id });
+}
 
 export function MyActivityContent() {
   const searchParams = useSearchParams();
   const { user, requireAuth } = useAuth();
+  const { t, language } = useI18n();
+  const { marketTitle } = useLocalizedLabel();
   const initial = (searchParams.get("tab") as TabId) || "tenders";
   const [tab, setTab] = useState<TabId>(
-    TABS.some((t) => t.id === initial) ? initial : "tenders",
+    TABS.some((item) => item.id === initial) ? initial : "tenders",
   );
   const [loading, setLoading] = useState(true);
   const [tenders, setTenders] = useState<Tender[]>([]);
@@ -55,10 +73,10 @@ export function MyActivityContent() {
       getSellerOrders(uid).catch(() => []),
       getOffersByUser(uid).catch(() => []),
     ])
-      .then(([t, a, l, bo, so, of]) => {
-        setTenders(t);
-        setAuctions(a);
-        setListings(l);
+      .then(([tenderItems, auctionItems, listingItems, bo, so, of]) => {
+        setTenders(tenderItems);
+        setAuctions(auctionItems);
+        setListings(listingItems);
         setBuyerOrders(bo);
         setSellerOrders(so);
         setOffers(of);
@@ -77,16 +95,16 @@ export function MyActivityContent() {
   return (
     <>
       <nav className="mb-6 flex flex-wrap gap-2">
-        {TABS.map((t) => (
+        {TABS.map((item) => (
           <button
-            key={t.id}
+            key={item.id}
             type="button"
-            onClick={() => setTab(t.id)}
+            onClick={() => setTab(item.id)}
             className={`rounded-full px-4 py-2 text-sm font-medium transition-colors ${
-              tab === t.id ? "bg-emerald-600 text-white" : "border bg-white text-slate-700"
+              tab === item.id ? "bg-emerald-600 text-white" : "border bg-white text-slate-700"
             }`}
           >
-            {t.label}
+            {t(item.labelKey)}
           </button>
         ))}
       </nav>
@@ -94,147 +112,200 @@ export function MyActivityContent() {
       <ul className="space-y-3">
         {tab === "tenders" &&
           (tenders.length ? (
-            tenders.map((t) => (
-              <li key={t.tenderId}>
+            tenders.map((tenderItem) => (
+              <li key={tenderItem.tenderId}>
                 <Link
-                  href={`/tenders/${t.tenderId}`}
+                  href={`/tenders/${tenderItem.tenderId}`}
                   className="flex flex-col gap-1 rounded-xl border bg-white px-5 py-4 hover:border-emerald-200 sm:flex-row sm:items-center sm:justify-between"
                 >
                   <div>
-                    <span className="font-medium">{t.title || t.cropName}</span>
+                    <span className="font-medium">
+                      {displayTitle(
+                        marketTitle,
+                        tenderItem,
+                        "tender",
+                        tenderItem.tenderId,
+                        "market.tenderFallback",
+                        t,
+                      )}
+                    </span>
                     <p className="mt-1 text-xs text-slate-500">
                       {[
-                        t.quantity != null ? `${t.quantity} ${t.unit || ""}` : null,
-                        t.maxBudget != null ? `ميزانية ${formatPrice(t.maxBudget)} ل.س` : null,
-                        getTenderLocation(t),
+                        tenderItem.quantity != null
+                          ? `${tenderItem.quantity} ${tenderItem.unit || ""}`
+                          : null,
+                        tenderItem.maxBudget != null
+                          ? t("account.budgetLabel", "", {
+                              amount: formatCurrencyLocalized(tenderItem.maxBudget, language),
+                            })
+                          : null,
+                        getTenderLocation(tenderItem),
                       ]
                         .filter(Boolean)
                         .join(" · ")}
                     </p>
                   </div>
-                  <StatusBadge status={t.status} />
+                  <StatusBadge status={tenderItem.status} />
                 </Link>
               </li>
             ))
           ) : (
-            <Empty hint="لم تنشئ مناقصات" href="/tenders/create" label="إنشاء مناقصة" />
+            <Empty hint={t("account.emptyTenders")} href="/tenders/create" label={t("account.createTender")} />
           ))}
 
         {tab === "auctions" &&
           (auctions.length ? (
-            auctions.map((a) => (
-              <li key={a.auctionId}>
+            auctions.map((auctionItem) => (
+              <li key={auctionItem.auctionId}>
                 <Link
-                  href={`/auctions/${a.auctionId}`}
+                  href={`/auctions/${auctionItem.auctionId}`}
                   className="flex flex-col gap-1 rounded-xl border bg-white px-5 py-4 hover:border-emerald-200 sm:flex-row sm:items-center sm:justify-between"
                 >
                   <div>
-                    <span className="font-medium">{a.auctionTitle || a.cropName}</span>
+                    <span className="font-medium">
+                      {displayTitle(
+                        marketTitle,
+                        auctionItem,
+                        "auction",
+                        auctionItem.auctionId,
+                        "market.auctionFallback",
+                        t,
+                      )}
+                    </span>
                     <p className="mt-1 text-xs text-slate-500">
                       {[
-                        a.cropQuantity != null ? `${a.cropQuantity} ${a.cropUnit || ""}` : null,
-                        a.currentPrice != null ? `السعر ${formatPrice(a.currentPrice)} ل.س` : null,
-                        getAuctionLocation(a),
+                        auctionItem.cropQuantity != null
+                          ? `${auctionItem.cropQuantity} ${auctionItem.cropUnit || ""}`
+                          : null,
+                        auctionItem.currentPrice != null
+                          ? t("account.priceLabel", "", {
+                              amount: formatCurrencyLocalized(auctionItem.currentPrice, language),
+                            })
+                          : null,
+                        getAuctionLocation(auctionItem),
                       ]
                         .filter(Boolean)
                         .join(" · ")}
                     </p>
                   </div>
-                  <StatusBadge status={a.status} />
+                  <StatusBadge status={auctionItem.status} />
                 </Link>
               </li>
             ))
           ) : (
-            <Empty hint="لم تنشئ مزادات" href="/auctions/create" label="إنشاء مزاد" />
+            <Empty hint={t("account.emptyAuctions")} href="/auctions/create" label={t("account.createAuction")} />
           ))}
 
         {tab === "listings" &&
           (listings.length ? (
-            listings.map((l) => (
-              <li key={l.listingId}>
+            listings.map((listingItem) => (
+              <li key={listingItem.listingId}>
                 <Link
-                  href={`/direct/${l.listingId}/buy`}
+                  href={`/direct/${listingItem.listingId}/buy`}
                   className="flex flex-col gap-1 rounded-xl border bg-white px-5 py-4 hover:border-emerald-200 sm:flex-row sm:items-center sm:justify-between"
                 >
                   <div>
-                    <span className="font-medium">{l.title || l.cropName}</span>
+                    <span className="font-medium">
+                      {displayTitle(
+                        marketTitle,
+                        listingItem,
+                        "direct",
+                        listingItem.listingId,
+                        "market.directFallback",
+                        t,
+                      )}
+                    </span>
                     <p className="mt-1 text-xs text-slate-500">
                       {[
-                        l.availableQty != null ? `متاح ${l.availableQty} ${l.unit || ""}` : null,
-                        getListingLocation(l),
-                        translateStatus(l.status),
+                        listingItem.availableQty != null
+                          ? t("account.availableLabel", "", {
+                              qty: listingItem.availableQty,
+                              unit: listingItem.unit || "",
+                            })
+                          : null,
+                        getListingLocation(listingItem),
+                        translateStatus(listingItem.status, t),
                       ]
                         .filter(Boolean)
                         .join(" · ")}
                     </p>
                   </div>
                   <span className="font-bold text-emerald-600">
-                    {formatPrice(l.unitPrice ?? 0)} ل.س / وحدة
+                    {t("account.unitPriceLabel", "", {
+                      price: formatCurrencyLocalized(listingItem.unitPrice ?? 0, language),
+                    })}
                   </span>
                 </Link>
               </li>
             ))
           ) : (
-            <Empty hint="لا عروض بيع" href="/direct/new" label="عرض جديد" />
+            <Empty hint={t("account.emptyListings")} href="/direct/new" label={t("account.newListing")} />
           ))}
 
         {tab === "buyerOrders" &&
           (buyerOrders.length ? (
-            buyerOrders.map((o) => (
-              <li key={o.orderId ?? o.id}>
+            buyerOrders.map((orderItem) => (
+              <li key={orderItem.orderId ?? orderItem.id}>
                 <Link
-                  href={`/orders/direct/${o.orderId ?? o.id}`}
+                  href={`/orders/direct/${orderItem.orderId ?? orderItem.id}`}
                   className="flex items-center justify-between rounded-xl border bg-white px-5 py-4 hover:border-emerald-200"
                 >
                   <span className="font-medium">
-                    {o.listingTitle || o.cropName || `طلب #${o.orderId}`}
+                    {orderItem.listingTitle ||
+                      orderItem.cropName ||
+                      t("account.orderFallback", "", { id: orderItem.orderId ?? orderItem.id ?? "" })}
                   </span>
-                  <StatusBadge status={o.status} />
+                  <StatusBadge status={orderItem.status} />
                 </Link>
               </li>
             ))
           ) : (
-            <li className="py-12 text-center text-slate-500">لا طلبات شراء</li>
+            <li className="py-12 text-center text-slate-500">{t("account.emptyBuyerOrders")}</li>
           ))}
 
         {tab === "sellerOrders" &&
           (sellerOrders.length ? (
-            sellerOrders.map((o) => (
-              <li key={o.orderId ?? o.id}>
+            sellerOrders.map((orderItem) => (
+              <li key={orderItem.orderId ?? orderItem.id}>
                 <Link
-                  href={`/orders/direct/${o.orderId ?? o.id}`}
+                  href={`/orders/direct/${orderItem.orderId ?? orderItem.id}`}
                   className="flex items-center justify-between rounded-xl border bg-white px-5 py-4 hover:border-emerald-200"
                 >
                   <span className="font-medium">
-                    {o.listingTitle || o.cropName || `طلب #${o.orderId}`}
+                    {orderItem.listingTitle ||
+                      orderItem.cropName ||
+                      t("account.orderFallback", "", { id: orderItem.orderId ?? orderItem.id ?? "" })}
                   </span>
-                  <StatusBadge status={o.status} />
+                  <StatusBadge status={orderItem.status} />
                 </Link>
               </li>
             ))
           ) : (
-            <li className="py-12 text-center text-slate-500">لا طلبات بيع</li>
+            <li className="py-12 text-center text-slate-500">{t("account.emptySellerOrders")}</li>
           ))}
 
         {tab === "offers" &&
           (offers.length ? (
-            offers.map((o, i) => (
-              <li key={o.offerId ?? i}>
+            offers.map((offerItem, i) => (
+              <li key={offerItem.offerId ?? i}>
                 <Link
-                  href={o.tenderId ? `/tenders/${o.tenderId}` : "/tenders"}
+                  href={offerItem.tenderId ? `/tenders/${offerItem.tenderId}` : "/tenders"}
                   className="flex items-center justify-between rounded-xl border bg-white px-5 py-4 hover:border-emerald-200"
                 >
                   <span className="font-medium">
-                    {o.tenderTitle || o.cropName || `عرض #${o.offerId}`}
+                    {offerItem.tenderTitle ||
+                      offerItem.cropName ||
+                      t("account.offerFallback", "", { id: offerItem.offerId ?? i })}
                   </span>
                   <span className="text-sm">
-                    {formatPrice(o.price ?? 0)} ل.س · <StatusBadge status={o.status} />
+                    {formatCurrencyLocalized(offerItem.price ?? 0, language)} ·{" "}
+                    <StatusBadge status={offerItem.status} />
                   </span>
                 </Link>
               </li>
             ))
           ) : (
-            <li className="py-12 text-center text-slate-500">لا عروض مقدّمة</li>
+            <li className="py-12 text-center text-slate-500">{t("account.emptyOffers")}</li>
           ))}
       </ul>
     </>

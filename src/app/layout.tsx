@@ -11,13 +11,35 @@ const cairo = Cairo({
 });
 
 export const metadata: Metadata = {
-  title: "رزق — سوق الهال",
-  description: "رزق — سوق الهال: منصة سوق زراعي سوري — مزادات، مناقصات، وبيع مباشر",
+  title: "Rizq — Souq Al Hal",
+  description: "Rizq — Souq Al Hal: Syrian agricultural marketplace — auctions, tenders, and direct sales",
   icons: {
     icon: "/rizq-logo.png",
     apple: "/rizq-logo.png",
   },
 };
+
+const themeInitScript = `
+(function() {
+  try {
+    var mode = window.localStorage.getItem("rizq-web-theme-mode") || "system";
+    var systemTheme = window.matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light";
+    var theme = mode === "dark" || mode === "light" ? mode : systemTheme;
+    var language = window.localStorage.getItem("rizq-web-language");
+    if (language !== "ar" && language !== "en") {
+      var browserLang = (navigator.language || "").toLowerCase();
+      language = browserLang.indexOf("ar") === 0 ? "ar" : "en";
+    }
+    var direction = language === "ar" ? "rtl" : "ltr";
+    document.documentElement.dataset.theme = theme;
+    document.documentElement.dataset.locale = language;
+    document.documentElement.lang = language;
+    document.documentElement.dir = direction;
+    document.body && (document.body.dir = direction);
+    document.documentElement.style.colorScheme = theme;
+  } catch (error) {}
+})();
+`;
 
 export default function RootLayout({
   children,
@@ -26,15 +48,18 @@ export default function RootLayout({
 }>) {
   return (
     <html
-      lang="ar"
-      dir="rtl"
+      lang="en"
+      dir="ltr"
       data-scroll-behavior="smooth"
       suppressHydrationWarning
       className={`${cairo.variable} h-full`}
     >
+      <head>
+        <script dangerouslySetInnerHTML={{ __html: themeInitScript }} />
+      </head>
       <body
         suppressHydrationWarning
-        className="min-h-full bg-slate-50 text-slate-900 antialiased"
+        className="min-h-full bg-background text-foreground antialiased"
       >
         <Providers>
           <AppShell>{children}</AppShell>

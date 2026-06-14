@@ -151,6 +151,7 @@ export interface MarketplaceBrowseData {
 export interface Category {
   categoryId: number;
   nameAr?: string;
+  nameEn?: string;
   name?: string;
   iconUrl?: string;
 }

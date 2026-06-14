@@ -12,6 +12,8 @@ import {
   type MarketListFilterState,
 } from "@/lib/market-list-filters";
 import { useDebounce } from "@/hooks/useDebounce";
+import { useLocalizedLabel } from "@/hooks/useLocalizedLabel";
+import type { LocalizableRecord } from "@/lib/localized-value";
 import {
   getAuctionDisplayPrice,
   getAuctionLocation,
@@ -19,11 +21,26 @@ import {
   getTenderLocation,
 } from "@/lib/marketplace";
 import { translateStatus } from "@/lib/status-labels";
+import { useI18n } from "@/context/I18nContext";
 import type { MarketTab } from "./MarketTabs";
 import type { Auction, MarketplaceListing, Tender } from "@/types";
 
 /** browse = الصفحة الرئيسية (marketplace/browse) | open = صفحات القسم مع فلترة API */
 export type ListingsSource = "browse" | "open";
+
+function displayTitle(
+  marketTitle: ReturnType<typeof useLocalizedLabel>["marketTitle"],
+  item: Auction | Tender | MarketplaceListing,
+  kind: "auction" | "tender" | "direct",
+  id: number,
+  fallbackKey: string,
+  t: ReturnType<typeof useI18n>["t"],
+) {
+  const fromHook = marketTitle(item as unknown as LocalizableRecord, kind);
+  const idStr = String(id);
+  if (fromHook && fromHook !== idStr) return fromHook;
+  return t(fallbackKey, "", { id });
+}
 
 export function MarketListings({
   tab,
@@ -38,6 +55,8 @@ export function MarketListings({
   listFilters?: MarketListFilterState;
   source?: ListingsSource;
 }) {
+  const { t } = useI18n();
+  const { marketTitle } = useLocalizedLabel();
   const debouncedSearch = useDebounce(searchQuery, 450);
   const [auctions, setAuctions] = useState<Auction[]>([]);
   const [tenders, setTenders] = useState<Tender[]>([]);
@@ -91,7 +110,7 @@ export function MarketListings({
     load()
       .catch(() => {
         if (ac.signal.aborted) return;
-        setError("تعذّر تحميل البيانات. تحقق من الاتصال.");
+        setError(t("market.loadError"));
         setAuctions([]);
         setTenders([]);
         setDirect([]);
@@ -101,7 +120,7 @@ export function MarketListings({
       });
 
     return () => ac.abort();
-  }, [tab, debouncedSearch, categoryId, listFilters, source]);
+  }, [tab, debouncedSearch, categoryId, listFilters, source, t]);
 
   const items =
     tab === "auctions" ? auctions : tab === "tenders" ? tenders : direct;
@@ -121,8 +140,8 @@ export function MarketListings({
   if (!items.length) {
     return (
       <div className="card py-16 text-center">
-        <p className="text-lg font-medium text-slate-700">لا توجد عروض حالياً</p>
-        <p className="mt-2 text-sm text-slate-500">جرّب تغيير البحث أو التصنيف</p>
+        <p className="text-lg font-medium text-slate-700">{t("market.noListings")}</p>
+        <p className="mt-2 text-sm text-slate-500">{t("market.noListingsHint")}</p>
       </div>
     );
   }
@@ -134,37 +153,37 @@ export function MarketListings({
           <ListingCard
             key={a.auctionId}
             href={`/auctions/${a.auctionId}`}
-            title={a.auctionTitle || a.productNameAr || a.cropName || `مزاد #${a.auctionId}`}
+            title={displayTitle(marketTitle, a, "auction", a.auctionId, "market.auctionFallback", t)}
             imageUrl={getAuctionMainImage(a)}
             price={getAuctionDisplayPrice(a)}
-            priceLabel="السعر الحالي"
+            priceLabel={t("market.currentPrice")}
             location={getAuctionLocation(a)}
             endTime={a.endTime}
-            badge="مزاد"
+            badge={t("market.badgeAuction")}
             meta={[
               a.cropQuantity != null ? `${a.cropQuantity} ${a.cropUnit || a.unit || ""}` : null,
-              translateStatus(a.status),
+              translateStatus(a.status, t),
             ]
               .filter(Boolean)
               .join(" · ")}
           />
         ))}
       {tab === "tenders" &&
-        tenders.map((t) => (
+        tenders.map((tender) => (
           <ListingCard
-            key={t.tenderId}
-            href={`/tenders/${t.tenderId}`}
-            title={t.title || t.productNameAr || t.cropName || `مناقصة #${t.tenderId}`}
-            imageUrl={getTenderMainImage(t)}
-            price={t.maxBudget}
-            priceLabel="الميزانية"
-            location={getTenderLocation(t)}
-            endTime={t.endTime}
-            badge="مناقصة"
+            key={tender.tenderId}
+            href={`/tenders/${tender.tenderId}`}
+            title={displayTitle(marketTitle, tender, "tender", tender.tenderId, "market.tenderFallback", t)}
+            imageUrl={getTenderMainImage(tender)}
+            price={tender.maxBudget}
+            priceLabel={t("market.budget")}
+            location={getTenderLocation(tender)}
+            endTime={tender.endTime}
+            badge={t("market.badgeTender")}
             meta={[
-              t.quantity != null ? `${t.quantity} ${t.unit || ""}` : null,
-              t.deliveryLocation,
-              translateStatus(t.status),
+              tender.quantity != null ? `${tender.quantity} ${tender.unit || ""}` : null,
+              tender.deliveryLocation,
+              translateStatus(tender.status, t),
             ]
               .filter(Boolean)
               .join(" · ")}
@@ -175,16 +194,20 @@ export function MarketListings({
           <ListingCard
             key={l.listingId}
             href={`/direct/${l.listingId}/buy`}
-            title={l.title || l.productNameAr || l.cropName || `عرض #${l.listingId}`}
+            title={displayTitle(marketTitle, l, "direct", l.listingId, "market.directFallback", t)}
             imageUrl={getDirectMainImage(l)}
             price={l.unitPrice}
-            priceLabel="سعر الوحدة"
+            priceLabel={t("market.unitPrice")}
             location={getListingLocation(l)}
-            badge="بيع مباشر"
+            badge={t("market.badgeDirect")}
             meta={[
-              l.availableQty != null ? `متاح: ${l.availableQty} ${l.unit || ""}` : null,
-              l.minOrderQty != null ? `أقل طلب: ${l.minOrderQty}` : null,
-              translateStatus(l.status),
+              l.availableQty != null
+                ? t("market.availableQty", "", { qty: l.availableQty, unit: l.unit || "" })
+                : null,
+              l.minOrderQty != null
+                ? t("market.minOrderQty", "", { qty: l.minOrderQty })
+                : null,
+              translateStatus(l.status, t),
             ]
               .filter(Boolean)
               .join(" · ")}

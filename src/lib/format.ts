@@ -1,11 +1,18 @@
-export function formatNumber(n?: number | null): string {
-  if (n == null || Number.isNaN(n)) return "—";
-  return new Intl.NumberFormat("ar-SY", { maximumFractionDigits: 0 }).format(n);
+import type { AppLanguage } from "@/context/I18nContext";
+
+function localeFor(language: AppLanguage = "ar"): string {
+  return language === "ar" ? "ar-SY" : "en-US";
 }
 
-export function formatCurrency(n?: number | null): string {
+export function formatNumber(n?: number | null, language: AppLanguage = "ar"): string {
   if (n == null || Number.isNaN(n)) return "—";
-  return `${formatNumber(n)} ل.س`;
+  return new Intl.NumberFormat(localeFor(language), { maximumFractionDigits: 0 }).format(n);
+}
+
+export function formatCurrency(n?: number | null, language: AppLanguage = "ar"): string {
+  if (n == null || Number.isNaN(n)) return "—";
+  const suffix = language === "ar" ? "ل.س" : "SYP";
+  return `${formatNumber(n, language)} ${suffix}`;
 }
 
 export function formatPercent(n?: number | null): string {

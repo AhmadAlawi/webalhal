@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import Image from "next/image";
+import { useI18n } from "@/context/I18nContext";
 import { getAuctionImages } from "@/lib/media";
 
 type AuctionImageSource = Parameters<typeof getAuctionImages>[0];
@@ -15,16 +16,18 @@ export function AuctionImageGallery({
   title?: string;
   className?: string;
 }) {
+  const { t } = useI18n();
   const images = auction ? getAuctionImages(auction) : ["/placeholder-crop.svg"];
   const [active, setActive] = useState(0);
   const safeIndex = active < images.length ? active : 0;
+  const altText = title ?? t("auctions.imageAlt");
 
   return (
     <section className={`w-full bg-slate-900 ${className}`}>
       <div className="relative aspect-[16/9] w-full min-h-[220px] sm:min-h-[280px] lg:min-h-[360px] lg:max-h-[50vh]">
         <Image
           src={images[safeIndex]}
-          alt={title ?? "صورة المزاد"}
+          alt={altText}
           fill
           className="object-cover"
           unoptimized
@@ -37,7 +40,7 @@ export function AuctionImageGallery({
               <button
                 key={i}
                 type="button"
-                aria-label={`صورة ${i + 1}`}
+                aria-label={t("auctions.imageAria", "", { index: i + 1 })}
                 className={`h-2 w-2 rounded-full transition ${
                   i === safeIndex ? "bg-white" : "bg-white/40 hover:bg-white/70"
                 }`}

@@ -8,6 +8,7 @@ import {
   submitReport,
   type ReportType,
 } from "@/services/reporting";
+import { useI18n } from "@/context/I18nContext";
 
 export function ReportConversationDialog({
   conversationId,
@@ -20,6 +21,7 @@ export function ReportConversationDialog({
   reportedUserId: number;
   onClose: () => void;
 }) {
+  const { t } = useI18n();
   const [reportType, setReportType] = useState<ReportType>("Other");
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
@@ -30,7 +32,7 @@ export function ReportConversationDialog({
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     if (!title.trim() || !description.trim()) {
-      setError("أدخل العنوان والوصف");
+      setError(t("chat.reportDialog.enterTitleDescription"));
       return;
     }
     setLoading(true);
@@ -46,7 +48,7 @@ export function ReportConversationDialog({
       });
       setDone(true);
     } catch (err) {
-      setError(err instanceof Error ? err.message : "فشل إرسال البلاغ");
+      setError(err instanceof Error ? err.message : t("chat.reportDialog.submitFailed"));
     } finally {
       setLoading(false);
     }
@@ -55,18 +57,18 @@ export function ReportConversationDialog({
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
       <div className="w-full max-w-md rounded-2xl bg-white p-6 shadow-xl">
-        <h3 className="mb-4 text-lg font-bold text-slate-900">الإبلاغ عن المحادثة</h3>
+        <h3 className="mb-4 text-lg font-bold text-slate-900">{t("chat.reportDialog.title")}</h3>
         {done ? (
           <>
-            <p className="text-emerald-700">تم إرسال البلاغ. سيتم مراجعته من الفريق.</p>
+            <p className="text-emerald-700">{t("chat.reportDialog.submitted")}</p>
             <Button fullWidth className="mt-4" onClick={onClose}>
-              إغلاق
+              {t("common.close")}
             </Button>
           </>
         ) : (
           <form onSubmit={handleSubmit} className="space-y-4">
             <label className="block text-sm">
-              <span className="font-medium text-slate-600">نوع البلاغ</span>
+              <span className="font-medium text-slate-600">{t("chat.reportDialog.reportType")}</span>
               <select
                 className="mt-1 w-full rounded-lg border border-gray-200 px-3 py-2"
                 value={reportType}
@@ -74,14 +76,18 @@ export function ReportConversationDialog({
               >
                 {REPORT_TYPE_OPTIONS.map((o) => (
                   <option key={o.value} value={o.value}>
-                    {o.label}
+                    {t(`chat.reportTypes.${o.value}`, o.label)}
                   </option>
                 ))}
               </select>
             </label>
-            <Input label="عنوان مختصر" value={title} onChange={(e) => setTitle(e.target.value)} />
+            <Input
+              label={t("chat.reportDialog.shortTitle")}
+              value={title}
+              onChange={(e) => setTitle(e.target.value)}
+            />
             <label className="block text-sm">
-              <span className="font-medium text-slate-600">التفاصيل</span>
+              <span className="font-medium text-slate-600">{t("chat.reportDialog.details")}</span>
               <textarea
                 className="mt-1 w-full rounded-lg border border-gray-200 px-3 py-2"
                 rows={4}
@@ -92,10 +98,10 @@ export function ReportConversationDialog({
             {error && <p className="text-sm text-red-600">{error}</p>}
             <div className="flex gap-2">
               <Button type="button" variant="outline" className="flex-1" onClick={onClose}>
-                إلغاء
+                {t("common.cancel")}
               </Button>
               <Button type="submit" className="flex-1" disabled={loading}>
-                {loading ? "جاري الإرسال..." : "إرسال البلاغ"}
+                {loading ? t("common.sending") : t("chat.reportDialog.submitReport")}
               </Button>
             </div>
           </form>

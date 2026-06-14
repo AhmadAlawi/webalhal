@@ -4,13 +4,21 @@ import Image from "next/image";
 import Link from "next/link";
 import { ArrowLeft } from "lucide-react";
 import { formatPrice } from "@/lib/auctionPricing";
+import { useI18n } from "@/context/I18nContext";
+import { useLocalizedLabel } from "@/hooks/useLocalizedLabel";
 import { getAuctionMainImage } from "@/lib/media";
 import { getAuctionDisplayPrice } from "@/lib/marketplace";
+import type { LocalizableRecord } from "@/lib/localized-value";
 import type { Auction } from "@/types";
 
 function SuggestionItem({ auction }: { auction: Auction }) {
+  const { t } = useI18n();
+  const { marketTitle } = useLocalizedLabel();
+  const fromTitle = marketTitle(auction as unknown as LocalizableRecord, "auction", auction.auctionId);
   const title =
-    auction.auctionTitle || auction.cropName || auction.productNameAr || `مزاد #${auction.auctionId}`;
+    fromTitle && fromTitle !== String(auction.auctionId)
+      ? fromTitle
+      : t("auctions.auctionFallback", "", { id: auction.auctionId });
   const price = getAuctionDisplayPrice(auction);
 
   return (
@@ -31,7 +39,9 @@ function SuggestionItem({ auction }: { auction: Auction }) {
       <div className="min-w-0 flex-1">
         <p className="line-clamp-2 text-sm font-semibold text-slate-900">{title}</p>
         {price != null && (
-          <p className="mt-0.5 text-xs font-bold text-emerald-600">{formatPrice(price)} ل.س</p>
+          <p className="mt-0.5 text-xs font-bold text-emerald-600">
+            {formatPrice(price)} {t("common.currency")}
+          </p>
         )}
       </div>
     </Link>
@@ -47,12 +57,13 @@ export function AuctionSuggestionsSidebar({
   loading?: boolean;
   currentAuctionId?: number;
 }) {
+  const { t } = useI18n();
   const list = auctions.filter((a) => a.auctionId !== currentAuctionId).slice(0, 5);
 
   return (
     <aside className="lg:sticky lg:top-24 lg:self-start">
       <div className="rounded-2xl border border-gray-100 bg-white p-4 shadow-sm">
-        <h2 className="mb-4 text-base font-bold text-slate-900">مزادات مقترحة</h2>
+        <h2 className="mb-4 text-base font-bold text-slate-900">{t("auctions.suggestedTitle")}</h2>
 
         {loading ? (
           <div className="space-y-3">
@@ -61,7 +72,7 @@ export function AuctionSuggestionsSidebar({
             ))}
           </div>
         ) : list.length === 0 ? (
-          <p className="py-6 text-center text-sm text-slate-500">لا توجد مزادات أخرى حالياً</p>
+          <p className="py-6 text-center text-sm text-slate-500">{t("auctions.noOtherAuctions")}</p>
         ) : (
           <ul className="space-y-2.5">
             {list.map((a) => (
@@ -76,7 +87,7 @@ export function AuctionSuggestionsSidebar({
           href="/auctions"
           className="mt-5 flex w-full items-center justify-center gap-2 rounded-xl border border-emerald-200 bg-emerald-50 py-2.5 text-sm font-semibold text-emerald-800 transition hover:bg-emerald-100"
         >
-          عرض كل المزادات
+          {t("auctions.viewAllAuctions")}
           <ArrowLeft className="h-4 w-4" />
         </Link>
       </div>

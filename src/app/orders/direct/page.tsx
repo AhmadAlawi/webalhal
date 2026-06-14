@@ -9,6 +9,8 @@ import { StatusBadge } from "@/components/ui/StatusBadge";
 import { formatCurrency } from "@/lib/format";
 import { getBuyerOrders, getSellerOrders, type DirectOrder } from "@/services/direct";
 import { useAuth } from "@/context/AuthContext";
+import { useI18n } from "@/context/I18nContext";
+import { useLocalizedLabel } from "@/hooks/useLocalizedLabel";
 import { ShoppingBag } from "lucide-react";
 
 function orderKey(o: DirectOrder, i: number) {
@@ -16,10 +18,14 @@ function orderKey(o: DirectOrder, i: number) {
 }
 
 export default function DirectOrdersPage() {
+  const { t, language } = useI18n();
+  const { localized } = useLocalizedLabel();
   const { user, requireAuth, isAuthenticated, isLoading: authLoading } = useAuth();
   const [orders, setOrders] = useState<DirectOrder[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
+
+  const dateLocale = language === "ar" ? "ar-SY" : "en-US";
 
   useEffect(() => {
     if (authLoading) return;
@@ -49,14 +55,14 @@ export default function DirectOrdersPage() {
       })
       .catch((e) => {
         setOrders([]);
-        setError(e instanceof Error ? e.message : "تعذّر تحميل الطلبات");
+        setError(e instanceof Error ? e.message : t("orders.direct.loadFailed"));
       })
       .finally(() => setLoading(false));
-  }, [authLoading, isAuthenticated, user?.userId, requireAuth]);
+  }, [authLoading, isAuthenticated, user?.userId, requireAuth, t]);
 
   return (
     <>
-      <PageHeader title="طلباتي — بيع مباشر" backHref="/account" />
+      <PageHeader title={t("orders.direct.title")} backHref="/account" />
       <PageContainer className="py-8">
         {error && (
           <p className="mb-4 rounded-xl bg-red-50 px-4 py-3 text-sm text-red-700">{error}</p>
@@ -70,11 +76,11 @@ export default function DirectOrdersPage() {
         ) : orders.length === 0 ? (
           <EmptyState
             icon={ShoppingBag}
-            title="لا توجد طلبات"
-            description="عند شراء منتج من البيع المباشر ستظهر طلباتك هنا"
+            title={t("orders.direct.noOrders")}
+            description={t("orders.direct.noOrdersDesc")}
             action={
               <Link href="/direct" className="text-emerald-600 font-semibold hover:underline">
-                تصفح العروض
+                {t("orders.direct.browseListings")}
               </Link>
             }
           />
@@ -89,10 +95,18 @@ export default function DirectOrdersPage() {
                   <div className="flex items-start justify-between gap-2">
                     <div>
                       <p className="font-semibold text-slate-900">
-                        {o.listingTitle || o.cropName || o.productNameAr || `طلب #${o.orderId ?? o.id}`}
+                        {o.listingTitle ||
+                          localized({ name: o.cropName, nameAr: o.productNameAr }) ||
+                          o.cropName ||
+                          o.productNameAr ||
+                          t("orders.direct.orderFallback", undefined, {
+                            id: o.orderId ?? o.id,
+                          })}
                       </p>
                       {o.qty != null && (
-                        <p className="mt-1 text-sm text-slate-500">الكمية: {o.qty}</p>
+                        <p className="mt-1 text-sm text-slate-500">
+                          {t("orders.direct.quantity", undefined, { qty: o.qty })}
+                        </p>
                       )}
                       {o.totalPrice != null && (
                         <p className="mt-1 font-bold text-emerald-600">
@@ -104,7 +118,7 @@ export default function DirectOrdersPage() {
                   </div>
                   {o.createdAt && (
                     <p className="mt-2 text-xs text-slate-400">
-                      {new Date(o.createdAt).toLocaleString("ar-SY")}
+                      {new Date(o.createdAt).toLocaleString(dateLocale)}
                     </p>
                   )}
                 </Link>

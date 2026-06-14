@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
 import { StepProgress } from "@/components/ui/StepProgress";
 import { Card } from "@/components/ui/Card";
+import { useI18n } from "@/context/I18nContext";
 import {
   startRegistration,
   registrationStep1,
@@ -28,14 +29,15 @@ import {
 } from "@/lib/registration-progress";
 
 const ROLES = [
-  { id: "farmer", label: "مزارع" },
-  { id: "trader", label: "تاجر" },
-  { id: "transporter", label: "ناقل" },
+  { id: "farmer", labelKey: "register.roles.farmer" },
+  { id: "trader", labelKey: "register.roles.trader" },
+  { id: "transporter", labelKey: "register.roles.transporter" },
 ];
 
 function RegisterForm() {
   const router = useRouter();
   const params = useSearchParams();
+  const { t } = useI18n();
   const [step, setStep] = useState(0);
   const [registrationId, setRegistrationId] = useState("");
   const [roleName, setRoleName] = useState("farmer");
@@ -95,7 +97,7 @@ function RegisterForm() {
   async function handleStep1(e: React.FormEvent) {
     e.preventDefault();
     if (password.length < 6) {
-      setError("كلمة المرور يجب أن تكون 6 أحرف على الأقل");
+      setError(t("register.passwordMinLength"));
       return;
     }
     setLoading(true);
@@ -193,44 +195,77 @@ function RegisterForm() {
   return (
     <div className="mx-auto w-full max-w-lg animate-fade-up pb-8">
       <div className="mb-6 text-center">
-        <h1 className="text-2xl font-bold text-slate-900">إنشاء حساب</h1>
-        <p className="mt-1 text-sm text-slate-500">خطوات بسيطة للانضمام إلى رزق</p>
+        <h1 className="text-2xl font-bold text-slate-900">{t("register.title")}</h1>
+        <p className="mt-1 text-sm text-slate-500">{t("register.subtitle")}</p>
       </div>
       <StepProgress step={step} />
       <Card padding="lg">
         {step === 0 && (
           <div className="space-y-4">
-            <p className="text-slate-600">ابدأ التسجيل في منصة رزق</p>
+            <p className="text-slate-600">{t("register.startPrompt")}</p>
             <Button fullWidth onClick={handleStart} disabled={loading}>
-              بدء التسجيل
+              {t("register.startButton")}
             </Button>
           </div>
         )}
 
         {step === 1 && (
           <form onSubmit={handleStep1} className="space-y-4">
-            <Input label="الاسم الكامل" value={fullName} onChange={(e) => setFullName(e.target.value)} required />
-            <Input label="البريد" type="email" value={email} onChange={(e) => setEmail(e.target.value)} required />
-            <Input label="الهاتف" value={phone} onChange={(e) => setPhone(e.target.value)} required placeholder="09xxxxxxxx أو +963..." />
-            <Input label="كلمة المرور" type="password" value={password} onChange={(e) => setPassword(e.target.value)} required minLength={6} />
-            <Button type="submit" fullWidth disabled={loading}>التالي</Button>
+            <Input
+              label={t("register.fullName")}
+              value={fullName}
+              onChange={(e) => setFullName(e.target.value)}
+              required
+            />
+            <Input
+              label={t("register.email")}
+              type="email"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              required
+            />
+            <Input
+              label={t("register.phone")}
+              value={phone}
+              onChange={(e) => setPhone(e.target.value)}
+              required
+              placeholder={t("register.phonePlaceholder")}
+            />
+            <Input
+              label={t("register.password")}
+              type="password"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              required
+              minLength={6}
+            />
+            <Button type="submit" fullWidth disabled={loading}>
+              {t("common.next")}
+            </Button>
           </form>
         )}
 
         {step === 2 && (
           <form onSubmit={handleOtp} className="space-y-4">
-            <p className="text-sm text-slate-600">أدخل رمز التحقق المرسل إلى هاتفك</p>
-            <Input label="رمز OTP" value={otp} onChange={(e) => setOtp(e.target.value)} required />
+            <p className="text-sm text-slate-600">{t("register.otpPrompt")}</p>
+            <Input
+              label={t("register.otpLabel")}
+              value={otp}
+              onChange={(e) => setOtp(e.target.value)}
+              required
+            />
             <Button type="button" variant="ghost" onClick={() => resendOtp(registrationId)}>
-              إعادة الإرسال
+              {t("register.resend")}
             </Button>
-            <Button type="submit" fullWidth disabled={loading}>تحقق</Button>
+            <Button type="submit" fullWidth disabled={loading}>
+              {t("register.verify")}
+            </Button>
           </form>
         )}
 
         {step === 3 && (
           <form onSubmit={handleRole} className="space-y-4">
-            <p className="font-medium">اختر نوع الحساب</p>
+            <p className="font-medium">{t("register.chooseAccountType")}</p>
             {ROLES.map((r) => (
               <label
                 key={r.id}
@@ -248,24 +283,30 @@ function RegisterForm() {
                   onChange={() => setRoleName(r.id)}
                   className="accent-emerald-600"
                 />
-                <span className="font-medium text-slate-800">{r.label}</span>
+                <span className="font-medium text-slate-800">{t(r.labelKey)}</span>
               </label>
             ))}
-            <Button type="submit" fullWidth disabled={loading}>التالي</Button>
+            <Button type="submit" fullWidth disabled={loading}>
+              {t("common.next")}
+            </Button>
           </form>
         )}
 
         {step === 4 && (
           <form onSubmit={handleProfile} className="space-y-4">
-            <p className="text-slate-600">أكمل بيانات ملفك — يمكن تحديثها لاحقاً من الحساب</p>
-            <Button type="submit" fullWidth disabled={loading}>متابعة</Button>
+            <p className="text-slate-600">{t("register.profilePrompt")}</p>
+            <Button type="submit" fullWidth disabled={loading}>
+              {t("register.continue")}
+            </Button>
           </form>
         )}
 
         {step === 5 && (
           <form onSubmit={handlePayout} className="space-y-4">
-            <p className="text-slate-600">إعداد طريقة الدفع (محفظة افتراضية)</p>
-            <Button type="submit" fullWidth disabled={loading}>إرسال الطلب</Button>
+            <p className="text-slate-600">{t("register.payoutPrompt")}</p>
+            <Button type="submit" fullWidth disabled={loading}>
+              {t("register.submitRequest")}
+            </Button>
           </form>
         )}
 
@@ -277,15 +318,20 @@ function RegisterForm() {
       </Card>
 
       <p className="mt-6 text-center text-sm">
-        لديك حساب؟ <Link href="/login" className="text-emerald-600 font-semibold">دخول</Link>
+        {t("register.hasAccount")}{" "}
+        <Link href="/login" className="font-semibold text-emerald-600">
+          {t("register.loginLink")}
+        </Link>
       </p>
     </div>
   );
 }
 
 export default function RegisterPage() {
+  const { t } = useI18n();
+
   return (
-    <Suspense fallback={<div className="p-8 text-center">جاري التحميل...</div>}>
+    <Suspense fallback={<div className="p-8 text-center">{t("common.loadingEllipsis")}</div>}>
       <RegisterForm />
     </Suspense>
   );

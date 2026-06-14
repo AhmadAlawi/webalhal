@@ -13,6 +13,7 @@ import {
 import type { ChartGroupBy, FilterGovernorate, FilterProduct } from "@/types/market-chart";
 import Link from "next/link";
 import { FadeIn } from "@/components/motion/FadeIn";
+import { useI18n } from "@/context/I18nContext";
 
 const CandleVolumeChart = dynamic(
   () =>
@@ -30,6 +31,7 @@ function ChartSkeleton({ height }: { height: number }) {
 }
 
 export default function MarketChartPage() {
+  const { t, direction } = useI18n();
   const [products, setProducts] = useState<FilterProduct[]>([]);
   const [governorates, setGovernorates] = useState<FilterGovernorate[]>([]);
   const [productId, setProductId] = useState<number | undefined>();
@@ -87,7 +89,7 @@ export default function MarketChartPage() {
   const empty = !loading && data && data.candles.length === 0;
 
   return (
-    <div className="min-h-screen bg-[#131722]" dir="rtl">
+    <div className="min-h-screen bg-[#131722]" dir={direction}>
       <MarketChartHeader
         products={products}
         governorates={governorates}
@@ -114,7 +116,7 @@ export default function MarketChartPage() {
 
       <main className="mx-auto max-w-7xl px-4 py-4 lg:px-6">
         {!productId && (
-          <p className="py-16 text-center text-slate-400">اختر منتجاً لعرض المخطط</p>
+          <p className="py-16 text-center text-slate-400">{t("marketChart.selectProductPrompt")}</p>
         )}
 
         {error && (
@@ -125,7 +127,7 @@ export default function MarketChartPage() {
               onClick={retry}
               className="rounded-lg bg-red-800/60 px-4 py-2 text-sm hover:bg-red-800"
             >
-              إعادة المحاولة
+              {t("marketChart.retry")}
             </button>
           </div>
         )}
@@ -136,16 +138,13 @@ export default function MarketChartPage() {
 
         {productId && !loading && empty && (
           <div className="rounded-xl border border-[#2a2e39] bg-[#1e222d] px-6 py-16 text-center">
-            <p className="text-lg text-slate-300">لا توجد صفقات في هذه الفترة</p>
-            <p className="mt-2 text-sm text-slate-500">
-              جرّب توسيع الفترة أو تغيير المحافظة. إن كان السوق جديداً، قد يحتاج المسؤول لتشغيل
-              تعبئة تاريخية للبيانات على الخادم.
-            </p>
+            <p className="text-lg text-slate-300">{t("marketChart.noTradesInPeriod")}</p>
+            <p className="mt-2 text-sm text-slate-500">{t("marketChart.emptyPeriodHint")}</p>
             <Link
               href="/market-analysis/overview"
               className="mt-4 inline-block text-sm text-emerald-400 hover:underline"
             >
-              العودة لنظرة عامة
+              {t("marketChart.backToOverview")}
             </Link>
           </div>
         )}
@@ -155,12 +154,10 @@ export default function MarketChartPage() {
             <section className="mb-2 overflow-hidden rounded-xl border border-[#2a2e39] bg-[#1e222d]">
               <CandleVolumeChart candles={data.candles} volume={data.volume} height={400} />
             </section>
-            <p className="mb-4 text-center text-xs text-slate-500">
-              الحجم (كغ) — أخضر: إغلاق ≥ افتتاح · أحمر: إغلاق &lt; افتتاح
-            </p>
+            <p className="mb-4 text-center text-xs text-slate-500">{t("marketChart.volumeLegend")}</p>
             <section className="rounded-xl border border-[#2a2e39] bg-[#1e222d] p-4">
               <h2 className="mb-3 text-sm font-semibold text-slate-300">
-                نشاط السوق — عرض (بيع) مقابل طلب (شراء)
+                {t("marketChart.supplyDemandTitle")}
               </h2>
               <SupplyDemandStrip data={data.supplyDemand} />
             </section>

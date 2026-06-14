@@ -26,6 +26,7 @@ import type { ConversationDetail } from "@/services/chat";
 import { startChatHub, stopChatHub } from "@/lib/signalr";
 import type { NormalizedChatMessage } from "@/lib/hub-utils";
 import { useAuth } from "@/context/AuthContext";
+import { useI18n } from "@/context/I18nContext";
 
 interface Message {
   messageId?: number;
@@ -79,6 +80,7 @@ function hubMsgToLocal(msg: NormalizedChatMessage): Message {
 }
 
 export default function ChatConversationPage() {
+  const { t } = useI18n();
   const { conversationId } = useParams();
   const { user, requireAuth } = useAuth();
   const [conversation, setConversation] = useState<ConversationDetail | null>(null);
@@ -155,7 +157,7 @@ export default function ChatConversationPage() {
       .catch(() => {
         if (!cancelled) {
           setHubReady(false);
-          setHubError("تعذر الاتصال الحي — الرسائل تُرسل عبر الخادم");
+          setHubError(t("chat.hubFallback"));
         }
       });
 
@@ -165,7 +167,7 @@ export default function ChatConversationPage() {
       void stopChatHub(connRef.current, convId);
       connRef.current = null;
     };
-  }, [convId, requireAuth, onHubMessage, reloadMessages]);
+  }, [convId, requireAuth, onHubMessage, reloadMessages, t]);
 
   async function handleSend(e: React.FormEvent) {
     e.preventDefault();
@@ -210,7 +212,10 @@ export default function ChatConversationPage() {
 
   return (
     <>
-      <PageHeader title={conversation?.title ?? "محادثة"} backHref="/chat" />
+      <PageHeader
+        title={conversation?.title ?? t("chat.conversation")}
+        backHref="/chat"
+      />
 
       <div className="flex flex-wrap gap-2 border-b border-gray-100 bg-white px-4 py-2">
         {dealContext && !transportActive && (
@@ -219,7 +224,7 @@ export default function ChatConversationPage() {
             className="inline-flex items-center gap-1 rounded-lg bg-emerald-50 px-3 py-1.5 text-xs font-medium text-emerald-800 hover:bg-emerald-100"
           >
             <Truck className="h-3.5 w-3.5" />
-            إدارة النقل (كامل)
+            {t("chat.manageTransport")}
           </Link>
         )}
         {user?.userId && reportedUserId && (
@@ -229,7 +234,7 @@ export default function ChatConversationPage() {
             className="inline-flex items-center gap-1 rounded-lg border px-3 py-1.5 text-xs text-slate-600 hover:bg-slate-50"
           >
             <Flag className="h-3.5 w-3.5" />
-            إبلاغ
+            {t("chat.report")}
           </button>
         )}
       </div>
@@ -242,11 +247,9 @@ export default function ChatConversationPage() {
 
       {accessDenied ? (
         <div className="mx-auto max-w-3xl px-4 py-12 text-center">
-          <p className="text-red-600">
-            هذه المحادثة مخصصة للطرف الآخر في عملية النقل.
-          </p>
+          <p className="text-red-600">{t("chat.accessDenied")}</p>
           <Link href="/chat" className="mt-4 inline-block text-emerald-600 hover:underline">
-            العودة للمحادثات
+            {t("chat.backToChats")}
           </Link>
         </div>
       ) : (
@@ -265,12 +268,12 @@ export default function ChatConversationPage() {
         >
           {!hubReady && (
             <p className="border-b border-slate-100 bg-slate-50 px-4 py-2 text-center text-xs text-slate-500">
-              {hubError || "جاري الاتصال بالمحادثة الحية..."}
+              {hubError || t("chat.connecting")}
             </p>
           )}
           <ul className="flex-1 space-y-3 overflow-y-auto bg-slate-50/50 px-4 py-6">
             {messages.length === 0 && (
-              <li className="py-12 text-center text-sm text-slate-400">لا رسائل بعد — ابدأ المحادثة</li>
+              <li className="py-12 text-center text-sm text-slate-400">{t("chat.noMessages")}</li>
             )}
             {messages.map((m, i) => (
               <li
@@ -289,12 +292,12 @@ export default function ChatConversationPage() {
             <input
               value={text}
               onChange={(e) => setText(e.target.value)}
-              placeholder="اكتب رسالة..."
+              placeholder={t("chat.placeholder")}
               disabled={sending}
               className="input-field flex-1"
             />
             <Button type="submit" size="sm" disabled={sending}>
-              إرسال
+              {t("chat.send")}
             </Button>
           </form>
         </section>

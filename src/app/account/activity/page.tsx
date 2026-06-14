@@ -1,12 +1,17 @@
+"use client";
+
 import { Suspense } from "react";
 import { PageHeader } from "@/components/ui/PageHeader";
 import { PageContainer } from "@/components/layout/PageContainer";
+import { useI18n } from "@/context/I18nContext";
 import { MyActivityContent } from "./MyActivityContent";
 
 export default function MyActivityPage() {
+  const { t } = useI18n();
+
   return (
     <>
-      <PageHeader title="نشاطاتي" backHref="/account" />
+      <PageHeader title={t("account.activity")} backHref="/account" />
       <PageContainer className="py-8">
         <Suspense
           fallback={

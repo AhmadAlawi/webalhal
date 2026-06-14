@@ -12,6 +12,7 @@ import {
 } from "recharts";
 import { CHART_COLORS, CHART_GRID, CHART_TOOLTIP_STYLE } from "./chartTheme";
 import { formatNumber } from "@/lib/format";
+import { useI18n } from "@/context/I18nContext";
 
 export interface BarChartItem {
   label: string;
@@ -29,8 +30,10 @@ export function InteractiveBarChart({
   horizontal?: boolean;
   height?: number;
 }) {
+  const { t } = useI18n();
+
   if (!items.length) {
-    return <p className="py-8 text-center text-sm text-slate-400">لا توجد بيانات</p>;
+    return <p className="py-8 text-center text-sm text-slate-400">{t("analysis.noData")}</p>;
   }
 
   const data = items.map((i) => ({ name: i.label, value: i.value }));
@@ -49,7 +52,7 @@ export function InteractiveBarChart({
             interval={0}
           />
           <Tooltip
-            formatter={(v) => [valueFormatter(Number(v)), "القيمة"]}
+            formatter={(v) => [valueFormatter(Number(v)), t("analysis.value")]}
             contentStyle={CHART_TOOLTIP_STYLE}
             cursor={{ fill: "rgba(5,150,105,0.08)" }}
           />
@@ -70,7 +73,7 @@ export function InteractiveBarChart({
         <XAxis dataKey="name" tick={{ fontSize: 10 }} interval={0} angle={-25} textAnchor="end" height={56} />
         <YAxis tickFormatter={(v) => formatNumber(v)} tick={{ fontSize: 11 }} width={48} />
         <Tooltip
-          formatter={(v) => [valueFormatter(Number(v)), "القيمة"]}
+          formatter={(v) => [valueFormatter(Number(v)), t("analysis.value")]}
           contentStyle={CHART_TOOLTIP_STYLE}
           cursor={{ fill: "rgba(5,150,105,0.06)" }}
         />

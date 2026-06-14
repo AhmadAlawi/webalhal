@@ -11,10 +11,12 @@ import {
   type TransportProvider,
 } from "@/services/transport";
 import { useAuth } from "@/context/AuthContext";
+import { useI18n } from "@/context/I18nContext";
 import { UserRole } from "@/types";
 import { Route, Truck, Car, Inbox, Calculator } from "lucide-react";
 
 export default function TransportHubPage() {
+  const { t } = useI18n();
   const { user, requireAuth } = useAuth();
   const [provider, setProvider] = useState<TransportProvider | null>(null);
   const [loading, setLoading] = useState(true);
@@ -35,15 +37,19 @@ export default function TransportHubPage() {
 
   if (user?.roleId !== UserRole.Transport) {
     return (
-      <PageContainer className="py-16 text-center text-red-600">للناقلين فقط</PageContainer>
+      <PageContainer className="py-16 text-center text-red-600">
+        {t("transport.transportersOnly")}
+      </PageContainer>
     );
   }
 
   if (loading) {
     return (
       <>
-        <PageHeader title="مركز النقل" backHref="/account" />
-        <PageContainer className="py-16 text-center text-slate-500">جاري التحميل...</PageContainer>
+        <PageHeader title={t("transport.hub.title")} backHref="/account" />
+        <PageContainer className="py-16 text-center text-slate-500">
+          {t("common.loadingEllipsis")}
+        </PageContainer>
       </>
     );
   }
@@ -51,11 +57,11 @@ export default function TransportHubPage() {
   if (!provider) {
     return (
       <>
-        <PageHeader title="مركز النقل" backHref="/account" />
+        <PageHeader title={t("transport.hub.title")} backHref="/account" />
         <PageContainer narrow className="py-8 text-center">
-          <p className="mb-6 text-slate-600">لم تُسجَّل بعد كمزود نقل على المنصة</p>
+          <p className="mb-6 text-slate-600">{t("transport.hub.notRegistered")}</p>
           <Link href="/transport/register">
-            <Button>تسجيل كناقل</Button>
+            <Button>{t("transport.hub.register")}</Button>
           </Link>
         </PageContainer>
       </>
@@ -66,26 +72,58 @@ export default function TransportHubPage() {
 
   return (
     <>
-      <PageHeader title="مركز النقل" backHref="/account" />
+      <PageHeader title={t("transport.hub.title")} backHref="/account" />
       <PageContainer className="py-8">
         <article className="mb-8 rounded-2xl border border-emerald-100 bg-emerald-50/40 p-6">
           <h2 className="text-xl font-bold text-slate-900">
-            {provider.companyName || provider.name || `مزود #${pid}`}
+            {provider.companyName ||
+              provider.name ||
+              t("transport.hub.providerFallback", undefined, { id: pid })}
           </h2>
           <p className="mt-2 text-sm text-slate-600">
-            الحالة: {provider.isAvailable ? "متاح للطلبات" : "غير متاح"}
+            {t("transport.hub.status")}:{" "}
+            {provider.isAvailable
+              ? t("transport.hub.available")
+              : t("transport.hub.unavailable")}
           </p>
           <Button type="button" variant="outline" className="mt-4" onClick={toggleAvailability}>
-            {provider.isAvailable ? "إيقاف التوفر" : "تفعيل التوفر"}
+            {provider.isAvailable
+              ? t("transport.hub.stopAvailability")
+              : t("transport.hub.enableAvailability")}
           </Button>
         </article>
 
         <div className="grid gap-4 sm:grid-cols-2">
-          <HubLink href="/transport/manage" icon={Route} title="خطوط الأسعار" desc="مسارات وأسعار النقل" />
-          <HubLink href="/transport/vehicles" icon={Car} title="المركبات" desc="إدارة أسطولك" />
-          <HubLink href="/transport/inbox" icon={Inbox} title="وارد الطلبات" desc="طلبات وعروض" />
-          <HubLink href="/account/transport-requests" icon={Truck} title="طلباتي كمشتري" desc="شحن مشترياتك" />
-          <HubLink href="/transport/prices" icon={Calculator} title="حاسبة الأسعار" desc="السعر الرسمي وأرخص عرض" />
+          <HubLink
+            href="/transport/manage"
+            icon={Route}
+            title={t("transport.hub.priceLines")}
+            desc={t("transport.hub.priceLinesDesc")}
+          />
+          <HubLink
+            href="/transport/vehicles"
+            icon={Car}
+            title={t("transport.hub.vehicles")}
+            desc={t("transport.hub.vehiclesDesc")}
+          />
+          <HubLink
+            href="/transport/inbox"
+            icon={Inbox}
+            title={t("transport.hub.inbox")}
+            desc={t("transport.hub.inboxDesc")}
+          />
+          <HubLink
+            href="/account/transport-requests"
+            icon={Truck}
+            title={t("transport.hub.buyerRequests")}
+            desc={t("transport.hub.buyerRequestsDesc")}
+          />
+          <HubLink
+            href="/transport/prices"
+            icon={Calculator}
+            title={t("transport.hub.calculator")}
+            desc={t("transport.hub.calculatorDesc")}
+          />
         </div>
       </PageContainer>
     </>

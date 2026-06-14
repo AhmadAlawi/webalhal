@@ -10,6 +10,9 @@ import { FarmCropSelect } from "@/components/forms/FarmCropSelect";
 import { ImageUploadField } from "@/components/forms/ImageUploadField";
 import { UnitSelect } from "@/components/forms/UnitSelect";
 import { useAuth } from "@/context/AuthContext";
+import { useI18n } from "@/context/I18nContext";
+import type { LocalizableRecord } from "@/lib/localized-value";
+import { useLocalizedLabel } from "@/hooks/useLocalizedLabel";
 import { canCreateDirectListing } from "@/lib/permissions";
 import { formatPrice } from "@/lib/auctionPricing";
 import { createListing } from "@/services/marketplace";
@@ -17,10 +20,14 @@ import { updateCrop } from "@/services/farms";
 import type { Crop } from "@/types/farm";
 
 export default function NewDirectListingPage() {
+  const { t } = useI18n();
+
   return (
     <Suspense
       fallback={
-        <PageContainer className="py-16 text-center text-slate-500">جاري التحميل...</PageContainer>
+        <PageContainer className="py-16 text-center text-slate-500">
+          {t("common.loadingEllipsis")}
+        </PageContainer>
       }
     >
       <NewDirectListingForm />
@@ -31,6 +38,8 @@ export default function NewDirectListingPage() {
 const DIRECT_RETURN = "/direct/new";
 
 function NewDirectListingForm() {
+  const { t } = useI18n();
+  const { localized } = useLocalizedLabel();
   const { user, requireAuth } = useAuth();
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -43,24 +52,27 @@ function NewDirectListingForm() {
   const [totalPrice, setTotalPrice] = useState("");
   const [availableQty, setAvailableQty] = useState("");
   const [minOrderQty, setMinOrderQty] = useState("");
-  const [unit, setUnit] = useState("كغ");
+  const [unit, setUnit] = useState(t("forms.units.kg"));
   const [title, setTitle] = useState("");
   const [imageUrls, setImageUrls] = useState<string[]>([]);
   const [error, setError] = useState("");
   const [submitting, setSubmitting] = useState(false);
   const [justCreatedCrop, setJustCreatedCrop] = useState(false);
 
-  const applyCropFields = useCallback((crop: Crop) => {
-    const name = crop.nameAr || crop.cropName || crop.name;
-    if (name) setTitle((t) => t || name);
-    if (crop.unit) setUnit(crop.unit);
-    if (crop.quantity != null) {
-      const qty = String(crop.quantity);
-      setAvailableQty(qty);
-      setMinOrderQty(qty);
-    }
-    if (crop.imageUrls?.length) setImageUrls(crop.imageUrls);
-  }, []);
+  const applyCropFields = useCallback(
+    (crop: Crop) => {
+      const name = localized(crop as unknown as LocalizableRecord);
+      if (name) setTitle((current) => current || name);
+      if (crop.unit) setUnit(crop.unit);
+      if (crop.quantity != null) {
+        const qty = String(crop.quantity);
+        setAvailableQty(qty);
+        setMinOrderQty(qty);
+      }
+      if (crop.imageUrls?.length) setImageUrls(crop.imageUrls);
+    },
+    [localized],
+  );
 
   const handleCropChange = useCallback(
     (id: number, crop?: Crop) => {
@@ -90,23 +102,21 @@ function NewDirectListingForm() {
   if (!canCreateDirectListing(user?.roleId)) {
     return (
       <PageContainer className="py-16 text-center text-red-600">
-        التاجر لا يمكنه إنشاء بيع مباشر
+        {t("direct.new.noPermission")}
       </PageContainer>
     );
   }
 
   const qtyNum = Number(availableQty);
   const totalNum = Number(totalPrice);
-  const computedUnitPrice =
-    qtyNum > 0 && totalNum > 0 ? totalNum / qtyNum : 0;
+  const computedUnitPrice = qtyNum > 0 && totalNum > 0 ? totalNum / qtyNum : 0;
 
   async function submit() {
     if (!user?.userId || !cropId || !totalPrice || !availableQty || computedUnitPrice <= 0) return;
     setSubmitting(true);
     setError("");
     try {
-      const cropName =
-        selectedCrop?.nameAr || selectedCrop?.cropName || selectedCrop?.name;
+      const cropName = localized(selectedCrop as unknown as LocalizableRecord);
 
       if (selectedCrop?.cropId && imageUrls.length > 0) {
         const merged = [...new Set([...(selectedCrop.imageUrls ?? []), ...imageUrls])];
@@ -131,23 +141,22 @@ function NewDirectListingForm() {
         availableQty: Number(availableQty),
         minOrderQty: Number(minOrderQty) || Number(availableQty),
         maxOrderQty: Number(availableQty),
-        unit: unit.trim() || selectedCrop?.unit || "كغ",
+        unit: unit.trim() || selectedCrop?.unit || t("forms.units.kg"),
         imageUrls: imageUrls.length ? imageUrls : selectedCrop?.imageUrls,
       });
       router.push("/direct");
     } catch (e) {
-      setError(e instanceof Error ? e.message : "فشل نشر العرض");
+      setError(e instanceof Error ? e.message : t("direct.new.failed"));
     } finally {
       setSubmitting(false);
     }
   }
 
-  const cropLabel =
-    selectedCrop?.nameAr || selectedCrop?.cropName || selectedCrop?.name || "—";
+  const cropLabel = localized(selectedCrop as unknown as LocalizableRecord) || "—";
 
   return (
     <>
-      <PageHeader title="عرض بيع مباشر" backHref="/direct" />
+      <PageHeader title={t("direct.new.title")} backHref="/direct" />
       <PageContainer narrow className="py-8">
         <div className="mb-6 flex gap-2">
           {[1, 2, 3].map((s) => (
@@ -162,7 +171,7 @@ function NewDirectListingForm() {
             <>
               {justCreatedCrop && cropId && (
                 <p className="rounded-xl bg-emerald-50 px-4 py-2.5 text-sm text-emerald-800">
-                  تم إنشاء المحصول بنجاح — يمكنك متابعة إنشاء عرض البيع المباشر.
+                  {t("direct.new.cropCreated")}
                 </p>
               )}
               <FarmCropSelect
@@ -175,14 +184,14 @@ function NewDirectListingForm() {
                 reloadKey={cropIdFromUrl ?? undefined}
               />
               <Button fullWidth disabled={!cropId} onClick={() => setStep(2)}>
-                التالي
+                {t("common.next")}
               </Button>
             </>
           )}
           {step === 2 && (
             <>
               <Input
-                label="السعر الإجمالي (ل.س)"
+                label={t("direct.new.totalPrice")}
                 type="number"
                 min={1}
                 value={totalPrice}
@@ -191,14 +200,17 @@ function NewDirectListingForm() {
               />
               {computedUnitPrice > 0 && (
                 <p className="rounded-xl bg-slate-50 px-4 py-2.5 text-sm text-slate-700">
-                  سعر الوحدة:{" "}
+                  {t("direct.new.unitPrice")}:{" "}
                   <span className="font-semibold text-emerald-700">
-                    {formatPrice(computedUnitPrice)} ل.س / {unit}
+                    {t("direct.new.unitPriceValue", undefined, {
+                      price: formatPrice(computedUnitPrice),
+                      unit,
+                    })}
                   </span>
                 </p>
               )}
               <Input
-                label="الكمية المتاحة"
+                label={t("direct.new.availableQty")}
                 type="number"
                 value={availableQty}
                 readOnly
@@ -206,7 +218,7 @@ function NewDirectListingForm() {
                 className="bg-slate-100 text-slate-700"
               />
               <Input
-                label="أقل كمية للطلب"
+                label={t("direct.new.minOrderQty")}
                 type="number"
                 value={minOrderQty}
                 readOnly
@@ -218,66 +230,77 @@ function NewDirectListingForm() {
                 onChange={setUnit}
                 disabled={Boolean(selectedCrop?.unit)}
               />
-              <Input label="عنوان العرض" value={title} onChange={(e) => setTitle(e.target.value)} />
+              <Input
+                label={t("direct.new.listingTitle")}
+                value={title}
+                onChange={(e) => setTitle(e.target.value)}
+              />
               <ImageUploadField value={imageUrls} onChange={setImageUrls} folder="direct" />
               <div className="flex gap-2">
                 <Button variant="outline" fullWidth onClick={() => setStep(1)}>
-                  رجوع
+                  {t("common.back")}
                 </Button>
                 <Button
                   fullWidth
                   disabled={!totalPrice || !availableQty || computedUnitPrice <= 0}
                   onClick={() => setStep(3)}
                 >
-                  مراجعة
+                  {t("direct.new.review")}
                 </Button>
               </div>
             </>
           )}
           {step === 3 && (
             <>
-              <h2 className="font-semibold text-slate-900">مراجعة العرض</h2>
+              <h2 className="font-semibold text-slate-900">{t("direct.new.reviewTitle")}</h2>
               <dl className="space-y-2 text-sm text-slate-700">
                 <div className="flex justify-between gap-4">
-                  <dt className="text-slate-500">المحصول</dt>
+                  <dt className="text-slate-500">{t("direct.new.crop")}</dt>
                   <dd className="font-medium">{cropLabel}</dd>
                 </div>
                 <div className="flex justify-between gap-4">
-                  <dt className="text-slate-500">السعر الإجمالي</dt>
-                  <dd className="font-medium">{formatPrice(totalNum)} ل.س</dd>
-                </div>
-                <div className="flex justify-between gap-4">
-                  <dt className="text-slate-500">سعر الوحدة</dt>
-                  <dd>
-                    {formatPrice(computedUnitPrice)} ل.س / {unit}
+                  <dt className="text-slate-500">{t("direct.new.totalPriceLabel")}</dt>
+                  <dd className="font-medium">
+                    {formatPrice(totalNum)} {t("common.currency")}
                   </dd>
                 </div>
                 <div className="flex justify-between gap-4">
-                  <dt className="text-slate-500">الكمية</dt>
+                  <dt className="text-slate-500">{t("direct.new.unitPriceLabel")}</dt>
                   <dd>
-                    {availableQty} {unit} (الطلب بالكمية كاملة)
+                    {formatPrice(computedUnitPrice)} {t("common.currency")} / {unit}
+                  </dd>
+                </div>
+                <div className="flex justify-between gap-4">
+                  <dt className="text-slate-500">{t("direct.new.quantityLabel")}</dt>
+                  <dd>
+                    {t("direct.new.fullQuantityOrder", undefined, {
+                      qty: availableQty,
+                      unit,
+                    })}
                   </dd>
                 </div>
                 {title && (
                   <div className="flex justify-between gap-4">
-                    <dt className="text-slate-500">العنوان</dt>
+                    <dt className="text-slate-500">{t("direct.new.titleLabel")}</dt>
                     <dd>{title}</dd>
                   </div>
                 )}
                 {imageUrls.length > 0 && (
                   <div>
-                    <dt className="text-slate-500">الصور</dt>
-                    <dd className="mt-1 text-emerald-700">{imageUrls.length} صورة</dd>
+                    <dt className="text-slate-500">{t("direct.new.images")}</dt>
+                    <dd className="mt-1 text-emerald-700">
+                      {t("direct.new.imageCount", undefined, { count: imageUrls.length })}
+                    </dd>
                   </div>
                 )}
               </dl>
               {error && <p className="text-sm text-red-600">{error}</p>}
               <div className="flex gap-2">
                 <Button variant="outline" fullWidth onClick={() => setStep(2)}>
-                  رجوع
+                  {t("common.back")}
                 </Button>
                 <Button fullWidth onClick={submit} disabled={submitting}>
-                  {submitting ? "جاري النشر..." : "تأكيد النشر"}
+                  {submitting ? t("direct.new.publishing") : t("direct.new.confirmPublish")}
                 </Button>
               </div>
             </>

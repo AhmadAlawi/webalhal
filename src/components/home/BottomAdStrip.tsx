@@ -10,14 +10,16 @@ import { resolveMediaUrl } from "@/lib/media";
 import { trackAdClick } from "@/services/catalog";
 import type { Advertisement } from "@/types";
 import { useAuth } from "@/context/AuthContext";
+import { useI18n } from "@/context/I18nContext";
 
 function BottomAdCard({ ad }: { ad: Advertisement }) {
   const { user } = useAuth();
+  const { t } = useI18n();
   const href = advertisementHref(ad);
   const img = (
     <Image
       src={resolveMediaUrl(ad.imageUrl ?? ad.thumbnailUrl)}
-      alt={ad.title ?? "إعلان"}
+      alt={ad.title ?? t("home.banner.adAlt")}
       fill
       sizes="(max-width: 640px) 50vw, 16vw"
       className="object-contain p-2"
@@ -66,12 +68,14 @@ function BottomAdCard({ ad }: { ad: Advertisement }) {
 }
 
 export function BottomAdStrip({ ads }: { ads: Advertisement[] }) {
+  const { t } = useI18n();
+
   if (!ads.length) return null;
 
   return (
     <section className="border-t border-gray-100 bg-slate-50 py-10">
       <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
-        <h2 className="mb-4 text-lg font-bold text-slate-800">إعلانات وشركاء</h2>
+        <h2 className="mb-4 text-lg font-bold text-slate-800">{t("home.bottomAds.title")}</h2>
         <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-6">
           {ads.map((ad) => (
             <BottomAdCard key={ad.advertisementId} ad={ad} />

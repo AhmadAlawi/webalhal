@@ -4,6 +4,7 @@ import { useState } from "react";
 import { PackageCheck, PackageOpen, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/Button";
 import { transportDeliver, transportReceived } from "@/services/chat";
+import { useI18n } from "@/context/I18nContext";
 
 export function TransportHandoffBar({
   conversationId,
@@ -12,6 +13,7 @@ export function TransportHandoffBar({
   conversationId: number;
   transportStatus?: string;
 }) {
+  const { t } = useI18n();
   const [loading, setLoading] = useState<"deliver" | "receive" | null>(null);
   const [message, setMessage] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -24,9 +26,9 @@ export function TransportHandoffBar({
     setMessage(null);
     try {
       await transportDeliver(conversationId);
-      setMessage("تم تأكيد التسليم للناقل / المشتري");
+      setMessage(t("transport.handoff.deliverConfirmed"));
     } catch (e) {
-      setError(e instanceof Error ? e.message : "فشل تأكيد التسليم");
+      setError(e instanceof Error ? e.message : t("transport.handoff.deliverFailed"));
     } finally {
       setLoading(null);
     }
@@ -38,9 +40,9 @@ export function TransportHandoffBar({
     setMessage(null);
     try {
       await transportReceived(conversationId);
-      setMessage("تم تأكيد استلام الشحنة");
+      setMessage(t("transport.handoff.receiveConfirmed"));
     } catch (e) {
-      setError(e instanceof Error ? e.message : "فشل تأكيد الاستلام");
+      setError(e instanceof Error ? e.message : t("transport.handoff.receiveFailed"));
     } finally {
       setLoading(null);
     }
@@ -49,7 +51,7 @@ export function TransportHandoffBar({
   if (status === "completed" || status === "delivered") {
     return (
       <div className="border-b border-emerald-100 bg-emerald-50/60 px-4 py-3 text-center text-sm text-emerald-800">
-        اكتملت عملية النقل لهذه المحادثة
+        {t("transport.handoff.completed")}
       </div>
     );
   }
@@ -57,7 +59,7 @@ export function TransportHandoffBar({
   return (
     <div className="border-b border-slate-200 bg-slate-50 px-4 py-3">
       <p className="mb-2 text-center text-xs font-medium text-slate-600">
-        تأكيد تسليم / استلام الشحنة
+        {t("transport.handoff.confirmHandoff")}
       </p>
       <div className="mx-auto flex max-w-lg gap-2">
         <Button
@@ -73,7 +75,7 @@ export function TransportHandoffBar({
           ) : (
             <PackageOpen className="h-4 w-4" />
           )}
-          تسليم
+          {t("transport.handoff.deliver")}
         </Button>
         <Button
           type="button"
@@ -87,7 +89,7 @@ export function TransportHandoffBar({
           ) : (
             <PackageCheck className="h-4 w-4" />
           )}
-          استلام
+          {t("transport.handoff.receive")}
         </Button>
       </div>
       {message && <p className="mt-2 text-center text-xs text-emerald-700">{message}</p>}

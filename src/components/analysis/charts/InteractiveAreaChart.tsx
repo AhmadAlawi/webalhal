@@ -11,6 +11,7 @@ import {
 } from "recharts";
 import { CHART_GRID, CHART_TOOLTIP_STYLE } from "./chartTheme";
 import { formatCurrency, formatNumber } from "@/lib/format";
+import { useI18n } from "@/context/I18nContext";
 
 export interface AreaChartPoint {
   label: string;
@@ -28,8 +29,10 @@ export function InteractiveAreaChart({
   height?: number;
   color?: string;
 }) {
+  const { t } = useI18n();
+
   if (!points.length) {
-    return <p className="py-8 text-center text-sm text-slate-400">لا توجد بيانات</p>;
+    return <p className="py-8 text-center text-sm text-slate-400">{t("analysis.noData")}</p>;
   }
 
   const fmt = isCurrency ? formatCurrency : formatNumber;
@@ -49,7 +52,7 @@ export function InteractiveAreaChart({
         <XAxis dataKey="name" tick={{ fontSize: 10 }} interval="preserveStartEnd" />
         <YAxis tickFormatter={(v) => fmt(v)} tick={{ fontSize: 11 }} width={64} />
         <Tooltip
-          formatter={(v) => [fmt(Number(v)), isCurrency ? "السعر" : "القيمة"]}
+          formatter={(v) => [fmt(Number(v)), isCurrency ? t("analysis.price") : t("analysis.value")]}
           contentStyle={CHART_TOOLTIP_STYLE}
         />
         <Area

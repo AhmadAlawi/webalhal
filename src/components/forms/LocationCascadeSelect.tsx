@@ -1,15 +1,15 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { useI18n } from "@/context/I18nContext";
+import { useLocalizedLabel } from "@/hooks/useLocalizedLabel";
 import {
   getAreasByCity,
   getCitiesByGovernorate,
   getGovernorates,
-  locationLabel,
 } from "@/services/locations";
-import type { LocationSelection } from "@/types/location";
 import type { City } from "@/types/transport";
-import type { Area, Governorate } from "@/types/location";
+import type { Area, Governorate, LocationSelection } from "@/types/location";
 
 const selectClass =
   "rounded-xl border border-gray-200 px-3 py-2.5 text-sm disabled:cursor-not-allowed disabled:bg-slate-100 disabled:text-slate-400";
@@ -23,6 +23,8 @@ export function LocationCascadeSelect({
   onChange: (next: LocationSelection) => void;
   required?: boolean;
 }) {
+  const { t } = useI18n();
+  const { locationLabel } = useLocalizedLabel();
   const [governorates, setGovernorates] = useState<Governorate[]>([]);
   const [cities, setCities] = useState<City[]>([]);
   const [areas, setAreas] = useState<Area[]>([]);
@@ -38,27 +40,57 @@ export function LocationCascadeSelect({
   }, []);
 
   useEffect(() => {
+    let cancelled = false;
     if (!value.governorateId) {
-      setCities([]);
-      return;
+      const timeout = window.setTimeout(() => setCities([]), 0);
+      return () => window.clearTimeout(timeout);
     }
-    setLoadingCity(true);
-    getCitiesByGovernorate(Number(value.governorateId))
-      .then(setCities)
-      .catch(() => setCities([]))
-      .finally(() => setLoadingCity(false));
+
+    const timeout = window.setTimeout(() => {
+      setLoadingCity(true);
+      getCitiesByGovernorate(Number(value.governorateId))
+        .then((next) => {
+          if (!cancelled) setCities(next);
+        })
+        .catch(() => {
+          if (!cancelled) setCities([]);
+        })
+        .finally(() => {
+          if (!cancelled) setLoadingCity(false);
+        });
+    }, 0);
+
+    return () => {
+      cancelled = true;
+      window.clearTimeout(timeout);
+    };
   }, [value.governorateId]);
 
   useEffect(() => {
+    let cancelled = false;
     if (!value.cityId) {
-      setAreas([]);
-      return;
+      const timeout = window.setTimeout(() => setAreas([]), 0);
+      return () => window.clearTimeout(timeout);
     }
-    setLoadingArea(true);
-    getAreasByCity(Number(value.cityId))
-      .then(setAreas)
-      .catch(() => setAreas([]))
-      .finally(() => setLoadingArea(false));
+
+    const timeout = window.setTimeout(() => {
+      setLoadingArea(true);
+      getAreasByCity(Number(value.cityId))
+        .then((next) => {
+          if (!cancelled) setAreas(next);
+        })
+        .catch(() => {
+          if (!cancelled) setAreas([]);
+        })
+        .finally(() => {
+          if (!cancelled) setLoadingArea(false);
+        });
+    }, 0);
+
+    return () => {
+      cancelled = true;
+      window.clearTimeout(timeout);
+    };
   }, [value.cityId]);
 
   function pickGovernorate(id: number | "") {
@@ -97,7 +129,8 @@ export function LocationCascadeSelect({
     <div className="space-y-3">
       <label className="flex flex-col gap-1 text-sm">
         <span className="font-medium text-slate-700">
-          المحافظة{required ? " *" : ""}
+          {t("forms.location.governorate")}
+          {required ? " *" : ""}
         </span>
         <select
           className={selectClass}
@@ -108,7 +141,7 @@ export function LocationCascadeSelect({
             pickGovernorate(e.target.value ? Number(e.target.value) : "")
           }
         >
-          <option value="">اختر المحافظة</option>
+          <option value="">{t("forms.location.selectGovernorate")}</option>
           {governorates.map((g) => (
             <option key={g.governorateId} value={g.governorateId}>
               {locationLabel(g)}
@@ -119,7 +152,8 @@ export function LocationCascadeSelect({
 
       <label className="flex flex-col gap-1 text-sm">
         <span className="font-medium text-slate-700">
-          المدينة{required ? " *" : ""}
+          {t("forms.location.city")}
+          {required ? " *" : ""}
         </span>
         <select
           className={selectClass}
@@ -130,10 +164,10 @@ export function LocationCascadeSelect({
         >
           <option value="">
             {!value.governorateId
-              ? "اختر المحافظة أولاً"
+              ? t("forms.location.selectGovernorateFirst")
               : loadingCity
-                ? "جاري التحميل..."
-                : "اختر المدينة"}
+                ? t("forms.location.loading")
+                : t("forms.location.selectCity")}
           </option>
           {cities.map((c) => (
             <option key={c.cityId} value={c.cityId}>
@@ -145,7 +179,8 @@ export function LocationCascadeSelect({
 
       <label className="flex flex-col gap-1 text-sm">
         <span className="font-medium text-slate-700">
-          المقاطعة{required ? " *" : ""}
+          {t("forms.location.area")}
+          {required ? " *" : ""}
         </span>
         <select
           className={selectClass}
@@ -156,12 +191,12 @@ export function LocationCascadeSelect({
         >
           <option value="">
             {!value.cityId
-              ? "اختر المدينة أولاً"
+              ? t("forms.location.selectCityFirst")
               : loadingArea
-                ? "جاري التحميل..."
+                ? t("forms.location.loading")
                 : areas.length === 0
-                  ? "لا توجد مقاطعات"
-                  : "اختر المقاطعة"}
+                  ? t("forms.location.noAreas")
+                  : t("forms.location.selectArea")}
           </option>
           {areas.map((a) => (
             <option key={a.areaId} value={a.areaId}>
