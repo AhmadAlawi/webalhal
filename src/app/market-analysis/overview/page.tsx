@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import dynamic from "next/dynamic";
 import Link from "next/link";
@@ -6,7 +6,7 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import { PageHeader } from "@/components/ui/PageHeader";
 import { PageContainer } from "@/components/layout/PageContainer";
 import { KpiCardView } from "@/components/analysis/KpiCardView";
-import { SyriaMarketMapDynamic } from "@/components/maps/SyriaMarketMapDynamic";
+import { JordanMarketMapDynamic } from "@/components/maps/JordanMarketMapDynamic";
 import { useDebounce } from "@/hooks/useDebounce";
 
 const MiniSparkline = dynamic(
@@ -29,7 +29,7 @@ const InteractivePieChart = dynamic(
   { ssr: false, loading: () => <div className="h-64 animate-pulse rounded-2xl bg-slate-100" /> },
 );
 import { FadeIn } from "@/components/motion/FadeIn";
-import { mergeGovernorateMapPoints, toMapVolumePoints } from "@/lib/syria-governorates";
+import { mergeGovernorateMapPoints, toMapVolumePoints } from "@/lib/jordan-governorates";
 import {
   getAnalysisFiltersAvailable,
   getDashboardSummary,
@@ -230,9 +230,9 @@ export default function MarketAnalysisOverviewPage() {
               <section className="rounded-2xl border border-gray-100 bg-white p-6 shadow-sm">
                 <h3 className="mb-4 flex items-center gap-2 font-semibold text-slate-800">
                   <Map className="h-5 w-5 text-emerald-600" />
-                  خريطة سوريا التفاعلية — الحجم حسب المحافظة
+                  خريطة الأردن التفاعلية — الحجم حسب المحافظة
                 </h3>
-                <SyriaMarketMapDynamic points={mapPoints} height={400} />
+                <JordanMarketMapDynamic points={mapPoints} height={400} />
               </section>
             </FadeIn>
 

@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import { useState } from "react";
 import { SlidersHorizontal, ChevronDown, ChevronUp } from "lucide-react";
@@ -32,15 +32,15 @@ export function MarketListFilters({
   const { data: categories = [] } = useCategories();
 
   const priceLabel =
-    kind === "auctions" ? "سعر البداية (ل.س)" : kind === "tenders" ? "الميزانية (ل.س)" : "سعر الوحدة (ل.س)";
+    kind === "auctions" ? "سعر البداية (JD)" : kind === "tenders" ? "الميزانية (JD)" : "سعر الوحدة (JD)";
 
   function patch(partial: Partial<MarketListFilterState>) {
     onFiltersChange({ ...filters, page: 1, ...partial });
   }
 
   return (
-    <div className="mb-8 space-y-4">
-      <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
+    <div className="mb-8 rounded-lg border border-[#D7D9E2] bg-white p-4 shadow-[0_12px_28px_rgba(0,6,109,0.06)] md:p-5">
+      <div className="flex flex-col gap-3 lg:flex-row lg:items-center">
         <input
           type="search"
           placeholder={
@@ -52,12 +52,12 @@ export function MarketListFilters({
           }
           value={search}
           onChange={(e) => onSearchChange(e.target.value)}
-          className="w-full flex-1 rounded-xl border border-gray-200 px-4 py-3 focus:border-emerald-500 focus:outline-none focus:ring-2 focus:ring-emerald-500/20"
+          className="w-full flex-1 rounded-lg border border-[#D7D9E2] bg-[#F7F8FB] px-4 py-3.5 text-[#00066D] placeholder:text-[#8D90A0] focus:border-[#00066D] focus:bg-white focus:outline-none focus:ring-2 focus:ring-[#00066D]/15"
         />
         <button
           type="button"
           onClick={() => setOpen((o) => !o)}
-          className="inline-flex items-center justify-center gap-2 rounded-xl border border-gray-200 px-4 py-3 text-sm font-medium text-slate-700 hover:border-emerald-300 hover:bg-emerald-50/50"
+          className="inline-flex items-center justify-center gap-2 rounded-lg border border-[#D7D9E2] bg-white px-4 py-3.5 text-sm font-bold text-[#00066D] hover:border-[#00066D]/30 hover:bg-[#F4F5FF]"
         >
           <SlidersHorizontal className="h-4 w-4" />
           فلاتر متقدمة
@@ -66,11 +66,11 @@ export function MarketListFilters({
       </div>
 
       {open && (
-        <div className="grid gap-4 rounded-2xl border border-gray-200 bg-white p-5 sm:grid-cols-2 lg:grid-cols-3">
+        <div className="mt-4 grid gap-4 border-t border-[#D7D9E2] pt-4 sm:grid-cols-2 lg:grid-cols-4">
           <label className="flex flex-col gap-1 text-sm">
-            <span className="font-medium text-slate-600">التصنيف</span>
+            <span className="font-bold text-[#00066D]">التصنيف</span>
             <select
-              className="rounded-lg border border-gray-200 px-3 py-2"
+              className="rounded-lg border border-[#D7D9E2] px-3 py-2 text-[#00066D] focus:border-[#00066D] focus:outline-none"
               value={filters.categoryId ?? ""}
               onChange={(e) =>
                 patch({
@@ -88,22 +88,22 @@ export function MarketListFilters({
           </label>
 
           <label className="flex flex-col gap-1 text-sm">
-            <span className="font-medium text-slate-600">{priceLabel} — من</span>
+            <span className="font-bold text-[#00066D]">{priceLabel} — من</span>
             <input
               type="number"
               min={0}
-              className="rounded-lg border border-gray-200 px-3 py-2"
+              className="rounded-lg border border-[#D7D9E2] px-3 py-2 text-[#00066D] focus:border-[#00066D] focus:outline-none"
               value={filters.minPrice ?? ""}
               onChange={(e) => patch({ minPrice: e.target.value })}
             />
           </label>
 
           <label className="flex flex-col gap-1 text-sm">
-            <span className="font-medium text-slate-600">{priceLabel} — إلى</span>
+            <span className="font-bold text-[#00066D]">{priceLabel} — إلى</span>
             <input
               type="number"
               min={0}
-              className="rounded-lg border border-gray-200 px-3 py-2"
+              className="rounded-lg border border-[#D7D9E2] px-3 py-2 text-[#00066D] focus:border-[#00066D] focus:outline-none"
               value={filters.maxPrice ?? ""}
               onChange={(e) => patch({ maxPrice: e.target.value })}
             />
@@ -112,19 +112,19 @@ export function MarketListFilters({
           {(kind === "auctions" || kind === "tenders") && (
             <>
               <label className="flex flex-col gap-1 text-sm">
-                <span className="font-medium text-slate-600">يبدأ بعد</span>
+                <span className="font-bold text-[#00066D]">يبدأ بعد</span>
                 <input
                   type="datetime-local"
-                  className="rounded-lg border border-gray-200 px-3 py-2"
+                  className="rounded-lg border border-[#D7D9E2] px-3 py-2 text-[#00066D] focus:border-[#00066D] focus:outline-none"
                   value={filters.startTimeFrom ?? ""}
                   onChange={(e) => patch({ startTimeFrom: e.target.value })}
                 />
               </label>
               <label className="flex flex-col gap-1 text-sm">
-                <span className="font-medium text-slate-600">ينتهي قبل</span>
+                <span className="font-bold text-[#00066D]">ينتهي قبل</span>
                 <input
                   type="datetime-local"
-                  className="rounded-lg border border-gray-200 px-3 py-2"
+                  className="rounded-lg border border-[#D7D9E2] px-3 py-2 text-[#00066D] focus:border-[#00066D] focus:outline-none"
                   value={filters.endTimeTo ?? ""}
                   onChange={(e) => patch({ endTimeTo: e.target.value })}
                 />
@@ -133,9 +133,9 @@ export function MarketListFilters({
           )}
 
           <label className="flex flex-col gap-1 text-sm">
-            <span className="font-medium text-slate-600">ترتيب حسب</span>
+            <span className="font-bold text-[#00066D]">ترتيب حسب</span>
             <select
-              className="rounded-lg border border-gray-200 px-3 py-2"
+              className="rounded-lg border border-[#D7D9E2] px-3 py-2 text-[#00066D] focus:border-[#00066D] focus:outline-none"
               value={filters.sortBy ?? ""}
               onChange={(e) => patch({ sortBy: e.target.value || undefined })}
             >
@@ -148,9 +148,9 @@ export function MarketListFilters({
           </label>
 
           <label className="flex flex-col gap-1 text-sm">
-            <span className="font-medium text-slate-600">اتجاه الترتيب</span>
+            <span className="font-bold text-[#00066D]">اتجاه الترتيب</span>
             <select
-              className="rounded-lg border border-gray-200 px-3 py-2"
+              className="rounded-lg border border-[#D7D9E2] px-3 py-2 text-[#00066D] focus:border-[#00066D] focus:outline-none"
               value={filters.sortOrder ?? "desc"}
               onChange={(e) =>
                 patch({ sortOrder: (e.target.value as "asc" | "desc") || "desc" })
@@ -162,9 +162,9 @@ export function MarketListFilters({
           </label>
 
           <label className="flex flex-col gap-1 text-sm">
-            <span className="font-medium text-slate-600">عدد النتائج</span>
+            <span className="font-bold text-[#00066D]">عدد النتائج</span>
             <select
-              className="rounded-lg border border-gray-200 px-3 py-2"
+              className="rounded-lg border border-[#D7D9E2] px-3 py-2 text-[#00066D] focus:border-[#00066D] focus:outline-none"
               value={filters.pageSize ?? DEFAULT_PAGE_SIZE}
               onChange={(e) => patch({ pageSize: Number(e.target.value) })}
             >
@@ -176,10 +176,10 @@ export function MarketListFilters({
             </select>
           </label>
 
-          <div className="flex items-end gap-2 sm:col-span-2 lg:col-span-3">
+          <div className="flex items-end gap-2 sm:col-span-2 lg:col-span-4">
             <button
               type="button"
-              className="rounded-lg border border-gray-200 px-4 py-2 text-sm text-slate-600 hover:bg-slate-50"
+              className="rounded-lg border border-[#D7D9E2] px-4 py-2 text-sm font-bold text-[#777B8F] hover:bg-[#F7F8FB]"
               onClick={() =>
                 onFiltersChange({ page: 1, pageSize: DEFAULT_PAGE_SIZE, sortOrder: "desc" })
               }
@@ -189,7 +189,7 @@ export function MarketListFilters({
             {filters.page != null && filters.page > 1 && (
               <button
                 type="button"
-                className="rounded-lg border border-gray-200 px-4 py-2 text-sm"
+                className="rounded-lg border border-[#D7D9E2] px-4 py-2 text-sm font-bold text-[#00066D]"
                 onClick={() => patch({ page: (filters.page ?? 2) - 1 })}
               >
                 السابق
@@ -197,7 +197,7 @@ export function MarketListFilters({
             )}
             <button
               type="button"
-              className="rounded-lg bg-emerald-600 px-4 py-2 text-sm font-medium text-white hover:bg-emerald-700"
+              className="rounded-lg bg-[#00066D] px-4 py-2 text-sm font-bold text-white hover:bg-[#00044F]"
               onClick={() => patch({ page: (filters.page ?? 1) + 1 })}
             >
               الصفحة التالية

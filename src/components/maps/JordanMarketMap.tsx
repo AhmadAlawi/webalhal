@@ -1,21 +1,20 @@
 "use client";
 
 import { useEffect, useMemo } from "react";
-import { MapContainer, TileLayer, CircleMarker, Popup, GeoJSON, Tooltip, useMap } from "react-leaflet";
+import { MapContainer, TileLayer, CircleMarker, Popup, Tooltip, useMap } from "react-leaflet";
 import type { LatLngBoundsExpression } from "leaflet";
-import type { MapVolumePoint } from "@/lib/syria-governorates";
+import type { MapVolumePoint } from "@/lib/jordan-governorates";
 import {
-  SYRIA_MAP_BOUNDS,
-  getSyriaMapDefaults,
+  JORDAN_MAP_BOUNDS,
+  getJordanMapDefaults,
   mergeGovernorateMapPoints,
-} from "@/lib/syria-governorates";
+} from "@/lib/jordan-governorates";
 import { formatNumber } from "@/lib/format";
-import syriaOutline from "@/data/syria-outline.json";
 import "leaflet/dist/leaflet.css";
 
-function SyriaMapView({ hasVolumeData }: { hasVolumeData: boolean }) {
+function JordanMapView({ hasVolumeData }: { hasVolumeData: boolean }) {
   const map = useMap();
-  const { center, zoom } = getSyriaMapDefaults();
+  const { center, zoom } = getJordanMapDefaults();
 
   useEffect(() => {
     if (hasVolumeData) return;
@@ -46,14 +45,7 @@ function radiusForVolume(volume: number, max: number) {
   return min + (volume / max) * (maxR - min);
 }
 
-const syriaBorderStyle = {
-  color: "#047857",
-  weight: 2,
-  fillColor: "#10b981",
-  fillOpacity: 0.1,
-};
-
-export function SyriaMarketMap({
+export function JordanMarketMap({
   points,
   height = 360,
   className = "",
@@ -62,7 +54,7 @@ export function SyriaMarketMap({
   height?: number;
   className?: string;
 }) {
-  const { center, zoom } = getSyriaMapDefaults();
+  const { center, zoom } = getJordanMapDefaults();
   const displayPoints = useMemo(() => mergeGovernorateMapPoints(points), [points]);
   const volumePoints = useMemo(
     () => displayPoints.filter((p) => p.volume > 0),
@@ -85,7 +77,7 @@ export function SyriaMarketMap({
         zoom={zoom}
         minZoom={6}
         maxZoom={10}
-        maxBounds={SYRIA_MAP_BOUNDS as LatLngBoundsExpression}
+        maxBounds={JORDAN_MAP_BOUNDS as LatLngBoundsExpression}
         maxBoundsViscosity={1}
         scrollWheelZoom
         className="h-full w-full z-0"
@@ -95,11 +87,7 @@ export function SyriaMarketMap({
           attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
           url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
         />
-        <GeoJSON
-          data={syriaOutline as GeoJSON.FeatureCollection}
-          style={syriaBorderStyle}
-        />
-        <SyriaMapView hasVolumeData={hasVolumeData} />
+        <JordanMapView hasVolumeData={hasVolumeData} />
         {hasVolumeData && <FitVolumeBounds points={displayPoints} />}
         {displayPoints.map((p) => {
           const active = p.volume > 0;
@@ -109,8 +97,8 @@ export function SyriaMarketMap({
               center={[p.lat, p.lng]}
               radius={radiusForVolume(p.volume, maxVol)}
               pathOptions={{
-                color: active ? "#047857" : "#94a3b8",
-                fillColor: active ? "#10b981" : "#cbd5e1",
+                color: active ? "#00044F" : "#94a3b8",
+                fillColor: active ? "#FF9900" : "#cbd5e1",
                 fillOpacity: active ? 0.55 : 0.35,
                 weight: active ? 2 : 1,
               }}
@@ -121,7 +109,7 @@ export function SyriaMarketMap({
                   direction="top"
                   offset={[0, -8]}
                   opacity={1}
-                  className="!rounded-lg !border !border-emerald-200 !bg-white !px-2 !py-1 !text-[11px] !font-semibold !text-emerald-800 !shadow"
+                  className="!rounded-lg !border !border-orange-200 !bg-white !px-2 !py-1 !text-[11px] !font-semibold !text-[#00044F] !shadow"
                 >
                   {formatNumber(p.volume)}
                 </Tooltip>

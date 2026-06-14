@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
@@ -397,24 +397,24 @@ export default function AuctionJoinPage() {
               <div className="rounded-3xl border border-emerald-100 bg-gradient-to-b from-emerald-50/80 to-white p-6 text-center shadow-sm">
                 <p className="text-sm text-slate-500">السعر الحالي</p>
                 <p className="text-4xl font-bold text-emerald-600">
-                  {formatPrice(pricing.currentPriceTotal)} ل.س
+                  {formatPrice(pricing.currentPriceTotal)} JD
                 </p>
                 {pricing.currentPricePerUnit > 0 && (
                   <p className="mt-1 text-sm text-slate-500">
-                    {formatPrice(pricing.currentPricePerUnit)} ل.س / {pricing.unit}
+                    {formatPrice(pricing.currentPricePerUnit)} JD / {pricing.unit}
                   </p>
                 )}
                 {pricing.maxPriceTotal != null && (
                   <p className="mt-2 text-xs font-medium text-amber-700">
-                    السقف الأعلى: {formatPrice(pricing.maxPriceTotal)} ل.س
+                    السقف الأعلى: {formatPrice(pricing.maxPriceTotal)} JD
                   </p>
                 )}
                 <p className="mt-2 text-xs text-slate-500">
                   {auctionEnded
                     ? endState.message
                     : isNearMaxPrice(pricing)
-                      ? `قرب السقف — يمكن المزايدة بمبالغ صغيرة حتى ${formatPrice(getMaxBidInput(pricing) ?? pricing.maxPriceTotal ?? 0)} ل.س`
-                      : `أقل مزايدة تالية: ${formatPrice(getMinNextBid(pricing))} ل.س`}
+                      ? `قرب السقف — يمكن المزايدة بمبالغ صغيرة حتى ${formatPrice(getMaxBidInput(pricing) ?? pricing.maxPriceTotal ?? 0)} JD`
+                      : `أقل مزايدة تالية: ${formatPrice(getMinNextBid(pricing))} JD`}
                 </p>
               </div>
             )}

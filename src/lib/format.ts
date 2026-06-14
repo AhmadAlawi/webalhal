@@ -1,11 +1,11 @@
-export function formatNumber(n?: number | null): string {
+﻿export function formatNumber(n?: number | null): string {
   if (n == null || Number.isNaN(n)) return "—";
-  return new Intl.NumberFormat("ar-SY", { maximumFractionDigits: 0 }).format(n);
+  return new Intl.NumberFormat("ar-JO", { maximumFractionDigits: 0 }).format(n);
 }
 
 export function formatCurrency(n?: number | null): string {
   if (n == null || Number.isNaN(n)) return "—";
-  return `${formatNumber(n)} ل.س`;
+  return `${formatNumber(n)} JD`;
 }
 
 export function formatPercent(n?: number | null): string {

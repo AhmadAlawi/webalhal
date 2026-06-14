@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import { useEffect, useState } from "react";
 import { useParams } from "next/navigation";
@@ -130,7 +130,7 @@ export default function TenderDetailPage() {
           )}
           {tender.maxBudget != null && (
             <p className="mt-1 font-bold text-emerald-600">
-              الميزانية: {formatPrice(tender.maxBudget)} ل.س
+              الميزانية: {formatPrice(tender.maxBudget)} JD
             </p>
           )}
           {tender.deliveryLocation && (
@@ -192,7 +192,7 @@ export default function TenderDetailPage() {
                     <div>
                       <p className="font-medium">{o.supplierName || "مورّد"}</p>
                       <p className="font-bold text-emerald-600">
-                        {formatPrice(o.price ?? 0)} ل.س
+                        {formatPrice(o.price ?? 0)} JD
                         {o.quantityOffered != null && (
                           <span className="ms-2 text-sm font-normal text-slate-500">
                             · {o.quantityOffered} وحدة

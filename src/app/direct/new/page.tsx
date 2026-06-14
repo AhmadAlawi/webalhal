@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import { Suspense, useCallback, useEffect, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
@@ -182,7 +182,7 @@ function NewDirectListingForm() {
           {step === 2 && (
             <>
               <Input
-                label="السعر الإجمالي (ل.س)"
+                label="السعر الإجمالي (JD)"
                 type="number"
                 min={1}
                 value={totalPrice}
@@ -193,7 +193,7 @@ function NewDirectListingForm() {
                 <p className="rounded-xl bg-slate-50 px-4 py-2.5 text-sm text-slate-700">
                   سعر الوحدة:{" "}
                   <span className="font-semibold text-emerald-700">
-                    {formatPrice(computedUnitPrice)} ل.س / {unit}
+                    {formatPrice(computedUnitPrice)} JD / {unit}
                   </span>
                 </p>
               )}
@@ -244,12 +244,12 @@ function NewDirectListingForm() {
                 </div>
                 <div className="flex justify-between gap-4">
                   <dt className="text-slate-500">السعر الإجمالي</dt>
-                  <dd className="font-medium">{formatPrice(totalNum)} ل.س</dd>
+                  <dd className="font-medium">{formatPrice(totalNum)} JD</dd>
                 </div>
                 <div className="flex justify-between gap-4">
                   <dt className="text-slate-500">سعر الوحدة</dt>
                   <dd>
-                    {formatPrice(computedUnitPrice)} ل.س / {unit}
+                    {formatPrice(computedUnitPrice)} JD / {unit}
                   </dd>
                 </div>
                 <div className="flex justify-between gap-4">

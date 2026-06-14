@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import { Suspense, useCallback, useEffect, useMemo, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
@@ -310,7 +310,7 @@ function CreateAuctionForm() {
             <>
               <p className="text-sm text-slate-600">تفاصيل المزاد والصور</p>
               <Input
-                label="سعر البداية (ل.س)"
+                label="سعر البداية (JD)"
                 type="number"
                 value={startingPrice}
                 onChange={(e) => setStartingPrice(e.target.value)}

@@ -32,12 +32,12 @@ export const Button = forwardRef<HTMLButtonElement, ButtonProps>(
           size === "md" && "px-6 py-3 text-base",
           size === "lg" && "px-8 py-4 text-lg",
           variant === "primary" &&
-            "bg-emerald-600 text-white hover:bg-emerald-700 shadow-sm",
+            "bg-[#00066D] text-white shadow-[0_10px_22px_rgba(0,6,109,0.16)] hover:bg-[#00044F]",
           variant === "secondary" &&
-            "bg-emerald-50 text-emerald-700 hover:bg-emerald-100",
+            "bg-[#FFF3DC] text-[#8B5A00] hover:bg-[#FFE2AD]",
           variant === "outline" &&
-            "border-2 border-emerald-600 text-emerald-600 hover:bg-emerald-50",
-          variant === "ghost" && "text-emerald-600 hover:bg-emerald-50",
+            "border-2 border-[#00066D] text-[#00066D] hover:bg-[#F4F5FF]",
+          variant === "ghost" && "text-[#00066D] hover:bg-[#F4F5FF]",
           className,
         )}
         {...props}

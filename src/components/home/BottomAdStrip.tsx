@@ -32,10 +32,10 @@ function BottomAdCard({ ad }: { ad: Advertisement }) {
   }
 
   const shell = (
-    <div className="relative aspect-[3/2] overflow-hidden rounded-xl border border-gray-100 bg-white shadow-sm transition hover:shadow-md">
+    <div className="relative aspect-[3/2] overflow-hidden rounded-lg border border-[#D7D9E2] bg-white shadow-sm transition hover:-translate-y-0.5 hover:border-[#00066D]/20 hover:shadow-md">
       {img}
       {ad.title && (
-        <p className="absolute bottom-0 inset-x-0 truncate bg-black/50 px-2 py-1 text-center text-xs text-white">
+        <p className="absolute bottom-0 inset-x-0 truncate bg-[#00066D]/82 px-2 py-1.5 text-center text-xs font-bold text-white">
           {ad.title}
         </p>
       )}
@@ -69,9 +69,14 @@ export function BottomAdStrip({ ads }: { ads: Advertisement[] }) {
   if (!ads.length) return null;
 
   return (
-    <section className="border-t border-gray-100 bg-slate-50 py-10">
+    <section className="border-t border-[#D7D9E2] bg-white py-10">
       <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
-        <h2 className="mb-4 text-lg font-bold text-slate-800">إعلانات وشركاء</h2>
+        <div className="mb-5 flex items-center justify-between gap-4">
+          <div>
+            <p className="text-sm font-extrabold text-[#8B5A00]">مساحات إعلانية</p>
+            <h2 className="mt-1 text-2xl font-extrabold text-[#00066D]">إعلانات وشركاء</h2>
+          </div>
+        </div>
         <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-6">
           {ads.map((ad) => (
             <BottomAdCard key={ad.advertisementId} ad={ad} />

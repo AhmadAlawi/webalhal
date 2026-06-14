@@ -51,9 +51,6 @@ export function MarketListings({
     const ac = new AbortController();
     abortRef.current = ac;
 
-    setLoading(true);
-    setError(null);
-
     const kind = tab === "auctions" ? "auctions" : tab === "tenders" ? "tenders" : "direct";
     const extra = listFilters ? filtersToQueryParams(listFilters, kind) : {};
     const params = buildMarketListParams(
@@ -64,6 +61,8 @@ export function MarketListings({
 
     const load = async () => {
       if (ac.signal.aborted) return;
+      setLoading(true);
+      setError(null);
 
       if (source === "open") {
         if (tab === "auctions") {
@@ -109,7 +108,7 @@ export function MarketListings({
   if (loading) {
     return (
       <div className="flex justify-center py-12">
-        <div className="h-8 w-8 animate-spin rounded-full border-4 border-emerald-600 border-t-transparent" />
+        <div className="h-8 w-8 animate-spin rounded-full border-4 border-[#00066D] border-t-transparent" />
       </div>
     );
   }
@@ -120,7 +119,7 @@ export function MarketListings({
 
   if (!items.length) {
     return (
-      <div className="card py-16 text-center">
+      <div className="rounded-lg border border-[#D7D9E2] bg-white py-16 text-center shadow-[0_12px_28px_rgba(0,6,109,0.06)]">
         <p className="text-lg font-medium text-slate-700">لا توجد عروض حالياً</p>
         <p className="mt-2 text-sm text-slate-500">جرّب تغيير البحث أو التصنيف</p>
       </div>
@@ -128,7 +127,13 @@ export function MarketListings({
   }
 
   return (
-    <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+    <div
+      className={
+        source === "browse"
+          ? "grid grid-cols-1 gap-5 md:grid-cols-2 xl:grid-cols-3"
+          : "grid grid-cols-1 gap-5 md:grid-cols-2 xl:grid-cols-3"
+      }
+    >
       {tab === "auctions" &&
         auctions.map((a) => (
           <ListingCard

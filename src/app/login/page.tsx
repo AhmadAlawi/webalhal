@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import { useState } from "react";
 import Link from "next/link";
@@ -44,17 +44,17 @@ export default function LoginPage() {
   return (
     <AuthCard
       title="تسجيل الدخول"
-      subtitle="مرحباً بعودتك إلى رزق — سوق الهال"
+      subtitle="مرحباً بعودتك إلى بركة — سوق الهال"
       footer={
         <>
           <p className="mt-6 text-center text-sm">
-            <Link href="/forgot-password" className="font-medium text-emerald-600 hover:underline">
+            <Link href="/forgot-password" className="font-medium text-[#00066D] hover:underline">
               نسيت كلمة المرور؟
             </Link>
           </p>
           <p className="mt-3 text-center text-sm text-slate-600">
             ليس لديك حساب؟{" "}
-            <Link href="/register" className="font-semibold text-emerald-600 hover:underline">
+            <Link href="/register" className="font-semibold text-[#00066D] hover:underline">
               إنشاء حساب
             </Link>
           </p>

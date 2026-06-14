@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import { useEffect, useState } from "react";
 import { useParams } from "next/navigation";
@@ -111,7 +111,7 @@ export default function TransportInboxDetailPage() {
                   disabled={providerLocked}
                 />
                 <Input
-                  label="السعر المقترح (ل.س)"
+                  label="السعر المقترح (JD)"
                   type="number"
                   value={price}
                   onChange={(e) => setPrice(e.target.value)}

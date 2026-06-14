@@ -1,12 +1,12 @@
 export const CHART_COLORS = [
-  "#059669",
-  "#10b981",
-  "#34d399",
-  "#047857",
-  "#065f46",
-  "#6ee7b7",
-  "#14b8a6",
-  "#0d9488",
+  "#00066D",
+  "#FF9900",
+  "#2E35A6",
+  "#8B5A00",
+  "#777B8F",
+  "#FFB13B",
+  "#00044F",
+  "#D7D9E2",
 ];
 
 export const CHART_TOOLTIP_STYLE = {

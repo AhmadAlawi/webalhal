@@ -38,6 +38,22 @@ export async function getAppAds(): Promise<Advertisement[]> {
   try {
     return await fetchAdvertisementList(`${API.ads.app}?enabledOnly=true`);
   } catch {
+    try {
+      return await fetchAdvertisementList(`/api/Advertisement/app?enabledOnly=true`);
+    } catch {
+      return [];
+    }
+  }
+}
+
+/** GET /api/Advertisement/mobile/header — مطابق لمصدر إعلانات تطبيق الموبايل */
+export async function getMobileHeaderAds(categoryId?: number | null): Promise<Advertisement[]> {
+  const q = new URLSearchParams();
+  if (categoryId && categoryId > 0) q.set("CategoryId", String(categoryId));
+  const suffix = q.toString() ? `?${q}` : "";
+  try {
+    return await fetchAdvertisementList(`/api/Advertisement/mobile/header${suffix}`);
+  } catch {
     return [];
   }
 }
@@ -47,7 +63,11 @@ export async function getBottomAds(): Promise<Advertisement[]> {
   try {
     return await fetchAdvertisementList(`${API.ads.appBottom}?enabledOnly=true`);
   } catch {
-    return [];
+    try {
+      return await fetchAdvertisementList(`/api/Advertisement/app/bottom?enabledOnly=true`);
+    } catch {
+      return [];
+    }
   }
 }
 

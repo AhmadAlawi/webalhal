@@ -1,4 +1,4 @@
-/** إحداثيات تقريبية لمراكز المحافظات السورية */
+/** إحداثيات تقريبية لمراكز المحافظات الأردنية */
 export interface GovernorateCoords {
   id?: number;
   lat: number;
@@ -7,30 +7,28 @@ export interface GovernorateCoords {
   aliases: string[];
 }
 
-export const SYRIA_GOVERNORATES: GovernorateCoords[] = [
-  { id: 1, lat: 33.5138, lng: 36.2765, nameAr: "دمشق", aliases: ["damascus", "دمشق"] },
-  { id: 2, lat: 33.45, lng: 36.85, nameAr: "ريف دمشق", aliases: ["rif dimashq", "ريف دمشق", "الريف"] },
-  { id: 3, lat: 36.2021, lng: 37.1343, nameAr: "حلب", aliases: ["aleppo", "حلب"] },
-  { id: 4, lat: 34.7244, lng: 36.7138, nameAr: "حمص", aliases: ["homs", "حمص"] },
-  { id: 5, lat: 35.1318, lng: 36.7577, nameAr: "حماة", aliases: ["hama", "حماة"] },
-  { id: 6, lat: 35.5317, lng: 35.7918, nameAr: "اللاذقية", aliases: ["latakia", "lattakia", "اللاذقية"] },
-  { id: 7, lat: 34.8833, lng: 35.8833, nameAr: "طرطوس", aliases: ["tartus", "طرطوس"] },
-  { id: 8, lat: 35.9306, lng: 36.6339, nameAr: "إدلب", aliases: ["idlib", "إدلب"] },
-  { id: 9, lat: 35.9594, lng: 39.0023, nameAr: "الرقة", aliases: ["raqqa", "الرقة"] },
-  { id: 10, lat: 35.3359, lng: 40.1408, nameAr: "دير الزور", aliases: ["deir ez-zor", "deir al-zor", "دير الزور"] },
-  { id: 11, lat: 36.5073, lng: 40.7477, nameAr: "الحسكة", aliases: ["hasakah", "al-hasakah", "الحسكة"] },
-  { id: 12, lat: 32.6189, lng: 36.1021, nameAr: "درعا", aliases: ["daraa", "درعا"] },
-  { id: 13, lat: 32.7094, lng: 36.5695, nameAr: "السويداء", aliases: ["suwayda", "as-suwayda", "السويداء"] },
-  { id: 14, lat: 33.126, lng: 35.8245, nameAr: "القنيطرة", aliases: ["quneitra", "القنيطرة"] },
+export const JORDAN_GOVERNORATES: GovernorateCoords[] = [
+  { id: 1, lat: 31.9539, lng: 35.9106, nameAr: "عمّان", aliases: ["amman", "عمان", "عمّان"] },
+  { id: 2, lat: 32.5556, lng: 35.85, nameAr: "إربد", aliases: ["irbid", "اربد", "إربد"] },
+  { id: 3, lat: 32.0833, lng: 36.1, nameAr: "الزرقاء", aliases: ["zarqa", "الزرقاء"] },
+  { id: 4, lat: 32.0392, lng: 35.7272, nameAr: "البلقاء", aliases: ["balqa", "salt", "السلط", "البلقاء"] },
+  { id: 5, lat: 31.716, lng: 35.793, nameAr: "مادبا", aliases: ["madaba", "مادبا"] },
+  { id: 6, lat: 31.185, lng: 35.704, nameAr: "الكرك", aliases: ["karak", "الكرك"] },
+  { id: 7, lat: 30.8375, lng: 35.6044, nameAr: "الطفيلة", aliases: ["tafilah", "tafila", "الطفيلة"] },
+  { id: 8, lat: 30.196, lng: 35.734, nameAr: "معان", aliases: ["maan", "ma'an", "معان"] },
+  { id: 9, lat: 29.532, lng: 35.006, nameAr: "العقبة", aliases: ["aqaba", "العقبة"] },
+  { id: 10, lat: 32.276, lng: 35.899, nameAr: "جرش", aliases: ["jerash", "جرش"] },
+  { id: 11, lat: 32.333, lng: 35.752, nameAr: "عجلون", aliases: ["ajloun", "ajlun", "عجلون"] },
+  { id: 12, lat: 32.3429, lng: 36.208, nameAr: "المفرق", aliases: ["mafraq", "المفرق"] },
 ];
 
-const SYRIA_CENTER = { lat: 34.8021, lng: 38.9968 };
+const JORDAN_CENTER = { lat: 31.2458, lng: 36.5852 };
 const DEFAULT_ZOOM = 7;
 
-/** حدود عرض الخريطة — الإبقاء على سوريا فقط */
-export const SYRIA_MAP_BOUNDS: [[number, number], [number, number]] = [
-  [32.2, 35.5],
-  [37.4, 42.5],
+/** حدود عرض الخريطة حول الأردن */
+export const JORDAN_MAP_BOUNDS: [[number, number], [number, number]] = [
+  [29.0, 34.7],
+  [33.7, 39.5],
 ];
 
 function normalizeKey(s?: string): string {
@@ -48,13 +46,13 @@ export function resolveGovernorateCoords(
   name?: string,
 ): GovernorateCoords | null {
   if (governorateId != null) {
-    const byId = SYRIA_GOVERNORATES.find((g) => g.id === governorateId);
+    const byId = JORDAN_GOVERNORATES.find((g) => g.id === governorateId);
     if (byId) return byId;
   }
   const key = normalizeKey(name);
   if (!key) return null;
   return (
-    SYRIA_GOVERNORATES.find(
+    JORDAN_GOVERNORATES.find(
       (g) =>
         normalizeKey(g.nameAr) === key ||
         g.aliases.some((a) => normalizeKey(a) === key || key.includes(normalizeKey(a))),
@@ -62,8 +60,8 @@ export function resolveGovernorateCoords(
   );
 }
 
-export function getSyriaMapDefaults() {
-  return { center: SYRIA_CENTER, zoom: DEFAULT_ZOOM };
+export function getJordanMapDefaults() {
+  return { center: JORDAN_CENTER, zoom: DEFAULT_ZOOM };
 }
 
 export interface MapVolumePoint {
@@ -82,7 +80,7 @@ export function registerApiGovernorateNames(
     const name = gov.nameAr ?? gov.name;
     if (!name?.trim()) continue;
 
-    let entry = id != null ? SYRIA_GOVERNORATES.find((g) => g.id === id) : undefined;
+    let entry = id != null ? JORDAN_GOVERNORATES.find((g) => g.id === id) : undefined;
     if (!entry) entry = resolveGovernorateCoords(undefined, name) ?? undefined;
     if (!entry) continue;
 
@@ -114,13 +112,13 @@ export function toMapVolumePoints(
   return points;
 }
 
-/** دمج بيانات الحجم مع كل محافظات سوريا لعرض خريطة كاملة */
+/** دمج بيانات الحجم مع كل محافظات الأردن لعرض خريطة كاملة */
 export function mergeGovernorateMapPoints(volumePoints: MapVolumePoint[]): MapVolumePoint[] {
   const byId = new Map<number, MapVolumePoint>();
   for (const p of volumePoints) {
     if (p.governorateId != null) byId.set(p.governorateId, p);
   }
-  return SYRIA_GOVERNORATES.filter((g) => g.id != null).map((g) => {
+  return JORDAN_GOVERNORATES.filter((g) => g.id != null).map((g) => {
     const existing = byId.get(g.id!);
     return (
       existing ?? {

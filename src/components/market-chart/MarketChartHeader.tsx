@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import Link from "next/link";
 import { RefreshCw, BarChart2 } from "lucide-react";
@@ -68,7 +68,7 @@ export function MarketChartHeader({
             <BarChart2 className="h-6 w-6 text-emerald-400" />
             <div>
               <h1 className="text-lg font-bold text-white">مخطط السوق — سعر الوحدة</h1>
-              <p className="text-xs text-slate-400">ل.س / كغ — بيانات SalesTransactions</p>
+              <p className="text-xs text-slate-400">JD / كغ — بيانات SalesTransactions</p>
             </div>
           </div>
           <Link
@@ -175,7 +175,7 @@ export function MarketChartHeader({
             <div>
               <span className="text-sm text-slate-400">{productName || "—"}</span>
               <p className="text-2xl font-bold text-white">{formatCurrency(lastPrice)}</p>
-              <span className="text-xs text-slate-500">ل.س / كغ</span>
+              <span className="text-xs text-slate-500">JD / كغ</span>
             </div>
             <div>
               <span className="text-xs text-slate-400">تغير السعر</span>
@@ -197,7 +197,7 @@ export function MarketChartHeader({
             <div>
               <span className="text-xs text-slate-400">التذبذب</span>
               <p className="text-lg font-semibold text-slate-200">
-                {formatNumber(volatility)} ل.س/كغ
+                {formatNumber(volatility)} JD/كغ
               </p>
             </div>
           </div>

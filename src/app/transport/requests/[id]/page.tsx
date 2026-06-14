@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import { useEffect, useState } from "react";
 import { useParams } from "next/navigation";
@@ -175,7 +175,7 @@ export default function TransportRequestDetailPage() {
             <ul className="space-y-2 rounded-xl border bg-white p-4">
               {tracking.map((p, i) => (
                 <li key={p.trackingId ?? i} className="text-sm text-slate-600">
-                  {p.recordedAt && new Date(p.recordedAt).toLocaleString("ar-SY")}
+                  {p.recordedAt && new Date(p.recordedAt).toLocaleString("ar-JO")}
                   {p.latitude != null && p.longitude != null && (
                     <span className="ms-2">
                       ({p.latitude.toFixed(4)}, {p.longitude.toFixed(4)})

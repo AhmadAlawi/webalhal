@@ -14,7 +14,7 @@ export async function getFilteredTenders(params?: Record<string, string>) {
   const qs = params && Object.keys(params).length ? `?${new URLSearchParams(params)}` : "";
   try {
     const data = await apiGet<Tender[] | { items: Tender[] }>(
-      `/api/tenders/filtered${qs}`,
+      `/api/tenders${qs}`,
     );
     return Array.isArray(data) ? data : data?.items ?? [];
   } catch {

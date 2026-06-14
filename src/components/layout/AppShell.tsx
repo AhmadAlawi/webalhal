@@ -5,6 +5,7 @@ import { usePathname } from "next/navigation";
 import { SiteHeader } from "./SiteHeader";
 import { SiteFooter } from "./SiteFooter";
 import { RizqLogo } from "@/components/brand/RizqLogo";
+import { MobileBottomNav } from "./MobileBottomNav";
 
 const AUTH_LAYOUT = ["/login", "/register", "/forgot-password"];
 
@@ -20,7 +21,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
             <RizqLogo size="md" />
             <Link
               href="/"
-              className="text-sm font-medium text-slate-600 hover:text-emerald-600"
+              className="text-sm font-medium text-[#777B8F] hover:text-[#00066D]"
             >
               الرئيسية
             </Link>
@@ -35,8 +36,11 @@ export function AppShell({ children }: { children: React.ReactNode }) {
   return (
     <div className="flex min-h-screen flex-col">
       <SiteHeader />
-      <main className="page-bg flex-1">{children}</main>
-      <SiteFooter />
+      <main className="page-bg flex-1 pb-24 md:pb-0">{children}</main>
+      <MobileBottomNav />
+      <div className="hidden md:block">
+        <SiteFooter />
+      </div>
     </div>
   );
 }

@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import Link from "next/link";
 import {
@@ -34,7 +34,7 @@ const MENU = [
   { href: "/transport/inbox", label: "وارد النقل", icon: Truck, desc: "طلبات وعروض", roles: [UserRole.Transport] },
   { href: "/farms", label: "مزارعي", icon: User, desc: "إدارة المزارع", roles: [UserRole.Farmer] },
   { href: "/tickets", label: "الدعم", icon: Ticket, desc: "مساعدة فنية", auth: true },
-  { href: "/about", label: "عن التطبيق", icon: Info, desc: "رزق — سوق الهال" },
+  { href: "/about", label: "عن التطبيق", icon: Info, desc: "بركة — سوق الهال" },
 ];
 
 export default function AccountPage() {
@@ -51,7 +51,7 @@ export default function AccountPage() {
     <div className="py-10 lg:py-14">
       <PageContainer>
         <div className="card overflow-hidden p-0">
-          <div className="bg-gradient-to-l from-emerald-800 via-emerald-700 to-emerald-600 px-8 py-10 text-white lg:px-12">
+          <div className="bg-gradient-to-l from-[#00044F] via-[#00066D] to-[#1B217F] px-8 py-10 text-white lg:px-12">
             <div className="flex flex-col gap-6 sm:flex-row sm:items-center">
               <span className="flex h-20 w-20 shrink-0 items-center justify-center rounded-2xl bg-white/20 text-3xl font-bold">
                 {user?.fullName?.[0] ?? "؟"}
@@ -60,7 +60,7 @@ export default function AccountPage() {
                 <h1 className="text-2xl font-bold lg:text-3xl">
                   {isAuthenticated ? user?.fullName || "حسابي" : "مرحباً بك"}
                 </h1>
-                <p className="mt-1 text-emerald-100">
+                <p className="mt-1 text-[#F4F5FF]">
                   {isAuthenticated
                     ? roleName
                       ? `${roleLabel} (${roleName})`
@@ -102,10 +102,10 @@ export default function AccountPage() {
                     href={m.href}
                     className="card card-hover flex items-start gap-4 p-5"
                   >
-                    <m.icon className="mt-0.5 h-6 w-6 shrink-0 text-emerald-600" />
+                    <m.icon className="mt-0.5 h-6 w-6 shrink-0 text-[#FF9900]" />
                     <span>
-                      <span className="block font-semibold text-slate-900">{m.label}</span>
-                      <span className="mt-0.5 block text-sm text-slate-500">{m.desc}</span>
+                      <span className="block font-semibold text-[#00066D]">{m.label}</span>
+                      <span className="mt-0.5 block text-sm text-[#777B8F]">{m.desc}</span>
                     </span>
                   </Link>
                 ))}

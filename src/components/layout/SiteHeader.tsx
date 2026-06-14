@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { useHeaderBadges } from "@/hooks/useHeaderBadges";
 import {
   Menu,
@@ -15,6 +15,7 @@ import {
   Gavel,
   FileText,
   ShoppingBag,
+  Search,
 } from "lucide-react";
 import { useAuth } from "@/context/AuthContext";
 import { useUserPermissions } from "@/hooks/useUserPermissions";
@@ -48,19 +49,171 @@ export function SiteHeader() {
     user?.userId,
   );
 
-  useEffect(() => {
-    setMobileOpen(false);
-    setCreateOpen(false);
-  }, [pathname]);
-
   const createItems = [
     canCreateAuction && { href: "/auctions/create", label: "إنشاء مزاد", icon: Gavel },
     canCreateTender && { href: "/tenders/create", label: "إنشاء مناقصة", icon: FileText },
     canCreateDirectListing && { href: "/direct/new", label: "بيع مباشر", icon: ShoppingBag },
   ].filter(Boolean) as { href: string; label: string; icon: typeof Gavel }[];
 
+  if (pathname === "/") {
+    const accountHref = isAuthenticated ? "/account" : "/login";
+    const initial = user?.fullName?.trim()?.charAt(0) || "S";
+    return (
+      <header className="sticky top-0 z-50 border-b border-[#D7D9E2] bg-white/95 shadow-sm backdrop-blur-md">
+        <div
+          dir="ltr"
+          className="mx-auto grid h-[74px] max-w-[680px] grid-cols-[56px_1fr_56px] items-center px-5 md:hidden"
+        >
+          <a
+            href="#home-search"
+            className="flex h-12 w-12 items-center justify-center rounded-full text-[#00066D] transition hover:bg-[#F4F5FF]"
+            aria-label="البحث"
+          >
+            <Search className="h-8 w-8" strokeWidth={3} />
+          </a>
+          <RizqLogo
+            size="md"
+            showText={false}
+            className="justify-self-center"
+          />
+          <Link
+            href={accountHref}
+            className="flex h-12 w-12 items-center justify-center rounded-full bg-[#E7E4FF] text-lg font-extrabold text-[#00066D]"
+            aria-label="الحساب"
+          >
+            {initial}
+          </Link>
+        </div>
+        <div className="mx-auto hidden max-w-7xl items-center justify-between gap-5 px-6 py-3 lg:px-8 md:flex">
+          <RizqLogo size="md" className="shrink-0" />
+          <nav className="flex items-center gap-1">
+            {MAIN_LINKS.map((link) => (
+              <Link
+                key={link.href}
+                href={link.href}
+                className={clsx(
+                  "rounded-xl px-4 py-2 text-sm font-bold transition-colors",
+                  link.match(pathname)
+                    ? "bg-[#F4F5FF] text-[#00066D]"
+                    : "text-[#777B8F] hover:bg-[#F7F8FB] hover:text-[#00066D]",
+                )}
+              >
+                {link.label}
+              </Link>
+            ))}
+            {showTransportNav && (
+              <Link
+                href="/transport/inbox"
+                className="rounded-xl px-4 py-2 text-sm font-bold text-[#777B8F] hover:bg-[#F7F8FB] hover:text-[#00066D]"
+              >
+                طلبات النقل
+                {transportCount > 0 && (
+                  <span className="ms-1.5 rounded-full bg-red-500 px-1.5 py-0.5 text-[10px] text-white">
+                    {transportCount}
+                  </span>
+                )}
+              </Link>
+            )}
+          </nav>
+          <div className="flex items-center gap-2">
+            <a
+              href="#home-search"
+              className="flex h-10 w-10 items-center justify-center rounded-xl border border-[#D7D9E2] text-[#00066D] hover:bg-[#F4F5FF]"
+              aria-label="البحث"
+            >
+              <Search className="h-5 w-5" />
+            </a>
+            {showCreateFab && createItems.length > 0 && (
+              <div className="relative">
+                <button
+                  type="button"
+                  onClick={() => setCreateOpen((o) => !o)}
+                  className="flex items-center gap-1.5 rounded-xl bg-[#FF9900] px-4 py-2 text-sm font-bold text-[#00066D] shadow-[0_10px_22px_rgba(255,153,0,0.18)] hover:bg-[#D77E00] hover:text-white"
+                >
+                  إنشاء
+                  <ChevronDown className={clsx("h-4 w-4 transition", createOpen && "rotate-180")} />
+                </button>
+                {createOpen && (
+                  <>
+                    <button
+                      type="button"
+                      className="fixed inset-0 z-40"
+                      onClick={() => setCreateOpen(false)}
+                      aria-label="إغلاق"
+                    />
+                    <div className="absolute start-0 top-full z-50 mt-2 min-w-[210px] rounded-2xl border border-[#D7D9E2] bg-white py-2 shadow-xl">
+                      {createItems.map((item) => (
+                        <Link
+                          key={item.href}
+                          href={item.href}
+                          onClick={(e) => {
+                            if (!isAuthenticated) {
+                              e.preventDefault();
+                              requireAuth();
+                            }
+                          }}
+                          className="flex items-center gap-3 px-4 py-2.5 text-sm font-semibold text-slate-700 hover:bg-[#F4F5FF]"
+                        >
+                          <item.icon className="h-4 w-4 text-[#FF9900]" />
+                          {item.label}
+                        </Link>
+                      ))}
+                    </div>
+                  </>
+                )}
+              </div>
+            )}
+            {isAuthenticated ? (
+              <>
+                <Link
+                  href="/chat"
+                  className="relative rounded-xl border border-[#D7D9E2] p-2 text-[#777B8F] hover:bg-[#F4F5FF] hover:text-[#00066D]"
+                  title="المحادثات"
+                >
+                  <MessageCircle className="h-5 w-5" />
+                  {chatCount > 0 && (
+                    <span className="absolute -start-1 -top-1 flex h-4 min-w-4 items-center justify-center rounded-full bg-red-500 text-[10px] font-bold text-white">
+                      {chatCount > 99 ? "99+" : chatCount}
+                    </span>
+                  )}
+                </Link>
+                <Link
+                  href="/notifications"
+                  className="relative rounded-xl border border-[#D7D9E2] p-2 text-[#777B8F] hover:bg-[#F4F5FF] hover:text-[#00066D]"
+                  title="الإشعارات"
+                >
+                  <Bell className="h-5 w-5" />
+                  {notifCount > 0 && (
+                    <span className="absolute -start-1 -top-1 flex h-4 min-w-4 items-center justify-center rounded-full bg-red-500 text-[10px] font-bold text-white">
+                      {notifCount > 99 ? "99+" : notifCount}
+                    </span>
+                  )}
+                </Link>
+                <Link
+                  href="/account"
+                  className="flex h-10 min-w-10 items-center justify-center rounded-full bg-[#E7E4FF] px-3 text-sm font-extrabold text-[#00066D]"
+                >
+                  {user?.fullName?.split(" ")[0] || "حسابي"}
+                </Link>
+              </>
+            ) : (
+              <>
+                <Link href="/login" className="rounded-xl px-4 py-2 text-sm font-bold text-[#00066D] hover:bg-[#F4F5FF]">
+                  دخول
+                </Link>
+                <Link href="/register" className="rounded-xl bg-[#00066D] px-4 py-2 text-sm font-bold text-white hover:bg-[#00044F]">
+                  إنشاء حساب
+                </Link>
+              </>
+            )}
+          </div>
+        </div>
+      </header>
+    );
+  }
+
   return (
-    <header className="sticky top-0 z-50 border-b border-slate-200/70 bg-white/90 shadow-sm backdrop-blur-md">
+    <header className="sticky top-0 z-50 border-b border-[#D7D9E2] bg-white/95 shadow-sm backdrop-blur-md">
       <div className="mx-auto flex max-w-7xl items-center justify-between gap-4 px-4 py-3 sm:px-6 lg:px-8">
         <RizqLogo size="md" className="hidden shrink-0 sm:flex" />
         <RizqLogo size="sm" showText={false} className="shrink-0 sm:hidden" />
@@ -73,7 +226,7 @@ export function SiteHeader() {
               className={clsx(
                 "rounded-lg px-4 py-2 text-sm font-medium transition-colors",
                 link.match(pathname)
-                  ? "bg-emerald-50 text-emerald-700"
+                  ? "bg-[#F4F5FF] text-[#00066D]"
                   : "text-slate-600 hover:bg-slate-50 hover:text-slate-900",
               )}
             >
@@ -86,7 +239,7 @@ export function SiteHeader() {
               className={clsx(
                 "rounded-lg px-4 py-2 text-sm font-medium transition-colors",
                 pathname.startsWith("/transport")
-                  ? "bg-emerald-50 text-emerald-700"
+                  ? "bg-[#F4F5FF] text-[#00066D]"
                   : "text-slate-600 hover:bg-slate-50",
               )}
             >
@@ -106,7 +259,7 @@ export function SiteHeader() {
               <button
                 type="button"
                 onClick={() => setCreateOpen((o) => !o)}
-                className="flex items-center gap-1.5 rounded-xl bg-gradient-to-l from-emerald-600 to-emerald-700 px-4 py-2 text-sm font-semibold text-white shadow-sm hover:from-emerald-700 hover:to-emerald-800"
+                className="flex items-center gap-1.5 rounded-xl bg-[#FF9900] px-4 py-2 text-sm font-semibold text-[#00066D] shadow-sm hover:bg-[#D77E00] hover:text-white"
               >
                 إنشاء
                 <ChevronDown className={clsx("h-4 w-4 transition", createOpen && "rotate-180")} />
@@ -130,9 +283,9 @@ export function SiteHeader() {
                             requireAuth();
                           }
                         }}
-                        className="flex items-center gap-3 px-4 py-2.5 text-sm text-slate-700 hover:bg-emerald-50"
+                        className="flex items-center gap-3 px-4 py-2.5 text-sm text-slate-700 hover:bg-[#F4F5FF]"
                       >
-                        <item.icon className="h-4 w-4 text-emerald-600" />
+                        <item.icon className="h-4 w-4 text-[#FF9900]" />
                         {item.label}
                       </Link>
                     ))}
@@ -170,9 +323,9 @@ export function SiteHeader() {
               </Link>
               <Link
                 href="/account"
-                className="hidden items-center gap-2 rounded-xl border border-gray-200 px-3 py-1.5 text-sm font-medium text-slate-700 hover:border-emerald-200 hover:bg-emerald-50 sm:flex"
+                className="hidden items-center gap-2 rounded-xl border border-gray-200 px-3 py-1.5 text-sm font-medium text-slate-700 hover:border-[#D7D9E2] hover:bg-[#F4F5FF] sm:flex"
               >
-                <User className="h-4 w-4 text-emerald-600" />
+                <User className="h-4 w-4 text-[#00066D]" />
                 {user?.fullName?.split(" ")[0] || "حسابي"}
               </Link>
             </>
@@ -186,7 +339,7 @@ export function SiteHeader() {
               </Link>
               <Link
                 href="/register"
-                className="rounded-xl bg-emerald-600 px-4 py-2 text-sm font-semibold text-white hover:bg-emerald-700"
+                className="rounded-xl bg-[#FF9900] px-4 py-2 text-sm font-semibold text-[#00066D] hover:bg-[#D77E00] hover:text-white"
               >
                 إنشاء حساب
               </Link>
@@ -213,7 +366,7 @@ export function SiteHeader() {
                   href={link.href}
                   className={clsx(
                     "block rounded-lg px-4 py-3 text-sm font-medium",
-                    link.match(pathname) ? "bg-emerald-50 text-emerald-700" : "text-slate-700",
+                    link.match(pathname) ? "bg-[#F4F5FF] text-[#00066D]" : "text-slate-700",
                   )}
                 >
                   {link.label}
@@ -257,7 +410,7 @@ export function SiteHeader() {
               </>
             ) : (
               <li>
-                <Link href="/login" className="block rounded-lg px-4 py-3 text-sm font-medium text-emerald-600">
+                <Link href="/login" className="block rounded-lg px-4 py-3 text-sm font-medium text-[#00066D]">
                   تسجيل الدخول
                 </Link>
               </li>

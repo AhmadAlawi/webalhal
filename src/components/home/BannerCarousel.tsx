@@ -25,12 +25,12 @@ function AdCta({
 }) {
   const label = ad.buttonLabel?.trim() || DEFAULT_CTA;
   const style = {
-    backgroundColor: ad.ctaBackgroundColor ?? "#047857",
-    color: ad.ctaTextColor ?? "#ffffff",
+    backgroundColor: ad.ctaBackgroundColor ?? "#FF9900",
+    color: ad.ctaTextColor ?? "#00066D",
   };
 
   const className =
-    "pointer-events-auto mt-4 inline-flex rounded-xl px-5 py-2.5 text-sm font-semibold shadow-md transition hover:opacity-90";
+    "pointer-events-auto mt-5 inline-flex rounded-lg px-5 py-2.5 text-sm font-extrabold shadow-md transition hover:opacity-90";
 
   if (isExternalAdHref(href)) {
     return (
@@ -71,19 +71,16 @@ export function BannerCarousel({
   }, [ads.length]);
 
   useEffect(() => {
-    setIndex(0);
-  }, [ads]);
-
-  useEffect(() => {
-    const ad = ads[index];
+    const safeIndex = ads.length ? index % ads.length : 0;
+    const ad = ads[safeIndex];
     if (ad?.advertisementId) trackAdView(ad.advertisementId);
   }, [ads, index]);
 
   if (loading) {
     return (
-      <section className="border-b border-slate-200/60 bg-slate-50">
+      <section className="bg-[#F7F8FB] py-8">
         <div className="mx-auto max-w-7xl px-4 py-6 sm:px-6 lg:px-8">
-          <div className="aspect-[21/7] min-h-[220px] w-full animate-pulse rounded-2xl bg-slate-200 sm:min-h-[280px] lg:min-h-[320px]" />
+          <div className="aspect-[20/6] min-h-[220px] w-full animate-pulse rounded-lg bg-[#E6E8F0] sm:min-h-[260px] lg:min-h-[300px]" />
         </div>
       </section>
     );
@@ -91,7 +88,8 @@ export function BannerCarousel({
 
   if (!ads.length) return null;
 
-  const ad = ads[index];
+  const safeIndex = index % ads.length;
+  const ad = ads[safeIndex];
   const href = advertisementHref(ad);
 
   function handleClick() {
@@ -110,15 +108,15 @@ export function BannerCarousel({
       fill
       className="object-cover"
       priority
-      sizes="100vw"
+      sizes="(max-width: 1280px) 100vw, 1280px"
       unoptimized
     />
   );
 
   return (
-    <section className="relative w-full overflow-hidden border-b border-slate-200/60 bg-slate-900">
-      <div className="relative aspect-[21/7] min-h-[220px] w-full max-h-[420px] sm:min-h-[280px] lg:min-h-[320px]">
-        <div key={ad.advertisementId ?? index} className="absolute inset-0 animate-fade-up">
+    <section className="bg-[#F7F8FB] py-8">
+      <div className="relative mx-auto aspect-[20/6] min-h-[220px] w-full max-w-7xl overflow-hidden rounded-lg border border-[#D7D9E2] bg-[#00066D] shadow-[0_18px_46px_rgba(0,6,109,0.12)] sm:min-h-[260px] lg:min-h-[300px]">
+        <div key={ad.advertisementId ?? safeIndex} className="absolute inset-0 animate-fade-up">
           {href && !ad.buttonLabel ? (
             isExternalAdHref(href) ? (
               <a
@@ -143,13 +141,13 @@ export function BannerCarousel({
             image
           )}
         </div>
-        <div className="absolute inset-0 bg-gradient-to-t from-black/65 via-black/25 to-transparent" />
+        <div className="absolute inset-0 bg-gradient-to-l from-[#00066D]/82 via-[#00066D]/32 to-transparent" />
         {(ad.title || ad.description || (href && ad.buttonLabel)) && (
-          <div className="absolute bottom-0 inset-x-0 p-6 sm:p-10">
-            <div className="mx-auto max-w-7xl">
+          <div className="absolute inset-y-0 right-0 flex w-full items-end p-5 sm:p-8 md:items-center">
+            <div className="max-w-xl text-right">
               {ad.title && (
                 <h2
-                  className="text-2xl font-bold text-white sm:text-3xl"
+                  className="text-2xl font-extrabold leading-tight text-white sm:text-4xl"
                   style={titleStyle}
                 >
                   {ad.title}
@@ -157,7 +155,7 @@ export function BannerCarousel({
               )}
               {ad.description && (
                 <p
-                  className="mt-1 text-sm text-white/85 sm:text-base"
+                  className="mt-3 line-clamp-2 text-sm font-semibold leading-6 text-white/82 sm:text-base"
                   style={subtitleStyle}
                 >
                   {ad.description}
@@ -167,22 +165,22 @@ export function BannerCarousel({
             </div>
           </div>
         )}
+        {ads.length > 1 && (
+          <div className="absolute bottom-5 inset-x-0 z-10 flex justify-center gap-2">
+            {ads.map((_, i) => (
+              <button
+                key={i}
+                type="button"
+                aria-label={`شريحة ${i + 1}`}
+                onClick={() => setIndex(i)}
+                className={`h-2 rounded-full transition-all duration-300 ${
+                  i === safeIndex ? "w-8 bg-[#FF9900]" : "w-2 bg-white/55 hover:bg-white/85"
+                }`}
+              />
+            ))}
+          </div>
+        )}
       </div>
-      {ads.length > 1 && (
-        <div className="absolute bottom-4 inset-x-0 z-10 flex justify-center gap-2">
-          {ads.map((_, i) => (
-            <button
-              key={i}
-              type="button"
-              aria-label={`شريحة ${i + 1}`}
-              onClick={() => setIndex(i)}
-              className={`h-2 rounded-full transition-all duration-300 ${
-                i === index ? "w-8 bg-white" : "w-2 bg-white/40 hover:bg-white/70"
-              }`}
-            />
-          ))}
-        </div>
-      )}
     </section>
   );
 }

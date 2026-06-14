@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
@@ -104,7 +104,7 @@ export default function DirectOrdersPage() {
                   </div>
                   {o.createdAt && (
                     <p className="mt-2 text-xs text-slate-400">
-                      {new Date(o.createdAt).toLocaleString("ar-SY")}
+                      {new Date(o.createdAt).toLocaleString("ar-JO")}
                     </p>
                   )}
                 </Link>

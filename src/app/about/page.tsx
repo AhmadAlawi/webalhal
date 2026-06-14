@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import Link from "next/link";
 import { PageHeader } from "@/components/ui/PageHeader";
@@ -14,9 +14,9 @@ export default function AboutPage() {
           <div className="not-prose mb-8 flex flex-col items-center text-center">
             <RizqLogo size="xl" href={null} className="flex-col gap-4" />
           </div>
-          <h2 className="text-xl font-bold text-emerald-800">رزق — سوق الهال</h2>
+          <h2 className="text-xl font-bold text-[#00066D]">بركة — سوق الهال</h2>
           <p className="mt-4 text-slate-600 leading-relaxed">
-            منصة سوق زراعي سورية تربط المزارعين والتجار وناقلي المحاصيل. تدعم المزادات
+            منصة سوق زراعي أردنية تربط المزارعين والتجار وناقلي المحاصيل. تدعم المزادات
             الحية، المناقصات، البيع المباشر، النقل، والتحليلات السوقية — نفس تجربة تطبيق
             الهاتف على الويب.
           </p>
@@ -29,7 +29,7 @@ export default function AboutPage() {
           </ul>
           <p className="mt-8 text-sm text-slate-500">
             للدعم الفني:{" "}
-            <Link href="/tickets" className="text-emerald-600 hover:underline">
+            <Link href="/tickets" className="text-[#00066D] hover:underline">
               مركز التذاكر
             </Link>
           </p>

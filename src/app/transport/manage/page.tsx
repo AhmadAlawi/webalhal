@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
@@ -154,7 +154,7 @@ export default function TransportManagePage() {
               </div>
               <Input
                 className="mt-3"
-                label="السعر (ل.س)"
+                label="السعر (JD)"
                 type="number"
                 value={price}
                 onChange={(e) => setPrice(e.target.value)}

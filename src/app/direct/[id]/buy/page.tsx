@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import { useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
@@ -119,7 +119,7 @@ export default function BuyDirectPage() {
             </h2>
             {unitPrice > 0 ? (
               <p className="mt-2 text-lg font-bold text-emerald-600">
-                {formatPrice(unitPrice)} ل.س / {listing.unit || "كغ"}
+                {formatPrice(unitPrice)} JD / {listing.unit || "كغ"}
               </p>
             ) : (
               <p className="mt-2 text-sm text-amber-700">السعر غير متوفر — تواصل مع البائع</p>
@@ -153,7 +153,7 @@ export default function BuyDirectPage() {
           {total > 0 && isActive && (
             <p className="text-center text-sm text-slate-600">
               الإجمالي{" "}
-              <span className="font-bold text-slate-900">{formatPrice(total)} ل.س</span>
+              <span className="font-bold text-slate-900">{formatPrice(total)} JD</span>
             </p>
           )}
           {error && <p className="text-sm text-red-600">{error}</p>}

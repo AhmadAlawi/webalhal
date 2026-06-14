@@ -1,10 +1,10 @@
 "use client";
 
 import dynamic from "next/dynamic";
-import type { MapVolumePoint } from "@/lib/syria-governorates";
+import type { MapVolumePoint } from "@/lib/jordan-governorates";
 
-const SyriaMarketMap = dynamic(
-  () => import("./SyriaMarketMap").then((m) => m.SyriaMarketMap),
+const JordanMarketMap = dynamic(
+  () => import("./JordanMarketMap").then((m) => m.JordanMarketMap),
   {
     ssr: false,
     loading: () => (
@@ -13,10 +13,10 @@ const SyriaMarketMap = dynamic(
   },
 );
 
-export function SyriaMarketMapDynamic(props: {
+export function JordanMarketMapDynamic(props: {
   points: MapVolumePoint[];
   height?: number;
   className?: string;
 }) {
-  return <SyriaMarketMap {...props} />;
+  return <JordanMarketMap {...props} />;
 }

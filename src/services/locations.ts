@@ -57,9 +57,10 @@ export async function getCitiesByGovernorate(
   governorateId: number,
   isActive = true,
 ): Promise<City[]> {
-  const qs = isActive ? "?isActive=true" : "";
+  const params = new URLSearchParams({ governorateId: String(governorateId) });
+  if (isActive) params.set("isActive", "true");
   const data = await apiGet<unknown>(
-    `/api/cities/by-governorate/${governorateId}${qs}`,
+    `/api/cities?${params.toString()}`,
   );
   return asApiList(data)
     .map(normalizeCity)
@@ -67,8 +68,7 @@ export async function getCitiesByGovernorate(
 }
 
 export async function getAreasByCity(cityId: number, isActive = true): Promise<Area[]> {
-  const qs = isActive ? "?isActive=true" : "";
-  const data = await apiGet<unknown>(`/api/areas/by-city/${cityId}${qs}`);
+  const data = await apiGet<unknown>(`/api/areas?cityId=${cityId}${isActive ? "&isActive=true" : ""}`);
   return asApiList(data)
     .map(normalizeArea)
     .filter((a): a is Area => a != null);

@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
@@ -69,7 +69,7 @@ export default function TicketsPage() {
                     </p>
                     {t.createdAt && (
                       <p className="mt-1 text-xs text-slate-400">
-                        {new Date(t.createdAt).toLocaleString("ar-SY")}
+                        {new Date(t.createdAt).toLocaleString("ar-JO")}
                       </p>
                     )}
                   </div>

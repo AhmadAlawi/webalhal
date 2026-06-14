@@ -1,6 +1,6 @@
-"use client";
+﻿"use client";
 
-import { useEffect, useState, Suspense } from "react";
+import { useEffect, useMemo, useState, Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { Button } from "@/components/ui/Button";
@@ -36,8 +36,28 @@ const ROLES = [
 function RegisterForm() {
   const router = useRouter();
   const params = useSearchParams();
-  const [step, setStep] = useState(0);
-  const [registrationId, setRegistrationId] = useState("");
+  const initialRegistrationId = params.get("registrationId") ?? "";
+  const initialStep = useMemo(() => {
+    if (!initialRegistrationId) return 0;
+    const stepParam = params.get("step");
+    const resumeStepParam = params.get("resumeStep");
+    const otpVerified = params.get("otp") !== "0";
+
+    if (stepParam != null) {
+      const uiStep = Number(stepParam);
+      if (Number.isFinite(uiStep) && uiStep >= 0 && uiStep <= 5) return uiStep;
+    }
+
+    const progress = parseRegistrationProgress({
+      registrationId: initialRegistrationId,
+      resumeStep: resumeStepParam ? Number(resumeStepParam) : undefined,
+      otpVerified,
+    });
+    return resumeStepToRegisterUiStep(progress);
+  }, [initialRegistrationId, params]);
+
+  const [step, setStep] = useState(initialStep);
+  const [registrationId, setRegistrationId] = useState(initialRegistrationId);
   const [roleName, setRoleName] = useState("farmer");
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
@@ -51,27 +71,7 @@ function RegisterForm() {
   useEffect(() => {
     const id = params.get("registrationId");
     if (!id) return;
-
-    setRegistrationId(id);
-
-    const stepParam = params.get("step");
     const resumeStepParam = params.get("resumeStep");
-    const otpVerified = params.get("otp") !== "0";
-
-    if (stepParam != null) {
-      const uiStep = Number(stepParam);
-      if (Number.isFinite(uiStep) && uiStep >= 0 && uiStep <= 5) {
-        setStep(uiStep);
-      }
-    } else {
-      const progress = parseRegistrationProgress({
-        registrationId: id,
-        resumeStep: resumeStepParam ? Number(resumeStepParam) : undefined,
-        otpVerified,
-      });
-      setStep(resumeStepToRegisterUiStep(progress));
-    }
-
     const apiResume = resumeStepParam ? Number(resumeStepParam) : undefined;
     if (apiResume != null && Number.isFinite(apiResume) && apiResume > 0) {
       resumeRegistrationStep(id, apiResume).catch(() => {});
@@ -148,7 +148,7 @@ function RegisterForm() {
     setLoading(true);
     const body: Record<string, unknown> = { registrationId };
     if (roleName === "farmer") {
-      body.nationality = "سوري";
+      body.nationality = "أردني";
       body.storageAvailable = false;
       body.landOwnership = "ملك";
     } else if (roleName === "trader") {
@@ -193,14 +193,14 @@ function RegisterForm() {
   return (
     <div className="mx-auto w-full max-w-lg animate-fade-up pb-8">
       <div className="mb-6 text-center">
-        <h1 className="text-2xl font-bold text-slate-900">إنشاء حساب</h1>
-        <p className="mt-1 text-sm text-slate-500">خطوات بسيطة للانضمام إلى رزق</p>
+        <h1 className="text-2xl font-bold text-[#00066D]">إنشاء حساب</h1>
+        <p className="mt-1 text-sm text-slate-500">خطوات بسيطة للانضمام إلى بركة</p>
       </div>
       <StepProgress step={step} />
       <Card padding="lg">
         {step === 0 && (
           <div className="space-y-4">
-            <p className="text-slate-600">ابدأ التسجيل في منصة رزق</p>
+            <p className="text-slate-600">ابدأ التسجيل في منصة بركة</p>
             <Button fullWidth onClick={handleStart} disabled={loading}>
               بدء التسجيل
             </Button>
@@ -211,7 +211,7 @@ function RegisterForm() {
           <form onSubmit={handleStep1} className="space-y-4">
             <Input label="الاسم الكامل" value={fullName} onChange={(e) => setFullName(e.target.value)} required />
             <Input label="البريد" type="email" value={email} onChange={(e) => setEmail(e.target.value)} required />
-            <Input label="الهاتف" value={phone} onChange={(e) => setPhone(e.target.value)} required placeholder="09xxxxxxxx أو +963..." />
+            <Input label="الهاتف" value={phone} onChange={(e) => setPhone(e.target.value)} required placeholder="07xxxxxxxx أو +962..." />
             <Input label="كلمة المرور" type="password" value={password} onChange={(e) => setPassword(e.target.value)} required minLength={6} />
             <Button type="submit" fullWidth disabled={loading}>التالي</Button>
           </form>
@@ -236,8 +236,8 @@ function RegisterForm() {
                 key={r.id}
                 className={`flex cursor-pointer items-center gap-3 rounded-2xl border p-4 transition-colors ${
                   roleName === r.id
-                    ? "border-emerald-300 bg-emerald-50"
-                    : "border-slate-200 hover:border-emerald-200"
+                    ? "border-[#00066D] bg-[#F4F5FF]"
+                    : "border-slate-200 hover:border-[#00066D]/25"
                 }`}
               >
                 <input
@@ -246,7 +246,7 @@ function RegisterForm() {
                   value={r.id}
                   checked={roleName === r.id}
                   onChange={() => setRoleName(r.id)}
-                  className="accent-emerald-600"
+                  className="accent-[#00066D]"
                 />
                 <span className="font-medium text-slate-800">{r.label}</span>
               </label>
@@ -277,7 +277,7 @@ function RegisterForm() {
       </Card>
 
       <p className="mt-6 text-center text-sm">
-        لديك حساب؟ <Link href="/login" className="text-emerald-600 font-semibold">دخول</Link>
+        لديك حساب؟ <Link href="/login" className="text-[#00066D] font-semibold">دخول</Link>
       </p>
     </div>
   );

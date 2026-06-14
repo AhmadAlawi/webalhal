@@ -1,4 +1,4 @@
-import type { AuctionPricing } from "@/types";
+﻿import type { AuctionPricing } from "@/types";
 
 export function parseAuctionPricing(raw: unknown): AuctionPricing | null {
   if (!raw || typeof raw !== "object") return null;
@@ -180,7 +180,7 @@ export function validateBid(pricing: AuctionPricing, inputAmount: number): strin
   if (!isNearMaxPrice(pricing)) {
     const minNext = getMinNextBid(pricing);
     if (input < minNext - PRICE_EPS) {
-      return `أقل مزايدة مقبولة: ${formatPrice(minNext)} ل.س`;
+      return `أقل مزايدة مقبولة: ${formatPrice(minNext)} JD`;
     }
   }
 
@@ -193,5 +193,5 @@ export function validateBid(pricing: AuctionPricing, inputAmount: number): strin
 
 export function formatPrice(amount: number): string {
   if (!Number.isFinite(amount) || amount < 0) return "—";
-  return new Intl.NumberFormat("ar-SY").format(amount);
+  return new Intl.NumberFormat("ar-JO").format(amount);
 }

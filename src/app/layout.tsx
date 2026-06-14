@@ -1,4 +1,4 @@
-import type { Metadata } from "next";
+﻿import type { Metadata } from "next";
 import { Cairo } from "next/font/google";
 import "./globals.css";
 import { Providers } from "@/components/providers";
@@ -11,11 +11,11 @@ const cairo = Cairo({
 });
 
 export const metadata: Metadata = {
-  title: "رزق — سوق الهال",
-  description: "رزق — سوق الهال: منصة سوق زراعي سوري — مزادات، مناقصات، وبيع مباشر",
+  title: "بركة — سوق الهال",
+  description: "بركة — سوق الهال: منصة سوق زراعي أردني — مزادات، مناقصات، وبيع مباشر",
   icons: {
-    icon: "/rizq-logo.png",
-    apple: "/rizq-logo.png",
+    icon: "/baraka-logo.png",
+    apple: "/baraka-logo.png",
   },
 };
 
@@ -34,7 +34,7 @@ export default function RootLayout({
     >
       <body
         suppressHydrationWarning
-        className="min-h-full bg-slate-50 text-slate-900 antialiased"
+        className="min-h-full bg-[#F7F8FB] text-slate-900 antialiased"
       >
         <Providers>
           <AppShell>{children}</AppShell>

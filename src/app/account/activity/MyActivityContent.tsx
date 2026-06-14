@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
@@ -105,7 +105,7 @@ export function MyActivityContent() {
                     <p className="mt-1 text-xs text-slate-500">
                       {[
                         t.quantity != null ? `${t.quantity} ${t.unit || ""}` : null,
-                        t.maxBudget != null ? `ميزانية ${formatPrice(t.maxBudget)} ل.س` : null,
+                        t.maxBudget != null ? `ميزانية ${formatPrice(t.maxBudget)} JD` : null,
                         getTenderLocation(t),
                       ]
                         .filter(Boolean)
@@ -133,7 +133,7 @@ export function MyActivityContent() {
                     <p className="mt-1 text-xs text-slate-500">
                       {[
                         a.cropQuantity != null ? `${a.cropQuantity} ${a.cropUnit || ""}` : null,
-                        a.currentPrice != null ? `السعر ${formatPrice(a.currentPrice)} ل.س` : null,
+                        a.currentPrice != null ? `السعر ${formatPrice(a.currentPrice)} JD` : null,
                         getAuctionLocation(a),
                       ]
                         .filter(Boolean)
@@ -169,7 +169,7 @@ export function MyActivityContent() {
                     </p>
                   </div>
                   <span className="font-bold text-emerald-600">
-                    {formatPrice(l.unitPrice ?? 0)} ل.س / وحدة
+                    {formatPrice(l.unitPrice ?? 0)} JD / وحدة
                   </span>
                 </Link>
               </li>
@@ -228,7 +228,7 @@ export function MyActivityContent() {
                     {o.tenderTitle || o.cropName || `عرض #${o.offerId}`}
                   </span>
                   <span className="text-sm">
-                    {formatPrice(o.price ?? 0)} ل.س · <StatusBadge status={o.status} />
+                    {formatPrice(o.price ?? 0)} JD · <StatusBadge status={o.status} />
                   </span>
                 </Link>
               </li>

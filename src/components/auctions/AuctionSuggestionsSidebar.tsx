@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import Image from "next/image";
 import Link from "next/link";
@@ -31,7 +31,7 @@ function SuggestionItem({ auction }: { auction: Auction }) {
       <div className="min-w-0 flex-1">
         <p className="line-clamp-2 text-sm font-semibold text-slate-900">{title}</p>
         {price != null && (
-          <p className="mt-0.5 text-xs font-bold text-emerald-600">{formatPrice(price)} ل.س</p>
+          <p className="mt-0.5 text-xs font-bold text-emerald-600">{formatPrice(price)} JD</p>
         )}
       </div>
     </Link>

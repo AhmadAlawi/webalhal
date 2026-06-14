@@ -20,21 +20,24 @@ export default function DirectPage() {
     sortOrder: "desc",
   });
   const { user } = useAuth();
+  const createAction = canCreateDirectListing(user?.roleId) ? (
+    <Link href="/direct/new">
+      <Button size="sm">
+        <Plus className="h-4 w-4" />
+        عرض جديد
+      </Button>
+    </Link>
+  ) : null;
 
   return (
     <>
-      <PageHeader title="البيع المباشر" backHref="/" />
+      <PageHeader
+        title="البيع المباشر"
+        subtitle="تصفح العروض المتاحة للشراء الفوري"
+        backHref="/"
+        actions={createAction}
+      />
       <PageContainer className="py-8">
-        <div className="mb-4 flex justify-end">
-          {canCreateDirectListing(user?.roleId) && (
-            <Link href="/direct/new">
-              <Button size="sm">
-                <Plus className="h-4 w-4" />
-                عرض جديد
-              </Button>
-            </Link>
-          )}
-        </div>
         <MarketListFilters
           kind="direct"
           search={search}

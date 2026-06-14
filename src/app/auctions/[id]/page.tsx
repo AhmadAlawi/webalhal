@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import { useEffect, useMemo, useState, type ReactNode } from "react";
 import Link from "next/link";
@@ -29,7 +29,7 @@ function formatDateTime(iso?: string) {
   if (!iso) return "—";
   const d = new Date(iso);
   if (Number.isNaN(d.getTime())) return iso;
-  return d.toLocaleString("ar-SY", {
+  return d.toLocaleString("ar-JO", {
     dateStyle: "medium",
     timeStyle: "short",
   });
@@ -82,12 +82,12 @@ function AuctionBuyerDetails({
           label="سعر البداية"
           value={
             pricing
-              ? `${formatPrice(pricing.startingPriceTotal ?? auction.startingPrice ?? 0)} ل.س` +
+              ? `${formatPrice(pricing.startingPriceTotal ?? auction.startingPrice ?? 0)} JD` +
                 (pricing.startingPricePerUnit
-                  ? ` (${formatPrice(pricing.startingPricePerUnit)} ل.س / ${unit})`
+                  ? ` (${formatPrice(pricing.startingPricePerUnit)} JD / ${unit})`
                   : "")
               : auction.startingPrice != null
-                ? `${formatPrice(auction.startingPrice)} ل.س`
+                ? `${formatPrice(auction.startingPrice)} JD`
                 : null
           }
         />
@@ -95,12 +95,12 @@ function AuctionBuyerDetails({
           label="السعر الحالي"
           value={
             pricing
-              ? `${formatPrice(pricing.currentPriceTotal)} ل.س` +
+              ? `${formatPrice(pricing.currentPriceTotal)} JD` +
                 (pricing.currentPricePerUnit
-                  ? ` (${formatPrice(pricing.currentPricePerUnit)} ل.س / ${unit})`
+                  ? ` (${formatPrice(pricing.currentPricePerUnit)} JD / ${unit})`
                   : "")
               : auction.currentPrice != null
-                ? `${formatPrice(auction.currentPrice)} ل.س`
+                ? `${formatPrice(auction.currentPrice)} JD`
                 : null
           }
         />
@@ -108,12 +108,12 @@ function AuctionBuyerDetails({
           label="أقل زيادة للمزايدة"
           value={
             pricing
-              ? `${formatPrice(pricing.minIncrementTotal)} ل.س` +
+              ? `${formatPrice(pricing.minIncrementTotal)} JD` +
                 (pricing.minIncrementPerUnit
-                  ? ` (${formatPrice(pricing.minIncrementPerUnit)} ل.س / ${unit})`
+                  ? ` (${formatPrice(pricing.minIncrementPerUnit)} JD / ${unit})`
                   : "")
               : auction.minIncrement != null
-                ? `${formatPrice(auction.minIncrement)} ل.س`
+                ? `${formatPrice(auction.minIncrement)} JD`
                 : null
           }
         />
@@ -121,12 +121,12 @@ function AuctionBuyerDetails({
           label="السقف الأعلى (حد أقصى)"
           value={
             pricing?.maxPriceTotal != null
-              ? `${formatPrice(pricing.maxPriceTotal)} ل.س` +
+              ? `${formatPrice(pricing.maxPriceTotal)} JD` +
                 (pricing.maxPricePerUnit
-                  ? ` (${formatPrice(pricing.maxPricePerUnit)} ل.س / ${unit})`
+                  ? ` (${formatPrice(pricing.maxPricePerUnit)} JD / ${unit})`
                   : "")
               : auction.maxPrice != null
-                ? `${formatPrice(auction.maxPrice)} ل.س`
+                ? `${formatPrice(auction.maxPrice)} JD`
                 : null
           }
         />
@@ -228,11 +228,11 @@ export default function AuctionDetailPage() {
                 {auction.auctionTitle || auction.cropName || auction.productNameAr}
               </h2>
               <p className="mt-2 text-3xl font-bold text-emerald-600">
-                {formatPrice(displayPrice)} ل.س
+                {formatPrice(displayPrice)} JD
               </p>
               {pricing && (
                 <p className="mt-1 text-sm text-slate-500">
-                  {formatPrice(pricing.currentPricePerUnit)} ل.س /{" "}
+                  {formatPrice(pricing.currentPricePerUnit)} JD /{" "}
                   {pricing.unit ?? auction.cropUnit ?? "كغ"}
                 </p>
               )}

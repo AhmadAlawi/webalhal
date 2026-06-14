@@ -1,4 +1,4 @@
-import Link from "next/link";
+﻿import Link from "next/link";
 import { RizqLogo } from "@/components/brand/RizqLogo";
 
 const FOOTER_LINKS = [
@@ -18,13 +18,13 @@ const ACCOUNT_LINKS = [
 
 export function SiteFooter() {
   return (
-    <footer className="mt-auto border-t border-slate-800 bg-gradient-to-b from-slate-900 to-slate-950 text-slate-300">
+    <footer className="mt-auto border-t border-[#00044F] bg-[#00044F] text-slate-200">
       <div className="mx-auto max-w-7xl px-4 py-14 sm:px-6 lg:px-8">
         <div className="grid gap-12 md:grid-cols-2 lg:grid-cols-4">
           <section className="lg:col-span-1">
             <RizqLogo size="md" variant="onDark" href={null} />
             <p className="mt-4 text-sm leading-relaxed text-slate-400">
-              منصة سوق زراعي سوري تربط المزارعين والتجار وناقلي المحاصيل عبر مزادات ومناقصات وبيع مباشر.
+              منصة سوق زراعي أردني تربط المزارعين والتجار وناقلي المحاصيل عبر مزادات ومناقصات وبيع مباشر.
             </p>
           </section>
           <section>
@@ -32,7 +32,7 @@ export function SiteFooter() {
             <ul className="space-y-2.5 text-sm">
               {FOOTER_LINKS.map((l) => (
                 <li key={l.href}>
-                  <Link href={l.href} className="transition-colors hover:text-emerald-400">
+                  <Link href={l.href} className="transition-colors hover:text-[#FFB13B]">
                     {l.label}
                   </Link>
                 </li>
@@ -44,7 +44,7 @@ export function SiteFooter() {
             <ul className="space-y-2.5 text-sm">
               {ACCOUNT_LINKS.map((l) => (
                 <li key={l.href}>
-                  <Link href={l.href} className="transition-colors hover:text-emerald-400">
+                  <Link href={l.href} className="transition-colors hover:text-[#FFB13B]">
                     {l.label}
                   </Link>
                 </li>
@@ -55,22 +55,22 @@ export function SiteFooter() {
             <p className="mb-4 font-semibold text-white">الدعم</p>
             <ul className="space-y-2.5 text-sm">
               <li>
-                <Link href="/tickets" className="transition-colors hover:text-emerald-400">
+                <Link href="/tickets" className="transition-colors hover:text-[#FFB13B]">
                   الدعم الفني
                 </Link>
               </li>
               <li>
-                <Link href="/about" className="transition-colors hover:text-emerald-400">
+                <Link href="/about" className="transition-colors hover:text-[#FFB13B]">
                   عن المنصة
                 </Link>
               </li>
               <li>
-                <Link href="/transport/register" className="transition-colors hover:text-emerald-400">
+                <Link href="/transport/register" className="transition-colors hover:text-[#FFB13B]">
                   التسجيل كناقل
                 </Link>
               </li>
               <li>
-                <Link href="/transport/prices" className="transition-colors hover:text-emerald-400">
+                <Link href="/transport/prices" className="transition-colors hover:text-[#FFB13B]">
                   حاسبة أسعار النقل
                 </Link>
               </li>
@@ -81,7 +81,7 @@ export function SiteFooter() {
           suppressHydrationWarning
           className="mt-12 border-t border-slate-800 pt-8 text-center text-xs text-slate-500"
         >
-          © {new Date().getFullYear()} رزق — جميع الحقوق محفوظة
+          © {new Date().getFullYear()} بركة — جميع الحقوق محفوظة
         </p>
       </div>
     </footer>

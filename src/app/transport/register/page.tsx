@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
@@ -97,7 +97,7 @@ export default function TransportRegisterPage() {
             onChange={(e) => setAvailabilityHours(e.target.value)}
           />
           <Input
-            label="السعر التقديري لكل كم (ل.س)"
+            label="السعر التقديري لكل كم (JD)"
             type="number"
             value={estimatedPricePerKm}
             onChange={(e) => setEstimatedPricePerKm(e.target.value)}

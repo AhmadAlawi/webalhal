@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import { formatPrice } from "@/lib/auctionPricing";
 import type { Bid } from "@/types";
@@ -41,7 +41,7 @@ export function AuctionBiddersList({
                   {b.bidderName || "مزايد"}
                 </span>
                 <span className="shrink-0 font-bold text-emerald-700">
-                  {formatPrice(b.bidAmount)} ل.س
+                  {formatPrice(b.bidAmount)} JD
                 </span>
               </li>
             ))}

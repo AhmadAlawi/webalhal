@@ -15,7 +15,7 @@ export function MiniSparkline({
     return (
       <div className="flex h-20 items-end gap-0.5 opacity-30">
         {Array.from({ length: 7 }).map((_, i) => (
-          <div key={i} className="flex-1 rounded-t bg-emerald-400" style={{ height: "20%" }} />
+          <div key={i} className="flex-1 rounded-t bg-[#FF9900]" style={{ height: "20%" }} />
         ))}
       </div>
     );
@@ -33,8 +33,8 @@ export function MiniSparkline({
       <AreaChart data={data} margin={{ top: 4, right: 4, left: 4, bottom: 0 }}>
         <defs>
           <linearGradient id="sparkGrad" x1="0" y1="0" x2="0" y2="1">
-            <stop offset="0%" stopColor="#10b981" stopOpacity={0.4} />
-            <stop offset="100%" stopColor="#10b981" stopOpacity={0} />
+            <stop offset="0%" stopColor="#FF9900" stopOpacity={0.4} />
+            <stop offset="100%" stopColor="#FF9900" stopOpacity={0} />
           </linearGradient>
         </defs>
         <Tooltip
@@ -53,11 +53,11 @@ export function MiniSparkline({
         <Area
           type="monotone"
           dataKey="value"
-          stroke="#059669"
+          stroke="#FF9900"
           strokeWidth={2}
           fill="url(#sparkGrad)"
           dot={false}
-          activeDot={{ r: 4, fill: "#059669" }}
+          activeDot={{ r: 4, fill: "#FF9900" }}
           animationDuration={600}
         />
       </AreaChart>

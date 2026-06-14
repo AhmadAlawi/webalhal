@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import { TrendingDown, TrendingUp, Minus } from "lucide-react";
 import { clsx } from "clsx";
@@ -24,7 +24,7 @@ export function KpiCardView({ kpi, isCurrency }: { kpi?: KpiCard; isCurrency?: b
   if (!kpi) return null;
 
   const display =
-    isCurrency || kpi.unit === "SYP" || kpi.unit === "ل.س"
+    isCurrency || kpi.unit === "JOD" || kpi.unit === "JD" || kpi.unit === "دينار"
       ? formatCurrency(kpi.value)
       : `${formatNumber(kpi.value)}${kpi.unit ? ` ${kpi.unit}` : ""}`;
 

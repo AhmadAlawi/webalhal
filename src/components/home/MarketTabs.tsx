@@ -18,17 +18,17 @@ export function MarketTabs({
   onChange: (tab: MarketTab) => void;
 }) {
   return (
-    <div className="inline-flex flex-wrap gap-2 rounded-xl border border-gray-200 bg-slate-50 p-1">
+    <div className="inline-flex w-full flex-row-reverse gap-1 rounded-full bg-[#E9EAEC] p-1.5 shadow-[0_12px_30px_rgba(0,6,109,0.08)]">
       {TABS.map((tab) => (
         <button
           key={tab.id}
           type="button"
           onClick={() => onChange(tab.id)}
           className={clsx(
-            "rounded-lg px-5 py-2.5 text-sm font-semibold transition-colors",
+            "min-w-0 flex-1 rounded-full px-4 py-3 text-base font-bold transition-colors",
             active === tab.id
-              ? "bg-white text-emerald-700 shadow-sm"
-              : "text-slate-600 hover:text-slate-900",
+              ? "bg-[#00066D] text-white shadow-lg shadow-[#00066D]/25"
+              : "text-[#777B8F] hover:text-[#00066D]",
           )}
         >
           {tab.label}

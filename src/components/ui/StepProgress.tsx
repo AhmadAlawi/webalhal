@@ -9,7 +9,7 @@ export function StepProgress({ step }: { step: number }) {
             <div
               className={`flex h-8 w-8 items-center justify-center rounded-full text-xs font-bold transition-colors ${
                 i <= step
-                  ? "bg-emerald-600 text-white shadow-sm"
+                  ? "bg-[#00066D] text-white shadow-sm"
                   : "bg-slate-100 text-slate-400"
               }`}
             >
@@ -17,7 +17,7 @@ export function StepProgress({ step }: { step: number }) {
             </div>
             <span
               className={`hidden text-[10px] font-medium sm:block ${
-                i <= step ? "text-emerald-700" : "text-slate-400"
+                i <= step ? "text-[#00066D]" : "text-slate-400"
               }`}
             >
               {label}
@@ -27,7 +27,7 @@ export function StepProgress({ step }: { step: number }) {
       </div>
       <div className="mt-3 h-1.5 overflow-hidden rounded-full bg-slate-100">
         <div
-          className="h-full rounded-full bg-gradient-to-l from-emerald-500 to-emerald-600 transition-all duration-300"
+          className="h-full rounded-full bg-gradient-to-l from-[#FF9900] to-[#00066D] transition-all duration-300"
           style={{ width: `${((step + 1) / LABELS.length) * 100}%` }}
         />
       </div>

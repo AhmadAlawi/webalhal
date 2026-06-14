@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
@@ -90,7 +90,7 @@ export default function NotificationsPage() {
                 <p className="text-sm text-slate-500">{n.body}</p>
                 {n.createdAt && (
                   <p className="mt-1 text-xs text-slate-400">
-                    {new Date(n.createdAt).toLocaleString("ar-SY")}
+                    {new Date(n.createdAt).toLocaleString("ar-JO")}
                   </p>
                 )}
               </button>

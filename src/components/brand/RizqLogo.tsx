@@ -1,4 +1,4 @@
-import Image from "next/image";
+﻿import Image from "next/image";
 import Link from "next/link";
 import { clsx } from "clsx";
 
@@ -34,8 +34,8 @@ export function RizqLogo({
         style={{ width: dim.box, height: dim.box }}
       >
         <Image
-          src="/rizq-logo.png"
-          alt="شعار رزق"
+          src="/baraka-logo.png"
+          alt="شعار بركة"
           width={dim.img}
           height={dim.img}
           className="object-contain"
@@ -48,15 +48,15 @@ export function RizqLogo({
             className={clsx(
               "block font-bold leading-tight",
               size === "sm" ? "text-base" : size === "lg" || size === "xl" ? "text-xl" : "text-lg",
-              variant === "onDark" ? "text-white" : "text-slate-900",
+              variant === "onDark" ? "text-white" : "text-[#00066D]",
             )}
           >
-            رزق
+            بركة
           </span>
           <span
             className={clsx(
               "block text-xs leading-snug",
-              variant === "onDark" ? "text-emerald-400" : "text-emerald-600",
+              variant === "onDark" ? "text-[#FFB13B]" : "text-[#8B5A00]",
             )}
           >
             سوق الهال
@@ -70,7 +70,7 @@ export function RizqLogo({
 
   if (href) {
     return (
-      <Link href={href} className={wrapClass} aria-label="رزق — الصفحة الرئيسية">
+      <Link href={href} className={wrapClass} aria-label="بركة — الصفحة الرئيسية">
         {inner}
       </Link>
     );

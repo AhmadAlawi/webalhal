@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import { useEffect, useState } from "react";
 import { useParams } from "next/navigation";
@@ -54,7 +54,7 @@ export default function TicketDetailPage() {
             <StatusBadge status={ticket.status} />
             {ticket.createdAt && (
               <span className="text-xs text-slate-400">
-                {new Date(ticket.createdAt).toLocaleString("ar-SY")}
+                {new Date(ticket.createdAt).toLocaleString("ar-JO")}
               </span>
             )}
           </div>

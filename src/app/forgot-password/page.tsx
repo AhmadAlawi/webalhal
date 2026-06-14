@@ -25,7 +25,7 @@ export default function ForgotPasswordPage() {
   async function handleRequestOtp(e: React.FormEvent) {
     e.preventDefault();
     if (!phone.trim()) {
-      setError("أدخل رقم الهاتف بصيغة دولية (+963...)");
+      setError("أدخل رقم الهاتف بصيغة دولية (+962...)");
       return;
     }
     setLoading(true);
@@ -89,7 +89,7 @@ export default function ForgotPasswordPage() {
             label="رقم الهاتف"
             value={phone}
             onChange={(e) => setPhone(e.target.value)}
-            placeholder="+963..."
+            placeholder="+962..."
           />
           {error && <p className="rounded-xl bg-red-50 px-4 py-2 text-sm text-red-600">{error}</p>}
           {msg && <p className="rounded-xl bg-emerald-50 px-4 py-2 text-sm text-emerald-700">{msg}</p>}
