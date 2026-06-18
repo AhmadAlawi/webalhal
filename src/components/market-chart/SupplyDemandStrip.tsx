@@ -13,18 +13,20 @@ import {
 import type { MultiSeriesTimeData } from "@/types/market-chart";
 import { formatDateAr, formatNumber } from "@/lib/format";
 import { useI18n } from "@/context/I18nContext";
-
-const TOOLTIP = {
-  backgroundColor: "#1e222d",
-  border: "1px solid #2a2e39",
-  borderRadius: "8px",
-  color: "#d1d4dc",
-  fontSize: "12px",
-  direction: "rtl" as const,
-};
+import { useTheme } from "@/context/ThemeContext";
+import {
+  CHART_TICK_DARK,
+  CHART_TICK_LIGHT,
+  getChartGrid,
+  getChartTooltipStyle,
+} from "@/components/analysis/charts/chartTheme";
 
 export function SupplyDemandStrip({ data }: { data: MultiSeriesTimeData }) {
   const { t } = useI18n();
+  const { isDark } = useTheme();
+  const grid = getChartGrid(isDark);
+  const tooltipStyle = getChartTooltipStyle(isDark);
+  const tick = isDark ? CHART_TICK_DARK : CHART_TICK_LIGHT;
   const dates = new Set<string>();
   for (const p of data.supply) dates.add(p.date.slice(0, 10));
   for (const p of data.demand) dates.add(p.date.slice(0, 10));
@@ -63,11 +65,11 @@ export function SupplyDemandStrip({ data }: { data: MultiSeriesTimeData }) {
     <div dir="ltr">
       <ResponsiveContainer width="100%" height={160}>
         <BarChart data={chartData} margin={{ top: 8, right: 8, left: 0, bottom: 4 }}>
-          <CartesianGrid stroke="#2a2e39" strokeDasharray="3 3" vertical={false} />
-          <XAxis dataKey="label" tick={{ fontSize: 9, fill: "#94a3b8" }} interval="preserveStartEnd" />
-          <YAxis tick={{ fontSize: 10, fill: "#94a3b8" }} width={40} />
+          <CartesianGrid {...grid} vertical={false} />
+          <XAxis dataKey="label" tick={{ fontSize: 9, ...tick }} interval="preserveStartEnd" />
+          <YAxis tick={{ fontSize: 10, ...tick }} width={40} />
           <Tooltip
-            contentStyle={TOOLTIP}
+            contentStyle={tooltipStyle}
             formatter={(v, name) => [
               `${formatNumber(Number(v))} ${t("marketChart.supplyDemand.kg")}`,
               seriesLabel(String(name)),
@@ -80,7 +82,7 @@ export function SupplyDemandStrip({ data }: { data: MultiSeriesTimeData }) {
             }}
           />
           <Legend
-            wrapperStyle={{ fontSize: 11, color: "#94a3b8" }}
+            wrapperStyle={{ fontSize: 11, color: tick.fill }}
             formatter={(v) => seriesLabel(String(v))}
           />
           <Bar

@@ -65,17 +65,19 @@ export function BannerCarousel({
   const { user } = useAuth();
   const { t } = useI18n();
   const [index, setIndex] = useState(0);
+  const [prevAds, setPrevAds] = useState(ads);
   const defaultCta = t("home.banner.defaultCta");
+
+  if (prevAds !== ads) {
+    setPrevAds(ads);
+    setIndex(0);
+  }
 
   useEffect(() => {
     if (ads.length <= 1) return;
     const timer = setInterval(() => setIndex((i) => (i + 1) % ads.length), 6000);
     return () => clearInterval(timer);
   }, [ads.length]);
-
-  useEffect(() => {
-    setIndex(0);
-  }, [ads]);
 
   useEffect(() => {
     const ad = ads[index];

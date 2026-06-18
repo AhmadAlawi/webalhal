@@ -13,6 +13,7 @@ import { navigateAfterCreate, parseEntityId } from "@/lib/return-navigation";
 import { useAuth } from "@/context/AuthContext";
 import { useI18n } from "@/context/I18nContext";
 import type { LocalizableRecord } from "@/lib/localized-value";
+import { normalizeProductId } from "@/lib/product-id";
 import { useLocalizedLabel } from "@/hooks/useLocalizedLabel";
 
 function NewCropForm() {
@@ -49,8 +50,14 @@ function NewCropForm() {
   const isDirectFlow = returnTo === "/direct/new" || returnTo?.includes("/direct/new");
 
   async function submit() {
+    const normalizedProductId = normalizeProductId(productId);
     if (!user?.userId || !farmId) return;
-    if (!productId || !name.trim() || !quantity || !harvestDate) {
+    if (!normalizedProductId || !name.trim() || !quantity || !harvestDate) {
+      setError(t("farms.crop.fillRequired"));
+      return;
+    }
+    const parsedQuantity = Number(quantity);
+    if (!Number.isFinite(parsedQuantity) || parsedQuantity <= 0) {
       setError(t("farms.crop.fillRequired"));
       return;
     }
@@ -70,15 +77,19 @@ function NewCropForm() {
     setSaving(true);
     setError("");
     try {
-      const res = await createCrop({
+      const payload = {
         farmId,
-        productId: Number(productId),
+        productId: normalizedProductId,
         name: name.trim(),
-        quantity: Number(quantity),
+        quantity: parsedQuantity,
         unit: unit.trim() || t("forms.units.kg"),
         harvestDate: harvest.toISOString(),
-        expiryDate: expiryDate ? new Date(expiryDate).toISOString() : undefined,
-        imageUrls: imageUrls.length ? imageUrls : undefined,
+        ...(expiryDate ? { expiryDate: new Date(expiryDate).toISOString() } : {}),
+        ...(imageUrls.length ? { imageUrls } : {}),
+      };
+
+      const res = await createCrop({
+        ...payload,
       });
       const newCropId = parseEntityId(res, "cropId", "CropId");
 
@@ -101,9 +112,9 @@ function NewCropForm() {
       <PageContainer narrow className="py-8">
         <div className="space-y-4 rounded-2xl border border-gray-100 bg-white p-6 shadow-sm">
           <ProductSelect
-            productId={productId}
+            productId={normalizeProductId(productId)}
             onChange={(pid, product) => {
-              setProductId(pid || "");
+              setProductId(pid);
               if (product && !name) setName(localized(product as unknown as LocalizableRecord));
             }}
           />

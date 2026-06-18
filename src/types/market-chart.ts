@@ -51,7 +51,7 @@ export interface MultiSeriesTimeData {
 }
 
 export interface FilterProduct {
-  id: number;
+  productId: number;
   name?: string;
   nameAr?: string;
   categoryId?: number;

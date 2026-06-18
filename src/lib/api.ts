@@ -8,7 +8,7 @@ import {
 } from "./auth-storage";
 import { unwrapEnvelopeData } from "./api-envelope";
 import { formatApiErrorMessage } from "./api-errors";
-import type { ApiEnvelope } from "@/types";
+import type { ApiEnvelope, ApiError } from "@/types";
 
 export class ApiClientError extends Error {
   constructor(
@@ -26,6 +26,7 @@ type RequestOptions = RequestInit & {
   skipAuth?: boolean;
   raw?: boolean;
   _retried?: boolean;
+  timeoutMs?: number;
 };
 
 let refreshInFlight: Promise<boolean> | null = null;
@@ -66,7 +67,7 @@ export async function apiRequest<T>(
   path: string,
   options: RequestOptions = {},
 ): Promise<T> {
-  const { skipAuth, raw, _retried, ...init } = options;
+  const { skipAuth, raw, _retried, timeoutMs = 30000, ...init } = options;
   const headers = new Headers(init.headers);
 
   if (!headers.has("Content-Type") && !(init.body instanceof FormData)) {
@@ -78,10 +79,27 @@ export async function apiRequest<T>(
     if (token) headers.set("Authorization", `Bearer ${token}`);
   }
 
-  const res = await fetch(`${getApiBaseUrl()}${path}`, {
-    ...init,
-    headers,
-  });
+  const timeoutController =
+    !init.signal && timeoutMs > 0 ? new AbortController() : null;
+  const timeoutId = timeoutController
+    ? globalThis.setTimeout(() => timeoutController.abort(), timeoutMs)
+    : null;
+
+  let res: Response;
+  try {
+    res = await fetch(`${getApiBaseUrl()}${path}`, {
+      ...init,
+      headers,
+      signal: init.signal ?? timeoutController?.signal,
+    });
+  } catch (error) {
+    if (timeoutController?.signal.aborted) {
+      throw new ApiClientError("انتهت مهلة الطلب. حاول مرة أخرى.", 408);
+    }
+    throw error;
+  } finally {
+    if (timeoutId != null) globalThis.clearTimeout(timeoutId);
+  }
 
   if (res.status === 401 && !skipAuth && !_retried) {
     const refreshed = await tryRefreshSession();
@@ -118,11 +136,39 @@ export async function apiRequest<T>(
   }
 
   if (!res.ok) {
-    const err = envelope?.error;
+    const bodyObject =
+      body && typeof body === "object" ? (body as Record<string, unknown>) : null;
+    const err =
+      envelope?.error ??
+      (bodyObject?.error && typeof bodyObject.error === "object"
+        ? (bodyObject.error as ApiEnvelope<T>["error"])
+        : undefined);
+    const plainError =
+      typeof body === "string"
+        ? body
+        : typeof bodyObject?.error === "string"
+          ? bodyObject.error
+          : undefined;
+    const problemDetail =
+      typeof bodyObject?.detail === "string"
+        ? bodyObject.detail
+        : typeof bodyObject?.title === "string"
+          ? bodyObject.title
+          : undefined;
+    const plainErrors =
+      bodyObject?.errors && typeof bodyObject.errors === "object"
+        ? (bodyObject.errors as ApiError["errors"])
+        : undefined;
+
     throw new ApiClientError(
       formatApiErrorMessage(
-        err?.detail || err?.title || envelope?.message || res.statusText,
-        err?.errors,
+        err?.detail ||
+          err?.title ||
+          envelope?.message ||
+          plainError ||
+          problemDetail ||
+          res.statusText,
+        err?.errors ?? plainErrors,
       ),
       res.status,
       err?.code,

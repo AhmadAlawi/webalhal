@@ -68,9 +68,20 @@ export interface VolumeByGovernorate {
   value?: number;
 }
 
+export interface MarketAnalysisProductFilter {
+  productId: number;
+  name?: string;
+  nameAr?: string;
+  nameEn?: string;
+  categoryId?: number;
+  category?: string;
+  categoryNameAr?: string;
+  categoryNameEn?: string;
+}
+
 export interface AnalysisFiltersAvailable {
   governorates?: { id: number; name?: string; nameAr?: string }[];
-  products?: { id: number; name?: string; nameAr?: string; categoryId?: number }[];
+  products?: MarketAnalysisProductFilter[];
   categories?: { id: number; name?: string; nameAr?: string }[];
   transactionTypes?: string[];
   minDate?: string;

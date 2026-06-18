@@ -5,8 +5,11 @@ import { ListingCard } from "@/components/cards/ListingCard";
 import { getOpenAuctions } from "@/services/auctions";
 import { getFilteredTenders } from "@/services/tenders";
 import { getFilteredDirectListings, getMarketplaceBrowse } from "@/services/marketplace";
+import { fetchMarketAnalysisFilterProducts } from "@/services/market-analysis";
+import { getProducts } from "@/services/catalog";
 import { getAuctionMainImage, getDirectMainImage, getTenderMainImage } from "@/lib/media";
 import { buildMarketListParams } from "@/lib/list-query-params";
+import { filterMarketItemsByCategory } from "@/lib/market-category-filter";
 import {
   filtersToQueryParams,
   type MarketListFilterState,
@@ -24,9 +27,12 @@ import { translateStatus } from "@/lib/status-labels";
 import { useI18n } from "@/context/I18nContext";
 import type { MarketTab } from "./MarketTabs";
 import type { Auction, MarketplaceListing, Tender } from "@/types";
+import type { MarketAnalysisProductFilter } from "@/types/market-analysis";
 
 /** browse = الصفحة الرئيسية (marketplace/browse) | open = صفحات القسم مع فلترة API */
 export type ListingsSource = "browse" | "open";
+
+const EMPTY_CATEGORY_KEYWORDS: string[] = [];
 
 function displayTitle(
   marketTitle: ReturnType<typeof useLocalizedLabel>["marketTitle"],
@@ -42,16 +48,41 @@ function displayTitle(
   return t(fallbackKey, "", { id });
 }
 
+async function loadCategoryProducts(
+  categoryId?: number,
+): Promise<MarketAnalysisProductFilter[]> {
+  if (!categoryId) return [];
+
+  try {
+    const products = await fetchMarketAnalysisFilterProducts({ categoryId });
+    if (products.length) return products;
+  } catch {
+    // Fall back to the admin catalog below.
+  }
+
+  const catalogProducts = await getProducts().catch(() => []);
+  return catalogProducts
+    .filter((product) => Number(product.categoryId) === categoryId)
+    .map((product) => ({
+      productId: product.productId,
+      name: product.name,
+      nameAr: product.nameAr,
+      categoryId: product.categoryId,
+    }));
+}
+
 export function MarketListings({
   tab,
   searchQuery,
   categoryId,
+  categoryKeywords = EMPTY_CATEGORY_KEYWORDS,
   listFilters,
   source = "browse",
 }: {
   tab: MarketTab;
   searchQuery: string;
   categoryId?: number;
+  categoryKeywords?: string[];
   listFilters?: MarketListFilterState;
   source?: ListingsSource;
 }) {
@@ -70,41 +101,93 @@ export function MarketListings({
     const ac = new AbortController();
     abortRef.current = ac;
 
-    setLoading(true);
-    setError(null);
-
     const kind = tab === "auctions" ? "auctions" : tab === "tenders" ? "tenders" : "direct";
+    const activeCategoryId = listFilters?.categoryId ?? categoryId;
     const extra = listFilters ? filtersToQueryParams(listFilters, kind) : {};
     const params = buildMarketListParams(
       debouncedSearch,
-      listFilters?.categoryId ?? categoryId,
+      activeCategoryId,
       extra,
     );
 
     const load = async () => {
       if (ac.signal.aborted) return;
 
+      setLoading(true);
+      setError(null);
+
+      const categoryProducts = await loadCategoryProducts(activeCategoryId);
+      if (ac.signal.aborted) return;
+
       if (source === "open") {
         if (tab === "auctions") {
           const list = await getOpenAuctions(params);
-          if (!ac.signal.aborted) setAuctions(list);
+          if (!ac.signal.aborted) {
+            setAuctions(
+              filterMarketItemsByCategory(
+                list,
+                activeCategoryId,
+                categoryProducts,
+                categoryKeywords,
+              ),
+            );
+          }
           return;
         }
         if (tab === "tenders") {
           const list = await getFilteredTenders(params);
-          if (!ac.signal.aborted) setTenders(list);
+          if (!ac.signal.aborted) {
+            setTenders(
+              filterMarketItemsByCategory(
+                list,
+                activeCategoryId,
+                categoryProducts,
+                categoryKeywords,
+              ),
+            );
+          }
           return;
         }
         const list = await getFilteredDirectListings(params);
-        if (!ac.signal.aborted) setDirect(list);
+        if (!ac.signal.aborted) {
+          setDirect(
+            filterMarketItemsByCategory(
+              list,
+              activeCategoryId,
+              categoryProducts,
+              categoryKeywords,
+            ),
+          );
+        }
         return;
       }
 
       const browse = await getMarketplaceBrowse(params);
       if (ac.signal.aborted) return;
-      setAuctions(browse.auctions);
-      setTenders(browse.tenders);
-      setDirect(browse.direct);
+      setAuctions(
+        filterMarketItemsByCategory(
+          browse.auctions,
+          activeCategoryId,
+          categoryProducts,
+          categoryKeywords,
+        ),
+      );
+      setTenders(
+        filterMarketItemsByCategory(
+          browse.tenders,
+          activeCategoryId,
+          categoryProducts,
+          categoryKeywords,
+        ),
+      );
+      setDirect(
+        filterMarketItemsByCategory(
+          browse.direct,
+          activeCategoryId,
+          categoryProducts,
+          categoryKeywords,
+        ),
+      );
     };
 
     load()
@@ -120,7 +203,7 @@ export function MarketListings({
       });
 
     return () => ac.abort();
-  }, [tab, debouncedSearch, categoryId, listFilters, source, t]);
+  }, [tab, debouncedSearch, categoryId, categoryKeywords, listFilters, source, t]);
 
   const items =
     tab === "auctions" ? auctions : tab === "tenders" ? tenders : direct;

@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import Script from "next/script";
 import { Cairo } from "next/font/google";
 import "./globals.css";
 import { Providers } from "@/components/providers";
@@ -55,7 +56,11 @@ export default function RootLayout({
       className={`${cairo.variable} h-full`}
     >
       <head>
-        <script dangerouslySetInnerHTML={{ __html: themeInitScript }} />
+        <Script
+          id="theme-init"
+          strategy="beforeInteractive"
+          dangerouslySetInnerHTML={{ __html: themeInitScript }}
+        />
       </head>
       <body
         suppressHydrationWarning

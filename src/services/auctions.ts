@@ -33,10 +33,13 @@ function normalizeAuction(raw: unknown): Auction {
 
   return {
     auctionId,
+    cropId: Number(r.cropId ?? r.CropId) || undefined,
+    productId: Number(r.productId ?? r.ProductId) || undefined,
     auctionTitle: (r.auctionTitle ?? r.AuctionTitle) as string | undefined,
     auctionDescription: (r.auctionDescription ?? r.AuctionDescription) as string | undefined,
     cropName: (r.cropName ?? r.CropName) as string | undefined,
     productNameAr: (r.productNameAr ?? r.ProductNameAr) as string | undefined,
+    productNameEn: (r.productNameEn ?? r.ProductNameEn) as string | undefined,
     startingPrice: Number(r.startingPrice ?? r.StartingPrice ?? pricingParsed?.startingPriceTotal) || undefined,
     currentPrice: Number(r.currentPrice ?? r.CurrentPrice ?? pricingParsed?.currentPriceTotal) || undefined,
     minIncrement: Number(r.minIncrement ?? r.MinIncrement ?? pricingParsed?.minIncrementTotal) || undefined,
@@ -60,7 +63,10 @@ function normalizeAuction(raw: unknown): Auction {
     cityName: (r.cityName ?? r.CityName) as string | undefined,
     farmCity: (r.farmCity ?? r.FarmCity) as string | undefined,
     farmGovernorate: (r.farmGovernorate ?? r.FarmGovernorate) as string | undefined,
+    categoryId: Number(r.categoryId ?? r.CategoryId) || undefined,
     categoryNameAr: (r.categoryNameAr ?? r.CategoryNameAr) as string | undefined,
+    categoryNameEn: (r.categoryNameEn ?? r.CategoryNameEn) as string | undefined,
+    sellerName: (r.sellerName ?? r.SellerName) as string | undefined,
     sellerUserId,
     createdByUserId: sellerUserId,
     winnerUserId:

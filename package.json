@@ -12,6 +12,7 @@
     "start": "next start -p 3011",
     "start:prod": "next start -p 3011",
     "lint": "eslint",
+    "test:product-id": "node scripts/product-id-checks.mjs",
     "test:e2e": "node scripts/e2e-workflows.mjs",
     "deploy": "bash scripts/deploy.sh",
     "pm2:start": "pm2 start ecosystem.config.cjs --env production",
