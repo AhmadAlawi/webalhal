@@ -54,10 +54,13 @@ export interface RegistrationIncomplete {
 
 export interface Auction {
   auctionId: number;
+  cropId?: number;
+  productId?: number;
   auctionTitle?: string;
   auctionDescription?: string;
   cropName?: string;
   productNameAr?: string;
+  productNameEn?: string;
   startingPrice?: number;
   currentPrice?: number;
   minIncrement?: number;
@@ -83,6 +86,8 @@ export interface Auction {
   farmGovernorate?: string;
   categoryId?: number;
   categoryNameAr?: string;
+  categoryNameEn?: string;
+  sellerName?: string;
   createdByUserId?: number;
   sellerUserId?: number;
   winnerUserId?: number;
@@ -97,10 +102,12 @@ export interface Auction {
 
 export interface Tender {
   tenderId: number;
+  productId?: number;
   title?: string;
   description?: string;
   cropName?: string;
   productNameAr?: string;
+  productNameEn?: string;
   quantity?: number;
   unit?: string;
   maxBudget?: number;
@@ -116,14 +123,19 @@ export interface Tender {
   farmGovernorate?: string;
   categoryId?: number;
   categoryNameAr?: string;
+  categoryNameEn?: string;
+  sellerName?: string;
   offersCount?: number;
 }
 
 export interface MarketplaceListing {
   listingId: number;
+  cropId?: number;
+  productId?: number;
   title?: string;
   cropName?: string;
   productNameAr?: string;
+  productNameEn?: string;
   unitPrice?: number;
   availableQty?: number;
   minOrderQty?: number;
@@ -140,6 +152,8 @@ export interface MarketplaceListing {
   sellerUserId?: number;
   categoryId?: number;
   categoryNameAr?: string;
+  categoryNameEn?: string;
+  sellerName?: string;
 }
 
 export interface MarketplaceBrowseData {

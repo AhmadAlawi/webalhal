@@ -1,12 +1,7 @@
 import { apiGet, apiPost, apiPut } from "@/lib/api";
 import { asApiList } from "@/lib/api-list";
+import { normalizeProductId } from "@/lib/product-id";
 import type { Crop, Farm } from "@/types/farm";
-
-function asArray<T>(data: T[] | { items?: T[]; data?: T[] } | null | undefined): T[] {
-  if (!data) return [];
-  if (Array.isArray(data)) return data;
-  return data.items ?? data.data ?? [];
-}
 
 function normalizeFarm(raw: unknown): Farm | null {
   if (!raw || typeof raw !== "object") return null;
@@ -55,6 +50,7 @@ function normalizeCrop(raw: unknown): Crop | null {
   if (!raw || typeof raw !== "object") return null;
   const r = raw as Record<string, unknown>;
   const cropId = Number(r.cropId ?? r.CropId ?? r.id);
+  const productId = Number(r.productId ?? r.ProductId);
   if (!Number.isFinite(cropId) || cropId <= 0) return null;
   return {
     cropId,
@@ -63,10 +59,20 @@ function normalizeCrop(raw: unknown): Crop | null {
     nameAr: (r.nameAr ?? r.NameAr ?? r.cropName) as string | undefined,
     cropName: (r.cropName ?? r.CropName) as string | undefined,
     unit: (r.unit ?? r.Unit) as string | undefined,
+    variety: (r.variety ?? r.Variety) as string | undefined,
     quantity: Number(r.quantity ?? r.Quantity) || undefined,
-    productId: Number(r.productId ?? r.ProductId) || undefined,
+    productId:
+      Number.isFinite(productId) && productId > 0
+        ? normalizeProductId(productId)
+        : undefined,
     status: (r.status ?? r.Status) as string | undefined,
     harvestDate: (r.harvestDate ?? r.HarvestDate) as string | undefined,
+    expiryDate: (r.expiryDate ?? r.ExpiryDate) as string | undefined,
+    qualityGrade: (r.qualityGrade ?? r.QualityGrade) as string | undefined,
+    size: (r.size ?? r.Size) as string | undefined,
+    color: (r.color ?? r.Color) as string | undefined,
+    packingMethod: (r.packingMethod ?? r.PackingMethod) as string | undefined,
+    supplyScope: (r.supplyScope ?? r.SupplyScope) as string | undefined,
     imageUrls: Array.isArray(r.imageUrls)
       ? (r.imageUrls as string[])
       : Array.isArray(r.images)
@@ -90,6 +96,11 @@ export async function createCrop(body: {
   harvestDate: string;
   expiryDate?: string;
   variety?: string;
+  qualityGrade?: string;
+  size?: string;
+  color?: string;
+  packingMethod?: string;
+  supplyScope?: string;
   imageUrls?: string[];
 }) {
   return apiPost<Crop>("/api/crops", body);

@@ -87,7 +87,13 @@ const I18nContext = createContext<I18nContextValue>({
 });
 
 export function I18nProvider({ children }: { children: ReactNode }) {
-  const [language, setLanguageState] = useState<AppLanguage>(() => resolveInitialLanguage());
+  // Keep first client render aligned with SSR output to avoid hydration mismatches.
+  const [language, setLanguageState] = useState<AppLanguage>("en");
+
+  useEffect(() => {
+    const initial = resolveInitialLanguage();
+    setLanguageState((current) => (current === initial ? current : initial));
+  }, []);
 
   useEffect(() => {
     applyDocumentLanguage(language);

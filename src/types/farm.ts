@@ -19,6 +19,7 @@ export interface Crop {
   farmId?: number;
   productId?: number;
   name?: string;
+  variety?: string;
   nameAr?: string;
   cropName?: string;
   unit?: string;
@@ -27,6 +28,12 @@ export interface Crop {
   status?: string;
   imageUrls?: string[];
   harvestDate?: string;
+  expiryDate?: string;
+  qualityGrade?: string;
+  size?: string;
+  color?: string;
+  packingMethod?: string;
+  supplyScope?: string;
 }
 
 export interface Product {

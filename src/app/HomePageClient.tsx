@@ -1,7 +1,7 @@
 "use client";
 
 import dynamic from "next/dynamic";
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { Search, MessageCircle } from "lucide-react";
@@ -17,7 +17,7 @@ import { useLocalizedLabel } from "@/hooks/useLocalizedLabel";
 import type { LocalizableRecord } from "@/lib/localized-value";
 import { useAuth } from "@/context/AuthContext";
 import { useI18n } from "@/context/I18nContext";
-import { getAppAds, getBottomAds } from "@/services/catalog";
+import { getAppAds, getBottomAds, getCategoryById } from "@/services/catalog";
 import type { Advertisement } from "@/types";
 
 const MarketAnalysisWidget = dynamic(
@@ -41,23 +41,42 @@ export default function HomePageClient() {
   const { chatCount } = useHeaderBadges(isAuthenticated, user?.roleId, user?.userId);
   const [tab, setTab] = useState<MarketTab>("auctions");
   const [search, setSearch] = useState("");
-  const [categoryId, setCategoryId] = useState<number | undefined>();
+  const urlCategoryId = useMemo(() => {
+    const fromUrl = searchParams.get("categoryId");
+    if (!fromUrl) return undefined;
+    const id = Number(fromUrl);
+    return Number.isFinite(id) && id > 0 ? id : undefined;
+  }, [searchParams]);
+  const [categoryOverride, setCategoryOverride] = useState<number | null | undefined>(undefined);
+  const categoryId = categoryOverride === undefined ? (urlCategoryId ?? null) : categoryOverride;
   const [topAds, setTopAds] = useState<Advertisement[]>([]);
   const [bottomAds, setBottomAds] = useState<Advertisement[]>([]);
   const [adsLoading, setAdsLoading] = useState(true);
+  const [subCategories, setSubCategories] = useState<
+    { nameAr?: string; nameEn?: string }[]
+  >([]);
   const { data: categories = [] } = useCategories();
-
-  useEffect(() => {
-    const fromUrl = searchParams.get("categoryId");
-    if (fromUrl) {
-      const id = Number(fromUrl);
-      if (Number.isFinite(id) && id > 0) setCategoryId(id);
-    }
-  }, [searchParams]);
+  const displayedCategories = useMemo(() => categories.slice(0, 2), [categories]);
+  const selectedCategory = categoryId
+    ? (categories.find((category) => category.categoryId === categoryId) ?? null)
+    : null;
+  const categoryKeywords = useMemo(() => {
+    const tokens = new Set<string>();
+    const add = (value?: string | null) => {
+      const token = value?.trim();
+      if (token) tokens.add(token);
+    };
+    add(selectedCategory?.nameAr);
+    add(selectedCategory?.nameEn);
+    subCategories.forEach((subCategory) => {
+      add(subCategory.nameAr);
+      add(subCategory.nameEn);
+    });
+    return Array.from(tokens);
+  }, [selectedCategory, subCategories]);
 
   useEffect(() => {
     let cancelled = false;
-    setAdsLoading(true);
     Promise.all([getAppAds(), getBottomAds()])
       .then(([top, bottom]) => {
         if (cancelled) return;
@@ -77,6 +96,31 @@ export default function HomePageClient() {
       cancelled = true;
     };
   }, []);
+
+  useEffect(() => {
+    let cancelled = false;
+
+    if (!categoryId) {
+      Promise.resolve().then(() => {
+        if (!cancelled) setSubCategories([]);
+      });
+      return () => {
+        cancelled = true;
+      };
+    }
+
+    getCategoryById(categoryId)
+      .then((detail) => {
+        if (!cancelled) setSubCategories(detail?.subCategories ?? []);
+      })
+      .catch(() => {
+        if (!cancelled) setSubCategories([]);
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [categoryId]);
 
   return (
     <>
@@ -120,16 +164,16 @@ export default function HomePageClient() {
             <div className="flex flex-wrap gap-2">
               <button
                 type="button"
-                onClick={() => setCategoryId(undefined)}
+                onClick={() => setCategoryOverride(null)}
                 className={`chip ${!categoryId ? "chip-active" : "chip-inactive"}`}
               >
                 {t("common.all")}
               </button>
-              {categories.map((c) => (
+              {displayedCategories.map((c) => (
                 <button
                   key={c.categoryId}
                   type="button"
-                  onClick={() => setCategoryId(c.categoryId)}
+                  onClick={() => setCategoryOverride(c.categoryId)}
                   className={`chip ${
                     categoryId === c.categoryId ? "chip-active" : "chip-inactive"
                   }`}
@@ -153,7 +197,12 @@ export default function HomePageClient() {
             </div>
             <MarketTabs active={tab} onChange={setTab} />
           </div>
-          <MarketListings tab={tab} searchQuery={search} categoryId={categoryId} />
+          <MarketListings
+            tab={tab}
+            searchQuery={search}
+            categoryId={categoryId ?? undefined}
+            categoryKeywords={categoryKeywords}
+          />
         </PageContainer>
       </section>
 

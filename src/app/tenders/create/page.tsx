@@ -12,6 +12,7 @@ import { ImageUploadField } from "@/components/forms/ImageUploadField";
 import { useAuth } from "@/context/AuthContext";
 import { useI18n } from "@/context/I18nContext";
 import type { LocalizableRecord } from "@/lib/localized-value";
+import { normalizeProductId } from "@/lib/product-id";
 import { useLocalizedLabel } from "@/hooks/useLocalizedLabel";
 import { canCreateTender } from "@/lib/permissions";
 import { createTender } from "@/services/tenders";
@@ -81,7 +82,8 @@ export default function CreateTenderPage() {
   }
 
   async function submit() {
-    if (!user?.userId || !productId) return;
+    const normalizedProductId = normalizeProductId(productId);
+    if (!user?.userId || !normalizedProductId) return;
     if (!title.trim()) {
       setError(t("tenders.create.enterTitle"));
       return;
@@ -106,7 +108,7 @@ export default function CreateTenderPage() {
     setError("");
     try {
       await createTender(user.userId, {
-        productId: Number(productId),
+        productId: normalizedProductId,
         title: title.trim(),
         cropName,
         deliveryLocation: deliveryLocationLabel(),
@@ -148,9 +150,9 @@ export default function CreateTenderPage() {
           {step === 1 && (
             <>
               <ProductSelect
-                productId={productId}
+                productId={normalizeProductId(productId)}
                 onChange={(id, product) => {
-                  setProductId(id || "");
+                  setProductId(id);
                   setSelectedProduct(product);
                   const productName = product
                     ? localized(product as unknown as LocalizableRecord)

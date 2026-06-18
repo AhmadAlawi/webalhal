@@ -174,9 +174,9 @@ export default function MarketAnalysisOverviewPage() {
             >
               <option value="">{t("common.all")}</option>
               {filtersMeta?.products
-                ?.filter((p): p is NonNullable<typeof p> => p != null && p.id != null)
+                ?.filter((p): p is NonNullable<typeof p> => p != null && p.productId != null)
                 .map((p) => (
-                <option key={p.id} value={p.id}>
+                <option key={p.productId} value={p.productId}>
                   {localized(p, "name")}
                 </option>
               ))}

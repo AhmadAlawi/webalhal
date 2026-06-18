@@ -10,19 +10,22 @@ import {
   type ISeriesApi,
 } from "lightweight-charts";
 import type { CandlePoint, VolumePoint } from "@/types/market-chart";
+import {
+  CANDLE_CHART_THEME_DARK,
+  CANDLE_CHART_THEME_LIGHT,
+} from "@/components/analysis/charts/chartTheme";
+import { useTheme } from "@/context/ThemeContext";
 
-const CHART_THEME = {
-  layout: {
-    background: { type: ColorType.Solid, color: "#1e222d" },
-    textColor: "#d1d4dc",
-  },
-  grid: {
-    vertLines: { color: "#2a2e39" },
-    horzLines: { color: "#2a2e39" },
-  },
-  rightPriceScale: { borderColor: "#2a2e39" },
-  timeScale: { borderColor: "#2a2e39", timeVisible: true },
-};
+function toChartTheme(isDark: boolean) {
+  const theme = isDark ? CANDLE_CHART_THEME_DARK : CANDLE_CHART_THEME_LIGHT;
+  return {
+    ...theme,
+    layout: {
+      ...theme.layout,
+      background: { type: ColorType.Solid, color: theme.layout.background.color },
+    },
+  };
+}
 
 export function CandleVolumeChart({
   candles,
@@ -33,6 +36,7 @@ export function CandleVolumeChart({
   volume: VolumePoint[];
   height?: number;
 }) {
+  const { isDark } = useTheme();
   const containerRef = useRef<HTMLDivElement>(null);
   const chartRef = useRef<IChartApi | null>(null);
   const candleRef = useRef<ISeriesApi<"Candlestick"> | null>(null);
@@ -43,7 +47,7 @@ export function CandleVolumeChart({
     if (!el) return;
 
     const chart = createChart(el, {
-      ...CHART_THEME,
+      ...toChartTheme(isDark),
       width: el.clientWidth,
       height,
     });
@@ -85,6 +89,10 @@ export function CandleVolumeChart({
       volumeRef.current = null;
     };
   }, [height]);
+
+  useEffect(() => {
+    chartRef.current?.applyOptions(toChartTheme(isDark));
+  }, [isDark]);
 
   useEffect(() => {
     if (!candleRef.current || !volumeRef.current) return;

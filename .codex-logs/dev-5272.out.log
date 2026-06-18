@@ -1,0 +1,31 @@
+
+> alhalnewweb@0.1.0 dev
+> next dev -p 5272 --webpack
+
+▲ Next.js 16.2.6 (webpack)
+- Local:         http://localhost:5272
+- Network:       http://192.168.1.23:5272
+✓ Ready in 589ms
+- Experiments (use with caution):
+  · optimizePackageImports
+
+○ Compiling /auctions ...
+ HEAD /auctions 200 in 8.2s (next.js: 7.9s, application-code: 377ms)
+ GET /auctions 200 in 212ms (next.js: 17ms, application-code: 195ms)
+○ Compiling / ...
+ GET / 200 in 6.9s (next.js: 6.8s, application-code: 102ms)
+ GET / 200 in 62ms (next.js: 4ms, application-code: 58ms)
+ GET / 200 in 31ms (next.js: 3ms, application-code: 27ms)
+ GET / 200 in 419ms (next.js: 6ms, application-code: 413ms)
+ GET /auctions 200 in 57ms (next.js: 24ms, application-code: 33ms)
+ GET /tenders 200 in 826ms (next.js: 753ms, application-code: 73ms)
+ GET /direct 200 in 728ms (next.js: 679ms, application-code: 49ms)
+ GET /market-analysis 200 in 2.2s (next.js: 2.1s, application-code: 50ms)
+ GET /market-analysis 200 in 47ms (next.js: 6ms, application-code: 42ms)
+ GET /market-analysis 200 in 50ms (next.js: 5ms, application-code: 46ms)
+ GET /market-analysis 200 in 31ms (next.js: 3ms, application-code: 28ms)
+ GET /market-analysis 200 in 34ms (next.js: 3ms, application-code: 31ms)
+ GET / 200 in 57ms (next.js: 26ms, application-code: 31ms)
+ GET /account 200 in 1654ms (next.js: 1589ms, application-code: 65ms)
+ GET /login 200 in 975ms (next.js: 893ms, application-code: 82ms)
+ GET /register 200 in 772ms (next.js: 731ms, application-code: 41ms)
