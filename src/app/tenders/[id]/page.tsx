@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { useParams } from "next/navigation";
+import { useParams, useRouter } from "next/navigation";
 import { PageHeader } from "@/components/ui/PageHeader";
 import { PageContainer } from "@/components/layout/PageContainer";
 import { Button } from "@/components/ui/Button";
@@ -25,17 +25,22 @@ interface TenderOffer {
   quantityOffered?: number;
   supplierName?: string;
   status?: string;
+  conversationId?: number | null;
+  supplierUserId?: number | null;
 }
 
 const OFFER_STATUS_AR: Record<string, string> = {
   pending: "قيد المراجعة",
+  active: "قيد المراجعة",
   accepted: "مقبول",
   awarded: "مُرسى",
   rejected: "مرفوض",
+  withdrawn: "مسحوب",
 };
 
 export default function TenderDetailPage() {
   const { id } = useParams();
+  const router = useRouter();
   const { user, requireAuth } = useAuth();
   const [tender, setTender] = useState<Tender | null>(null);
   const [offers, setOffers] = useState<TenderOffer[]>([]);
@@ -142,7 +147,7 @@ export default function TenderDetailPage() {
           <section className="mb-8 rounded-2xl border border-amber-100 bg-amber-50/50 p-6">
             <h3 className="mb-3 font-semibold text-amber-900">إدارة المناقصة (مالك)</h3>
             <p className="mb-4 text-sm text-amber-800">
-              اختر عرضاً للترسية (لا يمكن إلغاء الترسية بعدها)، ثم أنهِ المناقصة بعد التعاقد.
+              يمكنك قبول أكثر من عرض على هذه المناقصة — كل عرض تقبله يفتح محادثة منفصلة مع صاحبه. القبول نهائي ولا يمكن التراجع عنه. أنهِ المناقصة بعد التعاقد مع كل من تريد.
             </p>
             <Button variant="outline" disabled={acting != null} onClick={handleFinish}>
               إنهاء المناقصة
@@ -182,7 +187,7 @@ export default function TenderDetailPage() {
             <ul className="space-y-3">
               {offers.map((o, i) => {
                 const st = o.status?.toLowerCase() ?? "";
-                const isPending = st === "pending";
+                const isPending = st === "active" || st === "pending";
                 const isAwarded = st === "awarded" || st === "accepted";
                 return (
                   <li
@@ -212,9 +217,25 @@ export default function TenderDetailPage() {
                         ترسية
                       </Button>
                     )}
-                    {isOwner && isAwarded && (
+                    {isAwarded && (isOwner || user?.userId === o.supplierUserId) && (
+                      <div className="flex items-center gap-2">
+                        <span className="rounded-full bg-emerald-100 px-3 py-1 text-xs font-semibold text-emerald-800">
+                          مُرسى — لا يمكن الإلغاء
+                        </span>
+                        {o.conversationId != null && (
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            onClick={() => router.push(`/chat/${o.conversationId}`)}
+                          >
+                            المحادثة
+                          </Button>
+                        )}
+                      </div>
+                    )}
+                    {isAwarded && !isOwner && user?.userId !== o.supplierUserId && (
                       <span className="rounded-full bg-emerald-100 px-3 py-1 text-xs font-semibold text-emerald-800">
-                        مُرسى — لا يمكن الإلغاء
+                        مُرسى
                       </span>
                     )}
                   </li>
