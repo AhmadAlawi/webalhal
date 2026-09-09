@@ -1,10 +1,11 @@
 "use client";
 
 import { clsx } from "clsx";
-import { cropUnitOptions } from "@/lib/crop-units";
+import { useI18n } from "@/context/I18nContext";
+import { getCropUnitOptions } from "@/lib/crop-units";
 
 export function UnitSelect({
-  label = "الوحدة",
+  label,
   value,
   onChange,
   disabled,
@@ -16,12 +17,14 @@ export function UnitSelect({
   disabled?: boolean;
   required?: boolean;
 }) {
-  const options = cropUnitOptions(value);
+  const { t } = useI18n();
+  const displayLabel = label ?? t("forms.units.label");
+  const options = getCropUnitOptions(t, value);
 
   return (
     <div className="w-full">
-      {label && (
-        <label className="mb-1.5 block text-sm font-medium text-slate-700">{label}</label>
+      {displayLabel && (
+        <label className="mb-1.5 block text-sm font-medium text-slate-700">{displayLabel}</label>
       )}
       <select
         className={clsx(

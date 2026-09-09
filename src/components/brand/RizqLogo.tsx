@@ -1,6 +1,9 @@
+"use client";
+
 import Image from "next/image";
 import Link from "next/link";
 import { clsx } from "clsx";
+import { useI18n } from "@/context/I18nContext";
 
 const SIZES = {
   sm: { box: 36, img: 32 },
@@ -20,22 +23,23 @@ export function RizqLogo({
   showText?: boolean;
   href?: string | null;
   className?: string;
-  /** على خلفية داكنة (فوتر) */
   variant?: "default" | "onDark";
 }) {
+  const { t } = useI18n();
   const dim = SIZES[size];
   const inner = (
     <>
       <span
         className={clsx(
           "relative flex shrink-0 items-center justify-center overflow-hidden rounded-xl bg-white shadow-sm",
+          "rizq-logo-mark",
           variant === "onDark" && "ring-1 ring-white/10",
         )}
         style={{ width: dim.box, height: dim.box }}
       >
         <Image
           src="/rizq-logo.png"
-          alt="شعار رزق"
+          alt={t("brand.logoAlt")}
           width={dim.img}
           height={dim.img}
           className="object-contain"
@@ -51,7 +55,7 @@ export function RizqLogo({
               variant === "onDark" ? "text-white" : "text-slate-900",
             )}
           >
-            رزق
+            {t("brand.name")}
           </span>
           <span
             className={clsx(
@@ -59,7 +63,7 @@ export function RizqLogo({
               variant === "onDark" ? "text-emerald-400" : "text-emerald-600",
             )}
           >
-            سوق الهال
+            {t("brand.tagline")}
           </span>
         </span>
       )}
@@ -70,7 +74,7 @@ export function RizqLogo({
 
   if (href) {
     return (
-      <Link href={href} className={wrapClass} aria-label="رزق — الصفحة الرئيسية">
+      <Link href={href} className={wrapClass} aria-label={t("brand.homeAria")}>
         {inner}
       </Link>
     );

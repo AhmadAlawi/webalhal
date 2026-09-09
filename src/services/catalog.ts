@@ -6,6 +6,7 @@ import {
   sortAdvertisements,
 } from "@/lib/advertisement";
 import { unwrapEnvelopeData } from "@/lib/api-envelope";
+import { dedupeProductsByProductId, normalizeProductId } from "@/lib/product-id";
 import type { Advertisement, Category } from "@/types";
 import type { Product } from "@/types/farm";
 
@@ -18,11 +19,44 @@ function asArray<T>(data: T[] | { items?: T[] } | null | undefined): T[] {
 }
 
 interface AdminCategory {
-  categoryId: number;
+  categoryId?: number;
+  CategoryId?: number;
   nameAr?: string;
   nameEn?: string;
+  NameAr?: string;
+  NameEn?: string;
   isActive?: boolean;
+  IsActive?: boolean;
+  subCategories?: AdminSubCategory[];
+  SubCategories?: AdminSubCategory[];
 }
+
+export interface CatalogSubCategory {
+  subCategoryId: number;
+  nameAr?: string;
+  nameEn?: string;
+}
+
+export type CatalogCategoryDetail = Category & {
+  subCategories: CatalogSubCategory[];
+};
+
+interface AdminSubCategory {
+  subCategoryId?: number;
+  SubCategoryId?: number;
+  nameAr?: string;
+  NameAr?: string;
+  nameEn?: string;
+  NameEn?: string;
+}
+
+type ProductPayload = Product & {
+  ProductId?: number;
+  Name?: string;
+  NameAr?: string;
+  CategoryId?: number;
+  Unit?: string;
+};
 
 async function fetchAdvertisementList(path: string): Promise<Advertisement[]> {
   const raw = await apiGet<unknown>(path, { headers: AD_HEADERS });
@@ -58,23 +92,81 @@ export async function getCategories() {
       API.categories.list(true),
     );
     const list = asArray(data);
-    return list.map(
-      (c): Category => ({
-        categoryId: c.categoryId,
-        nameAr: c.nameAr,
-        name: c.nameAr ?? c.nameEn,
-      }),
-    );
+    return list
+      .map((c): Category | null => {
+        const categoryId = c.categoryId ?? c.CategoryId;
+        if (!categoryId) return null;
+        const nameAr = c.nameAr ?? c.NameAr;
+        const nameEn = c.nameEn ?? c.NameEn;
+        return {
+          categoryId,
+          nameAr,
+          nameEn,
+          name: nameEn ?? nameAr,
+        };
+      })
+      .filter((c): c is Category => c != null);
   } catch {
     return [];
+  }
+}
+
+function normalizeSubCategory(row: AdminSubCategory): CatalogSubCategory | null {
+  const subCategoryId = Number(row.subCategoryId ?? row.SubCategoryId);
+  if (!Number.isFinite(subCategoryId) || subCategoryId <= 0) return null;
+  return {
+    subCategoryId,
+    nameAr: row.nameAr ?? row.NameAr,
+    nameEn: row.nameEn ?? row.NameEn,
+  };
+}
+
+function normalizeCategoryDetail(row: AdminCategory): CatalogCategoryDetail | null {
+  const categoryId = Number(row.categoryId ?? row.CategoryId);
+  if (!Number.isFinite(categoryId) || categoryId <= 0) return null;
+  const subCategories = (row.subCategories ?? row.SubCategories ?? [])
+    .map(normalizeSubCategory)
+    .filter((sub): sub is CatalogSubCategory => sub != null);
+
+  return {
+    categoryId,
+    nameAr: row.nameAr ?? row.NameAr,
+    nameEn: row.nameEn ?? row.NameEn,
+    name: row.nameEn ?? row.NameEn ?? row.nameAr ?? row.NameAr,
+    subCategories,
+  };
+}
+
+export async function getCategoryById(categoryId: number) {
+  try {
+    const data = await apiGet<AdminCategory>(API.categories.byId(categoryId));
+    return normalizeCategoryDetail(data);
+  } catch {
+    return null;
   }
 }
 
 /** GET /api/admin/products */
 export async function getProducts() {
   try {
-    const data = await apiGet<Product[] | { items?: Product[] }>(API.products.list);
-    return asArray(data);
+    const data = await apiGet<ProductPayload[] | { items?: ProductPayload[] }>(
+      API.products.list,
+    );
+    const products = asArray(data)
+      .map((p): Product | null => {
+        const rawProductId = Number(p.productId ?? p.ProductId);
+        if (!Number.isFinite(rawProductId) || rawProductId <= 0) return null;
+        return {
+          ...p,
+          productId: normalizeProductId(rawProductId),
+          name: p.name ?? p.Name,
+          nameAr: p.nameAr ?? p.NameAr,
+          categoryId: p.categoryId ?? p.CategoryId,
+          unit: p.unit ?? p.Unit,
+        };
+      })
+      .filter((p): p is Product => p != null);
+    return dedupeProductsByProductId(products);
   } catch {
     return [];
   }

@@ -4,6 +4,7 @@ import { useState } from "react";
 import { Cell, Pie, PieChart, ResponsiveContainer, Tooltip } from "recharts";
 import { CHART_COLORS, CHART_TOOLTIP_STYLE } from "./chartTheme";
 import { formatNumber, formatPercent } from "@/lib/format";
+import { useI18n } from "@/context/I18nContext";
 
 export interface PieChartItem {
   label: string;
@@ -12,10 +13,11 @@ export interface PieChartItem {
 }
 
 export function InteractivePieChart({ items }: { items: PieChartItem[] }) {
+  const { t } = useI18n();
   const [active, setActive] = useState(0);
 
   if (!items.length) {
-    return <p className="py-8 text-center text-sm text-slate-400">لا توجد بيانات</p>;
+    return <p className="py-8 text-center text-sm text-slate-400">{t("analysis.noData")}</p>;
   }
 
   const total = items.reduce((s, i) => s + i.value, 0) || 1;
@@ -56,7 +58,7 @@ export function InteractivePieChart({ items }: { items: PieChartItem[] }) {
                 const pct = (p?.payload as { pct?: number })?.pct;
                 return [
                   `${formatNumber(Number(v))}${pct != null ? ` (${formatPercent(pct)})` : ""}`,
-                  "الحصة",
+                  t("analysis.share"),
                 ];
               }}
               contentStyle={CHART_TOOLTIP_STYLE}

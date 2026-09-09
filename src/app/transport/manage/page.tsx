@@ -17,10 +17,15 @@ import {
 import type { TransportPriceLine, TransportProvider } from "@/services/transport";
 import type { City } from "@/types/transport";
 import { useAuth } from "@/context/AuthContext";
+import { useI18n } from "@/context/I18nContext";
+import type { LocalizableRecord } from "@/lib/localized-value";
+import { useLocalizedLabel } from "@/hooks/useLocalizedLabel";
 import { UserRole } from "@/types";
 import { Route, Plus } from "lucide-react";
 
 export default function TransportManagePage() {
+  const { t } = useI18n();
+  const { localized } = useLocalizedLabel();
   const { user, requireAuth } = useAuth();
   const [provider, setProvider] = useState<TransportProvider | null>(null);
   const [lines, setLines] = useState<TransportPriceLine[]>([]);
@@ -52,7 +57,7 @@ export default function TransportManagePage() {
 
   async function addLine() {
     if (!provider || !fromCityId || !toCityId || !price) {
-      setError("أكمل جميع الحقول");
+      setError(t("transport.manage.fillAllFields"));
       return;
     }
     setError("");
@@ -68,16 +73,16 @@ export default function TransportManagePage() {
       setPrice("");
       await load();
     } catch (e) {
-      setError(e instanceof Error ? e.message : "فشل إضافة الخط");
+      setError(e instanceof Error ? e.message : t("transport.manage.addLineFailed"));
     }
   }
 
   if (user?.roleId !== UserRole.Transport) {
     return (
       <>
-        <PageHeader title="إدارة النقل" backHref="/account" />
+        <PageHeader title={t("transport.manage.title")} backHref="/account" />
         <PageContainer className="py-16 text-center text-red-600">
-          هذه الصفحة للناقلين فقط
+          {t("transport.transportersOnly")}
         </PageContainer>
       </>
     );
@@ -86,11 +91,11 @@ export default function TransportManagePage() {
   if (!loading && !provider) {
     return (
       <>
-        <PageHeader title="خطوط الأسعار" backHref="/transport/hub" />
+        <PageHeader title={t("transport.manage.priceLines")} backHref="/transport/hub" />
         <PageContainer className="py-8 text-center">
-          <p className="mb-4 text-slate-600">لا يوجد حساب ناقل — سجّل أولاً</p>
+          <p className="mb-4 text-slate-600">{t("transport.manage.noProvider")}</p>
           <Link href="/transport/register">
-            <Button>تسجيل كناقل</Button>
+            <Button>{t("transport.manage.register")}</Button>
           </Link>
         </PageContainer>
       </>
@@ -99,54 +104,55 @@ export default function TransportManagePage() {
 
   return (
     <>
-      <PageHeader title="خطوط الأسعار" backHref="/transport/inbox" />
+      <PageHeader title={t("transport.manage.priceLines")} backHref="/transport/inbox" />
       <PageContainer className="py-8">
         {loading ? (
-          <p className="text-center text-slate-500">جاري التحميل...</p>
+          <p className="text-center text-slate-500">{t("common.loadingEllipsis")}</p>
         ) : !provider ? (
           <EmptyState
             icon={Route}
-            title="لم يُعثر على ملف ناقل"
-            description="أكمل تسجيلك كمزود نقل عبر POST /api/transport"
+            title={t("transport.manage.providerNotFound")}
+            description={t("transport.manage.providerNotFoundDesc")}
           />
         ) : (
           <>
             <p className="mb-6 text-sm text-slate-600">
-              المزود: {provider.companyName || provider.name || `#${provider.transportProviderId}`}
+              {t("transport.manage.provider")}:{" "}
+              {provider.companyName || provider.name || `#${provider.transportProviderId}`}
             </p>
 
             <section className="mb-8 rounded-2xl border border-gray-100 bg-white p-6 shadow-sm">
               <h2 className="mb-4 flex items-center gap-2 font-semibold text-slate-900">
                 <Plus className="h-4 w-4" />
-                خط سعر جديد
+                {t("transport.manage.newLine")}
               </h2>
               <div className="grid gap-3 sm:grid-cols-2">
                 <label className="text-sm">
-                  <span className="font-medium text-slate-600">من</span>
+                  <span className="font-medium text-slate-600">{t("transport.manage.from")}</span>
                   <select
                     className="mt-1 w-full rounded-lg border px-3 py-2"
                     value={fromCityId}
                     onChange={(e) => setFromCityId(e.target.value ? Number(e.target.value) : "")}
                   >
-                    <option value="">مدينة</option>
+                    <option value="">{t("transport.manage.city")}</option>
                     {cities.map((c) => (
                       <option key={c.cityId} value={c.cityId}>
-                        {c.nameAr || c.name}
+                        {localized(c as unknown as LocalizableRecord)}
                       </option>
                     ))}
                   </select>
                 </label>
                 <label className="text-sm">
-                  <span className="font-medium text-slate-600">إلى</span>
+                  <span className="font-medium text-slate-600">{t("transport.manage.to")}</span>
                   <select
                     className="mt-1 w-full rounded-lg border px-3 py-2"
                     value={toCityId}
                     onChange={(e) => setToCityId(e.target.value ? Number(e.target.value) : "")}
                   >
-                    <option value="">مدينة</option>
+                    <option value="">{t("transport.manage.city")}</option>
                     {cities.map((c) => (
                       <option key={c.cityId} value={c.cityId}>
-                        {c.nameAr || c.name}
+                        {localized(c as unknown as LocalizableRecord)}
                       </option>
                     ))}
                   </select>
@@ -154,20 +160,24 @@ export default function TransportManagePage() {
               </div>
               <Input
                 className="mt-3"
-                label="السعر (ل.س)"
+                label={t("transport.manage.price")}
                 type="number"
                 value={price}
                 onChange={(e) => setPrice(e.target.value)}
               />
               {error && <p className="mt-2 text-sm text-red-600">{error}</p>}
               <Button className="mt-4" onClick={addLine}>
-                إضافة الخط
+                {t("transport.manage.addLine")}
               </Button>
             </section>
 
-            <h2 className="mb-3 font-semibold text-slate-900">خطوطي النشطة</h2>
+            <h2 className="mb-3 font-semibold text-slate-900">{t("transport.manage.activeLines")}</h2>
             {lines.length === 0 ? (
-              <EmptyState icon={Route} title="لا خطوط أسعار" description="أضف خطاً ليظهر في البحث" />
+              <EmptyState
+                icon={Route}
+                title={t("transport.manage.noLines")}
+                description={t("transport.manage.noLinesDesc")}
+              />
             ) : (
               <ul className="space-y-2">
                 {lines.map((l) => (

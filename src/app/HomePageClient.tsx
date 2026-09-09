@@ -1,7 +1,7 @@
 "use client";
 
 import dynamic from "next/dynamic";
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { Search, MessageCircle } from "lucide-react";
@@ -13,8 +13,11 @@ import { ServicesSection } from "@/components/home/ServicesSection";
 import { PageContainer } from "@/components/layout/PageContainer";
 import { useCategories } from "@/hooks/useCategories";
 import { useHeaderBadges } from "@/hooks/useHeaderBadges";
+import { useLocalizedLabel } from "@/hooks/useLocalizedLabel";
+import type { LocalizableRecord } from "@/lib/localized-value";
 import { useAuth } from "@/context/AuthContext";
-import { getAppAds, getBottomAds } from "@/services/catalog";
+import { useI18n } from "@/context/I18nContext";
+import { getAppAds, getBottomAds, getCategoryById } from "@/services/catalog";
 import type { Advertisement } from "@/types";
 
 const MarketAnalysisWidget = dynamic(
@@ -31,28 +34,49 @@ const MarketAnalysisWidget = dynamic(
 );
 
 export default function HomePageClient() {
+  const { t } = useI18n();
+  const { localized } = useLocalizedLabel();
   const searchParams = useSearchParams();
   const { isAuthenticated, user } = useAuth();
   const { chatCount } = useHeaderBadges(isAuthenticated, user?.roleId, user?.userId);
   const [tab, setTab] = useState<MarketTab>("auctions");
   const [search, setSearch] = useState("");
-  const [categoryId, setCategoryId] = useState<number | undefined>();
+  const urlCategoryId = useMemo(() => {
+    const fromUrl = searchParams.get("categoryId");
+    if (!fromUrl) return undefined;
+    const id = Number(fromUrl);
+    return Number.isFinite(id) && id > 0 ? id : undefined;
+  }, [searchParams]);
+  const [categoryOverride, setCategoryOverride] = useState<number | null | undefined>(undefined);
+  const categoryId = categoryOverride === undefined ? (urlCategoryId ?? null) : categoryOverride;
   const [topAds, setTopAds] = useState<Advertisement[]>([]);
   const [bottomAds, setBottomAds] = useState<Advertisement[]>([]);
   const [adsLoading, setAdsLoading] = useState(true);
+  const [subCategories, setSubCategories] = useState<
+    { nameAr?: string; nameEn?: string }[]
+  >([]);
   const { data: categories = [] } = useCategories();
-
-  useEffect(() => {
-    const fromUrl = searchParams.get("categoryId");
-    if (fromUrl) {
-      const id = Number(fromUrl);
-      if (Number.isFinite(id) && id > 0) setCategoryId(id);
-    }
-  }, [searchParams]);
+  const displayedCategories = useMemo(() => categories.slice(0, 2), [categories]);
+  const selectedCategory = categoryId
+    ? (categories.find((category) => category.categoryId === categoryId) ?? null)
+    : null;
+  const categoryKeywords = useMemo(() => {
+    const tokens = new Set<string>();
+    const add = (value?: string | null) => {
+      const token = value?.trim();
+      if (token) tokens.add(token);
+    };
+    add(selectedCategory?.nameAr);
+    add(selectedCategory?.nameEn);
+    subCategories.forEach((subCategory) => {
+      add(subCategory.nameAr);
+      add(subCategory.nameEn);
+    });
+    return Array.from(tokens);
+  }, [selectedCategory, subCategories]);
 
   useEffect(() => {
     let cancelled = false;
-    setAdsLoading(true);
     Promise.all([getAppAds(), getBottomAds()])
       .then(([top, bottom]) => {
         if (cancelled) return;
@@ -73,6 +97,31 @@ export default function HomePageClient() {
     };
   }, []);
 
+  useEffect(() => {
+    let cancelled = false;
+
+    if (!categoryId) {
+      Promise.resolve().then(() => {
+        if (!cancelled) setSubCategories([]);
+      });
+      return () => {
+        cancelled = true;
+      };
+    }
+
+    getCategoryById(categoryId)
+      .then((detail) => {
+        if (!cancelled) setSubCategories(detail?.subCategories ?? []);
+      })
+      .catch(() => {
+        if (!cancelled) setSubCategories([]);
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [categoryId]);
+
   return (
     <>
       <BannerCarousel ads={topAds} loading={adsLoading} />
@@ -84,7 +133,7 @@ export default function HomePageClient() {
               <Search className="absolute top-1/2 end-4 h-5 w-5 -translate-y-1/2 text-slate-400" />
               <input
                 type="search"
-                placeholder="ابحث عن محصول، مزاد، أو مناقصة..."
+                placeholder={t("home.searchPlaceholder")}
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
                 className="input-field w-full py-3.5 pe-12 ps-4"
@@ -96,7 +145,7 @@ export default function HomePageClient() {
                 className="relative inline-flex items-center justify-center gap-2 rounded-xl border border-slate-200 px-4 py-3 text-sm font-semibold text-slate-700 hover:border-emerald-200 hover:bg-emerald-50"
               >
                 <MessageCircle className="h-5 w-5 text-emerald-600" />
-                الرسائل
+                {t("home.messages")}
                 {chatCount > 0 && (
                   <span className="flex h-5 min-w-5 items-center justify-center rounded-full bg-red-500 px-1.5 text-[10px] font-bold text-white">
                     {chatCount > 99 ? "99+" : chatCount}
@@ -111,25 +160,25 @@ export default function HomePageClient() {
       {categories.length > 0 && (
         <section className="border-b border-slate-100 bg-white py-4">
           <PageContainer>
-            <p className="mb-2 text-sm font-semibold text-slate-700">التصنيفات</p>
+            <p className="mb-2 text-sm font-semibold text-slate-700">{t("home.categories")}</p>
             <div className="flex flex-wrap gap-2">
               <button
                 type="button"
-                onClick={() => setCategoryId(undefined)}
+                onClick={() => setCategoryOverride(null)}
                 className={`chip ${!categoryId ? "chip-active" : "chip-inactive"}`}
               >
-                الكل
+                {t("common.all")}
               </button>
-              {categories.map((c) => (
+              {displayedCategories.map((c) => (
                 <button
                   key={c.categoryId}
                   type="button"
-                  onClick={() => setCategoryId(c.categoryId)}
+                  onClick={() => setCategoryOverride(c.categoryId)}
                   className={`chip ${
                     categoryId === c.categoryId ? "chip-active" : "chip-inactive"
                   }`}
                 >
-                  {c.nameAr || c.name}
+                  {localized(c as unknown as LocalizableRecord)}
                 </button>
               ))}
             </div>
@@ -143,12 +192,17 @@ export default function HomePageClient() {
         <PageContainer>
           <div className="mb-6 flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
             <div>
-              <h2 className="text-xl font-bold text-slate-900">عروض السوق</h2>
-              <p className="text-slate-500">أحدث المزادات والمناقصات والبيع المباشر</p>
+              <h2 className="text-xl font-bold text-slate-900">{t("home.marketOffers.title")}</h2>
+              <p className="text-slate-500">{t("home.marketOffers.subtitle")}</p>
             </div>
             <MarketTabs active={tab} onChange={setTab} />
           </div>
-          <MarketListings tab={tab} searchQuery={search} categoryId={categoryId} />
+          <MarketListings
+            tab={tab}
+            searchQuery={search}
+            categoryId={categoryId ?? undefined}
+            categoryKeywords={categoryKeywords}
+          />
         </PageContainer>
       </section>
 

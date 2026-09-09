@@ -12,12 +12,14 @@ import {
 } from "@/services/transport";
 import { useCities } from "@/hooks/useCities";
 import { getGovernorates } from "@/services/locations";
-import { locationLabel } from "@/services/locations";
 import type { Governorate } from "@/types/location";
 import type { TransportPriceLineMatch, TransportRequestDetail } from "@/types/transport";
 import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
 import { useAuth } from "@/context/AuthContext";
+import { useI18n } from "@/context/I18nContext";
+import type { LocalizableRecord } from "@/lib/localized-value";
+import { useLocalizedLabel } from "@/hooks/useLocalizedLabel";
 
 export interface DealContext {
   conversationId: number;
@@ -28,13 +30,15 @@ export interface DealContext {
 }
 
 export function TransportAssignPanel({ deal }: { deal: DealContext }) {
+  const { t } = useI18n();
+  const { localized, locationLabel } = useLocalizedLabel();
   const { user } = useAuth();
   const [mode, setMode] = useState<"assign" | "request">("assign");
   const { data: cities = [], isLoading: loadingCities } = useCities();
   const [governorates, setGovernorates] = useState<Governorate[]>([]);
   const [fromGovernorateId, setFromGovernorateId] = useState<number | "">("");
   const [toGovernorateId, setToGovernorateId] = useState<number | "">("");
-  const [productType, setProductType] = useState("محاصيل");
+  const [productType, setProductType] = useState("");
   const [weightKg, setWeightKg] = useState("100");
   const [distanceKm, setDistanceKm] = useState("50");
   const [pickupDate, setPickupDate] = useState("");
@@ -56,18 +60,22 @@ export function TransportAssignPanel({ deal }: { deal: DealContext }) {
       const req = await findBuyerTransportForDeal(deal.orderType, deal.orderId);
       setExistingRequest(req);
       if (req?.status?.toLowerCase() === "assigned") {
-        setSuccessMsg("الناقل مُعيَّن لهذه الصفقة.");
+        setSuccessMsg(t("transport.assignPanel.assignedForDeal"));
       }
     } catch {
       setExistingRequest(null);
     }
-  }, [deal.orderType, deal.orderId]);
+  }, [deal.orderType, deal.orderId, t]);
 
   useEffect(() => {
     getGovernorates()
       .then(setGovernorates)
       .catch(() => setGovernorates([]));
   }, []);
+
+  useEffect(() => {
+    setProductType((prev) => prev || t("transport.assignPanel.defaultProduct"));
+  }, [t]);
 
   useEffect(() => {
     if (deal.farmCityId) {
@@ -87,7 +95,7 @@ export function TransportAssignPanel({ deal }: { deal: DealContext }) {
 
   async function handleSearch() {
     if (!fromCityId || !toCityId) {
-      setError("اختر مدينة الاستلام ومدينة التسليم");
+      setError(t("transport.assignPanel.selectCities"));
       return;
     }
     setSearching(true);
@@ -98,10 +106,10 @@ export function TransportAssignPanel({ deal }: { deal: DealContext }) {
       const lines = await getTransportMatches(Number(fromCityId), Number(toCityId));
       setMatches(lines);
       if (lines.length === 0) {
-        setError("لا توجد خطوط أسعار نشطة لهذا المسار");
+        setError(t("transport.assignPanel.noPriceLines"));
       }
     } catch (e) {
-      setError(e instanceof Error ? e.message : "فشل البحث عن ناقلين");
+      setError(e instanceof Error ? e.message : t("transport.assignPanel.searchFailed"));
     } finally {
       setSearching(false);
     }
@@ -110,7 +118,7 @@ export function TransportAssignPanel({ deal }: { deal: DealContext }) {
   async function handleAssign() {
     const line = matches.find((m) => m.priceLineId === selectedLineId);
     if (!line) {
-      setError("اختر خط سعر من القائمة");
+      setError(t("transport.assignPanel.selectPriceLine"));
       return;
     }
 
@@ -131,11 +139,9 @@ export function TransportAssignPanel({ deal }: { deal: DealContext }) {
     setAssigning(false);
 
     if (result.success) {
-      setSuccessMsg(result.message ?? "تم التعيين");
+      setSuccessMsg(result.message ?? t("transport.assignPanel.assignedSuccess"));
       if (result.recoveredFromServerError) {
-        setWarningMsg(
-          "ملاحظة: الخادم أبلغ عن خطأ بعد حفظ التعيين. لا تعِد المحاولة بخط سعر آخر.",
-        );
+        setWarningMsg(t("transport.assignPanel.serverWarning"));
       }
       if (result.request) setExistingRequest(result.request);
       await loadExisting();
@@ -144,20 +150,20 @@ export function TransportAssignPanel({ deal }: { deal: DealContext }) {
       return;
     }
 
-    setError(result.message ?? "فشل التعيين");
+    setError(result.message ?? t("transport.assignPanel.assignFailed"));
   }
 
   async function handleCreateRequest() {
     if (!user?.userId) {
-      setError("سجّل الدخول لإنشاء طلب نقل");
+      setError(t("transport.assignPanel.loginRequired"));
       return;
     }
     if (!fromCityId || !toCityId) {
-      setError("اختر مدينة الاستلام والتسليم");
+      setError(t("transport.assignPanel.selectCities"));
       return;
     }
     if (!pickupDate || !deliveryDate) {
-      setError("حدد تاريخ الاستلام والتسليم المتوقع");
+      setError(t("transport.assignPanel.selectDates"));
       return;
     }
 
@@ -182,17 +188,19 @@ export function TransportAssignPanel({ deal }: { deal: DealContext }) {
 
       setSuccessMsg(
         res.requestId
-          ? `تم إنشاء طلب النقل #${res.requestId}${
+          ? `${t("transport.assignPanel.requestCreatedWithId", undefined, { id: res.requestId })}${
               res.notifiedTransporters != null
-                ? ` — تم إشعار ${res.notifiedTransporters} ناقل`
+                ? t("transport.assignPanel.requestCreatedNotify", undefined, {
+                    count: res.notifiedTransporters,
+                  })
                 : ""
             }`
-          : "تم إنشاء طلب النقل",
+          : t("transport.assignPanel.requestCreated"),
       );
       if (res.notifyHint) setWarningMsg(res.notifyHint);
       await loadExisting();
     } catch (e) {
-      setError(e instanceof Error ? e.message : "فشل إنشاء طلب النقل");
+      setError(e instanceof Error ? e.message : t("transport.assignPanel.createFailed"));
     } finally {
       setCreatingRequest(false);
     }
@@ -210,7 +218,7 @@ export function TransportAssignPanel({ deal }: { deal: DealContext }) {
         <div className="mb-3 flex items-center justify-between gap-2">
           <div className="flex items-center gap-2 text-sm font-semibold text-emerald-800">
             <Truck className="h-4 w-4" />
-            النقل
+            {t("transport.assignPanel.title")}
           </div>
           {!isAssigned && (
             <div className="flex rounded-lg border border-gray-200 p-0.5 text-xs">
@@ -219,14 +227,14 @@ export function TransportAssignPanel({ deal }: { deal: DealContext }) {
                 className={`rounded-md px-2 py-1 ${mode === "assign" ? "bg-emerald-600 text-white" : "text-slate-600"}`}
                 onClick={() => setMode("assign")}
               >
-                تعيين مباشر
+                {t("transport.assignPanel.directAssign")}
               </button>
               <button
                 type="button"
                 className={`rounded-md px-2 py-1 ${mode === "request" ? "bg-emerald-600 text-white" : "text-slate-600"}`}
                 onClick={() => setMode("request")}
               >
-                طلب نقل
+                {t("transport.assignPanel.createRequest")}
               </button>
             </div>
           )}
@@ -236,17 +244,20 @@ export function TransportAssignPanel({ deal }: { deal: DealContext }) {
           <div className="mb-3 flex gap-2 rounded-xl border border-emerald-200 bg-emerald-50 px-3 py-3 text-sm text-emerald-900">
             <CheckCircle2 className="h-5 w-5 shrink-0" />
             <div>
-              <p className="font-medium">{successMsg ?? "تم تعيين الناقل"}</p>
+              <p className="font-medium">{successMsg ?? t("transport.assignPanel.assigned")}</p>
               {existingRequest.agreedPrice != null && (
                 <p className="mt-1 text-emerald-700">
-                  السعر المتفق: {formatCurrency(existingRequest.agreedPrice)}
+                  {t("transport.assignPanel.agreedPrice")}:{" "}
+                  {formatCurrency(existingRequest.agreedPrice)}
                 </p>
               )}
               <Link
                 href={`/transport/requests/${existingRequest.requestId}`}
                 className="mt-2 inline-block text-xs font-semibold text-emerald-600 hover:underline"
               >
-                عرض طلب النقل #{existingRequest.requestId}
+                {t("transport.assignPanel.viewRequest", undefined, {
+                  id: existingRequest.requestId,
+                })}
               </Link>
             </div>
           </div>
@@ -264,7 +275,7 @@ export function TransportAssignPanel({ deal }: { deal: DealContext }) {
             <div className="space-y-4">
               <div className="rounded-xl border border-gray-100 bg-white/80 p-3">
                 <p className="mb-2 text-xs font-semibold text-slate-700">
-                  <MapPin className="inline h-3 w-3" /> من (استلام)
+                  <MapPin className="inline h-3 w-3" /> {t("transport.assignPanel.pickup")}
                 </p>
                 <div className="grid gap-2 sm:grid-cols-2">
                   <select
@@ -276,10 +287,10 @@ export function TransportAssignPanel({ deal }: { deal: DealContext }) {
                       setFromCityId("");
                     }}
                   >
-                    <option value="">المحافظة</option>
+                    <option value="">{t("transport.assignPanel.governorate")}</option>
                     {governorates.map((g) => (
                       <option key={g.governorateId} value={g.governorateId}>
-                        {locationLabel(g)}
+                        {locationLabel(g as unknown as LocalizableRecord)}
                       </option>
                     ))}
                   </select>
@@ -292,11 +303,13 @@ export function TransportAssignPanel({ deal }: { deal: DealContext }) {
                     }
                   >
                     <option value="">
-                      {!fromGovernorateId ? "اختر المحافظة أولاً" : "المدينة"}
+                      {!fromGovernorateId
+                        ? t("forms.location.selectGovernorateFirst")
+                        : t("transport.assignPanel.city")}
                     </option>
                     {fromCities.map((c) => (
                       <option key={c.cityId} value={c.cityId}>
-                        {c.nameAr || c.name}
+                        {localized(c as unknown as LocalizableRecord)}
                       </option>
                     ))}
                   </select>
@@ -304,7 +317,7 @@ export function TransportAssignPanel({ deal }: { deal: DealContext }) {
               </div>
               <div className="rounded-xl border border-gray-100 bg-white/80 p-3">
                 <p className="mb-2 text-xs font-semibold text-slate-700">
-                  <MapPin className="inline h-3 w-3" /> إلى (تسليم)
+                  <MapPin className="inline h-3 w-3" /> {t("transport.assignPanel.delivery")}
                 </p>
                 <div className="grid gap-2 sm:grid-cols-2">
                   <select
@@ -316,10 +329,10 @@ export function TransportAssignPanel({ deal }: { deal: DealContext }) {
                       setToCityId("");
                     }}
                   >
-                    <option value="">المحافظة</option>
+                    <option value="">{t("transport.assignPanel.governorate")}</option>
                     {governorates.map((g) => (
                       <option key={g.governorateId} value={g.governorateId}>
-                        {locationLabel(g)}
+                        {locationLabel(g as unknown as LocalizableRecord)}
                       </option>
                     ))}
                   </select>
@@ -332,11 +345,13 @@ export function TransportAssignPanel({ deal }: { deal: DealContext }) {
                     }
                   >
                     <option value="">
-                      {!toGovernorateId ? "اختر المحافظة أولاً" : "المدينة"}
+                      {!toGovernorateId
+                        ? t("forms.location.selectGovernorateFirst")
+                        : t("transport.assignPanel.city")}
                     </option>
                     {toCities.map((c) => (
                       <option key={c.cityId} value={c.cityId}>
-                        {c.nameAr || c.name}
+                        {localized(c as unknown as LocalizableRecord)}
                       </option>
                     ))}
                   </select>
@@ -347,19 +362,19 @@ export function TransportAssignPanel({ deal }: { deal: DealContext }) {
             {mode === "request" && (
               <div className="mt-3 space-y-3 rounded-xl border border-gray-100 bg-white p-3">
                 <Input
-                  label="نوع المنتج"
+                  label={t("transport.assignPanel.productType")}
                   value={productType}
                   onChange={(e) => setProductType(e.target.value)}
                 />
                 <div className="grid grid-cols-2 gap-2">
                   <Input
-                    label="الوزن (كغ)"
+                    label={t("transport.assignPanel.weightKg")}
                     type="number"
                     value={weightKg}
                     onChange={(e) => setWeightKg(e.target.value)}
                   />
                   <Input
-                    label="المسافة (كم)"
+                    label={t("transport.assignPanel.distanceKm")}
                     type="number"
                     value={distanceKm}
                     onChange={(e) => setDistanceKm(e.target.value)}
@@ -367,13 +382,13 @@ export function TransportAssignPanel({ deal }: { deal: DealContext }) {
                 </div>
                 <div className="grid grid-cols-2 gap-2">
                   <Input
-                    label="استلام متوقع"
+                    label={t("transport.assignPanel.expectedPickup")}
                     type="datetime-local"
                     value={pickupDate}
                     onChange={(e) => setPickupDate(e.target.value)}
                   />
                   <Input
-                    label="تسليم متوقع"
+                    label={t("transport.assignPanel.expectedDelivery")}
                     type="datetime-local"
                     value={deliveryDate}
                     onChange={(e) => setDeliveryDate(e.target.value)}
@@ -390,7 +405,7 @@ export function TransportAssignPanel({ deal }: { deal: DealContext }) {
                   ) : (
                     <Truck className="h-4 w-4" />
                   )}
-                  إنشاء طلب وإشعار الناقلين
+                  {t("transport.assignPanel.createAndNotify")}
                 </Button>
               </div>
             )}
@@ -409,7 +424,12 @@ export function TransportAssignPanel({ deal }: { deal: DealContext }) {
                 ) : (
                   <Search className="h-4 w-4" />
                 )}
-                بحث عن ناقلين ({fromCityId && toCityId ? "جاهز" : "اختر المدن"})
+                {t("transport.assignPanel.searchTransporters", undefined, {
+                  status:
+                    fromCityId && toCityId
+                      ? t("transport.assignPanel.searchReady")
+                      : t("transport.assignPanel.searchSelectCities"),
+                })}
               </Button>
             )}
 
@@ -428,7 +448,11 @@ export function TransportAssignPanel({ deal }: { deal: DealContext }) {
                     >
                       <div className="flex justify-between gap-2">
                         <span className="font-medium text-slate-800">
-                          {m.transporterName || m.providerName || `ناقل #${m.transportProviderId}`}
+                          {m.transporterName ||
+                            m.providerName ||
+                            t("transport.requestDetail.transporter", undefined, {
+                              id: m.transportProviderId,
+                            })}
                         </span>
                         <span className="font-bold text-emerald-600">
                           {formatCurrency(m.price)}
@@ -436,7 +460,7 @@ export function TransportAssignPanel({ deal }: { deal: DealContext }) {
                       </div>
                       <p className="mt-0.5 text-xs text-slate-500">
                         {m.fromRegion} → {m.toRegion}
-                        {m.isAvailable === false && " · غير متاح حالياً"}
+                        {m.isAvailable === false && t("transport.assignPanel.unavailable")}
                       </p>
                     </button>
                   </li>
@@ -456,7 +480,9 @@ export function TransportAssignPanel({ deal }: { deal: DealContext }) {
                 ) : (
                   <Truck className="h-4 w-4" />
                 )}
-                تعيين — {formatCurrency(selectedLine.price)}
+                {t("transport.assignPanel.assign", undefined, {
+                  price: formatCurrency(selectedLine.price),
+                })}
               </Button>
             )}
           </>
@@ -472,7 +498,7 @@ export function TransportAssignPanel({ deal }: { deal: DealContext }) {
             className="mt-2 w-full text-center text-xs text-slate-500 hover:text-emerald-600"
             onClick={() => loadExisting()}
           >
-            تحديث حالة التعيين
+            {t("transport.assignPanel.refreshStatus")}
           </button>
         )}
       </div>

@@ -20,16 +20,10 @@ import type { TransportOffer } from "@/services/transport";
 import type { TransportRequestDetail } from "@/types/transport";
 import { formatCurrency } from "@/lib/format";
 import { useRequireAuth } from "@/hooks/useRequireAuth";
-
-const STATUS_AR: Record<string, string> = {
-  open: "مفتوح",
-  negotiating: "تفاوض",
-  assigned: "مُعيَّن",
-  completed: "مكتمل",
-  cancelled: "ملغى",
-};
+import { useI18n } from "@/context/I18nContext";
 
 export default function TransportRequestDetailPage() {
+  const { t, language } = useI18n();
   const { id } = useParams();
   const { isLoading, isAuthenticated } = useRequireAuth();
   const [req, setReq] = useState<TransportRequestDetail | null>(null);
@@ -40,6 +34,7 @@ export default function TransportRequestDetailPage() {
   const [notifyMsg, setNotifyMsg] = useState("");
 
   const requestId = Number(id);
+  const dateLocale = language === "ar" ? "ar-SY" : "en-US";
 
   const load = () => {
     getTransportRequest(requestId)
@@ -48,7 +43,7 @@ export default function TransportRequestDetailPage() {
         setOffers((d as { offers?: TransportOffer[] })?.offers ?? []);
       })
       .catch((e) =>
-        setError(e instanceof Error ? e.message : "تعذّر تحميل الطلب"),
+        setError(e instanceof Error ? e.message : t("transport.requestDetail.loadFailed")),
       );
     getTransportTracking(requestId).then(setTracking).catch(() => setTracking([]));
   };
@@ -58,21 +53,23 @@ export default function TransportRequestDetailPage() {
       const res = await notifyTransportRequest(requestId);
       setNotifyMsg(
         res.notifiedTransporters != null
-          ? `تم إشعار ${res.notifiedTransporters} ناقل`
-          : res.notifyHint || "تم إرسال الإشعارات",
+          ? t("transport.requestDetail.notifyCount", undefined, {
+              count: res.notifiedTransporters,
+            })
+          : res.notifyHint || t("transport.requestDetail.notifySent"),
       );
     } catch (e) {
-      setError(e instanceof Error ? e.message : "فشل الإشعار");
+      setError(e instanceof Error ? e.message : t("transport.requestDetail.notifyFailed"));
     }
   }
 
   async function handleCancel() {
-    if (!confirm("إلغاء طلب النقل؟")) return;
+    if (!confirm(t("transport.requestDetail.cancelConfirm"))) return;
     try {
       await cancelTransportRequest(requestId);
       load();
     } catch (e) {
-      setError(e instanceof Error ? e.message : "فشل الإلغاء");
+      setError(e instanceof Error ? e.message : t("transport.requestDetail.cancelFailed"));
     }
   }
 
@@ -87,7 +84,7 @@ export default function TransportRequestDetailPage() {
       await acceptOffer(offerId);
       load();
     } catch (e) {
-      setError(e instanceof Error ? e.message : "فشل القبول");
+      setError(e instanceof Error ? e.message : t("transport.requestDetail.acceptFailed"));
     } finally {
       setActing(null);
     }
@@ -99,7 +96,7 @@ export default function TransportRequestDetailPage() {
       await rejectOffer(offerId);
       load();
     } catch (e) {
-      setError(e instanceof Error ? e.message : "فشل الرفض");
+      setError(e instanceof Error ? e.message : t("transport.requestDetail.rejectFailed"));
     } finally {
       setActing(null);
     }
@@ -107,7 +104,10 @@ export default function TransportRequestDetailPage() {
 
   return (
     <>
-      <PageHeader title={`طلب نقل #${id}`} backHref="/transport/requests" />
+      <PageHeader
+        title={t("transport.requestDetail.title", undefined, { id: requestId })}
+        backHref="/transport/requests"
+      />
       <PageContainer className="py-6">
         {error && (
           <p className="mb-4 rounded-xl bg-red-50 px-4 py-3 text-red-700">{error}</p>
@@ -116,22 +116,19 @@ export default function TransportRequestDetailPage() {
           <article className="mb-8 rounded-2xl border border-gray-100 bg-white p-6 shadow-sm">
             <div className="mb-3 flex items-center gap-2">
               <StatusBadge status={req.status} />
-              <span className="text-sm text-slate-500">
-                {STATUS_AR[req.status?.toLowerCase() ?? ""] ?? req.status}
-              </span>
             </div>
             <dl className="grid gap-3 text-sm sm:grid-cols-2">
               <div>
-                <dt className="text-slate-500">من</dt>
+                <dt className="text-slate-500">{t("transport.requestDetail.from")}</dt>
                 <dd className="font-medium">{req.fromRegion ?? "—"}</dd>
               </div>
               <div>
-                <dt className="text-slate-500">إلى</dt>
+                <dt className="text-slate-500">{t("transport.requestDetail.to")}</dt>
                 <dd className="font-medium">{req.toRegion ?? "—"}</dd>
               </div>
               {req.agreedPrice != null && (
                 <div>
-                  <dt className="text-slate-500">السعر المتفق</dt>
+                  <dt className="text-slate-500">{t("transport.requestDetail.agreedPrice")}</dt>
                   <dd className="font-medium text-emerald-600">
                     {formatCurrency(req.agreedPrice)}
                   </dd>
@@ -139,23 +136,23 @@ export default function TransportRequestDetailPage() {
               )}
               {req.productType && (
                 <div>
-                  <dt className="text-slate-500">المنتج</dt>
+                  <dt className="text-slate-500">{t("transport.requestDetail.product")}</dt>
                   <dd className="font-medium">{req.productType}</dd>
                 </div>
               )}
             </dl>
             {req.status?.toLowerCase() === "assigned" && (
               <p className="mt-6 text-sm text-emerald-700">
-                تم تعيين الناقل. تابع التسليم من المحادثات.
+                {t("transport.requestDetail.assignedMessage")}
               </p>
             )}
             <div className="mt-4 flex flex-wrap gap-2">
               <Button type="button" variant="outline" size="sm" onClick={handleNotify}>
-                إعادة إشعار الناقلين
+                {t("transport.requestDetail.notifyTransporters")}
               </Button>
               {["open", "negotiating"].includes(req.status?.toLowerCase() ?? "") && (
                 <Button type="button" variant="outline" size="sm" onClick={handleCancel}>
-                  إلغاء الطلب
+                  {t("common.cancel")}
                 </Button>
               )}
             </div>
@@ -164,18 +161,20 @@ export default function TransportRequestDetailPage() {
               href="/chat"
               className="mt-4 inline-block text-sm font-semibold text-emerald-600 hover:underline"
             >
-              المحادثات
+              {t("transport.requestDetail.conversations")}
             </Link>
           </article>
         )}
 
         {tracking.length > 0 && (
           <section className="mb-8">
-            <h2 className="mb-3 font-semibold text-slate-900">تتبع الشحنة</h2>
+            <h2 className="mb-3 font-semibold text-slate-900">
+              {t("transport.requestDetail.tracking")}
+            </h2>
             <ul className="space-y-2 rounded-xl border bg-white p-4">
               {tracking.map((p, i) => (
                 <li key={p.trackingId ?? i} className="text-sm text-slate-600">
-                  {p.recordedAt && new Date(p.recordedAt).toLocaleString("ar-SY")}
+                  {p.recordedAt && new Date(p.recordedAt).toLocaleString(dateLocale)}
                   {p.latitude != null && p.longitude != null && (
                     <span className="ms-2">
                       ({p.latitude.toFixed(4)}, {p.longitude.toFixed(4)})
@@ -190,7 +189,9 @@ export default function TransportRequestDetailPage() {
 
         {offers.length > 0 && (
           <section>
-            <h2 className="mb-4 font-semibold text-slate-900">عروض الناقلين</h2>
+            <h2 className="mb-4 font-semibold text-slate-900">
+              {t("transport.requestDetail.transporterOffers")}
+            </h2>
             <ul className="space-y-3">
               {offers.map((o) => (
                 <li
@@ -199,9 +200,12 @@ export default function TransportRequestDetailPage() {
                 >
                   <div>
                     <p className="font-medium">
-                      {o.transporterName || `ناقل #${o.transportProviderId ?? o.transporterId}`}
+                      {o.transporterName ||
+                        t("transport.requestDetail.transporter", undefined, {
+                          id: o.transportProviderId ?? o.transporterId,
+                        })}
                     </p>
-                    <p className="text-emerald-600 font-bold">
+                    <p className="font-bold text-emerald-600">
                       {formatCurrency(o.offeredPrice ?? 0)}
                     </p>
                     <StatusBadge status={o.status} />
@@ -213,7 +217,7 @@ export default function TransportRequestDetailPage() {
                         disabled={acting === o.offerId}
                         onClick={() => handleAccept(o.offerId)}
                       >
-                        قبول
+                        {t("transport.requestDetail.accept")}
                       </Button>
                       <Button
                         size="sm"
@@ -221,7 +225,7 @@ export default function TransportRequestDetailPage() {
                         disabled={acting === o.offerId}
                         onClick={() => handleReject(o.offerId)}
                       >
-                        رفض
+                        {t("transport.requestDetail.reject")}
                       </Button>
                     </div>
                   )}

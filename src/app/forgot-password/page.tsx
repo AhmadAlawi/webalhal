@@ -6,6 +6,7 @@ import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
 import { AuthCard } from "@/components/ui/AuthCard";
+import { useI18n } from "@/context/I18nContext";
 import {
   confirmPasswordReset,
   requestPasswordResetOtp,
@@ -13,6 +14,7 @@ import {
 
 export default function ForgotPasswordPage() {
   const router = useRouter();
+  const { t } = useI18n();
   const [step, setStep] = useState<0 | 1>(0);
   const [phone, setPhone] = useState("");
   const [otp, setOtp] = useState("");
@@ -25,7 +27,7 @@ export default function ForgotPasswordPage() {
   async function handleRequestOtp(e: React.FormEvent) {
     e.preventDefault();
     if (!phone.trim()) {
-      setError("أدخل رقم الهاتف بصيغة دولية (+963...)");
+      setError(t("auth.enterPhoneIntl"));
       return;
     }
     setLoading(true);
@@ -33,13 +35,10 @@ export default function ForgotPasswordPage() {
     setMsg("");
     try {
       const res = await requestPasswordResetOtp(phone);
-      setMsg(
-        res.message ||
-          "إن وُجد حساب مرتبط بهذا الرقم، سيتم إرسال رمز التحقق.",
-      );
+      setMsg(res.message || t("auth.otpSentIfExists"));
       setStep(1);
     } catch (err) {
-      setError(err instanceof Error ? err.message : "تعذّر إرسال الرمز");
+      setError(err instanceof Error ? err.message : t("auth.sendOtpFailed"));
     } finally {
       setLoading(false);
     }
@@ -48,15 +47,15 @@ export default function ForgotPasswordPage() {
   async function handleConfirm(e: React.FormEvent) {
     e.preventDefault();
     if (!otp.trim()) {
-      setError("أدخل رمز التحقق");
+      setError(t("auth.enterVerificationCode"));
       return;
     }
     if (newPassword.length < 6) {
-      setError("كلمة المرور 6 أحرف على الأقل");
+      setError(t("auth.passwordMinLength"));
       return;
     }
     if (newPassword !== confirm) {
-      setError("تأكيد كلمة المرور غير متطابق");
+      setError(t("auth.passwordMismatch"));
       return;
     }
     setLoading(true);
@@ -65,7 +64,7 @@ export default function ForgotPasswordPage() {
       await confirmPasswordReset({ phone, otp, newPassword });
       router.push("/login?reset=1");
     } catch (err) {
-      setError(err instanceof Error ? err.message : "فشل إعادة التعيين");
+      setError(err instanceof Error ? err.message : t("auth.resetFailed"));
     } finally {
       setLoading(false);
     }
@@ -73,12 +72,12 @@ export default function ForgotPasswordPage() {
 
   return (
     <AuthCard
-      title="استعادة كلمة المرور"
-      subtitle={step === 0 ? "أدخل رقم هاتفك المسجّل" : "أدخل الرمز وكلمة المرور الجديدة"}
+      title={t("auth.forgotPasswordTitle")}
+      subtitle={step === 0 ? t("auth.forgotPasswordStep0") : t("auth.forgotPasswordStep1")}
       footer={
         <p className="mt-6 text-center text-sm">
           <Link href="/login" className="font-medium text-emerald-600 hover:underline">
-            العودة لتسجيل الدخول
+            {t("auth.backToLogin")}
           </Link>
         </p>
       }
@@ -86,35 +85,39 @@ export default function ForgotPasswordPage() {
       {step === 0 ? (
         <form onSubmit={handleRequestOtp} className="space-y-4">
           <Input
-            label="رقم الهاتف"
+            label={t("auth.phoneNumber")}
             value={phone}
             onChange={(e) => setPhone(e.target.value)}
-            placeholder="+963..."
+            placeholder={t("auth.phonePlaceholder")}
           />
           {error && <p className="rounded-xl bg-red-50 px-4 py-2 text-sm text-red-600">{error}</p>}
           {msg && <p className="rounded-xl bg-emerald-50 px-4 py-2 text-sm text-emerald-700">{msg}</p>}
           <Button type="submit" fullWidth disabled={loading}>
-            {loading ? "جاري الإرسال..." : "إرسال رمز التحقق"}
+            {loading ? t("common.sending") : t("auth.sendVerificationCode")}
           </Button>
         </form>
       ) : (
         <form onSubmit={handleConfirm} className="space-y-4">
-          <Input label="رمز التحقق" value={otp} onChange={(e) => setOtp(e.target.value)} />
           <Input
-            label="كلمة المرور الجديدة"
+            label={t("auth.verificationCode")}
+            value={otp}
+            onChange={(e) => setOtp(e.target.value)}
+          />
+          <Input
+            label={t("auth.newPassword")}
             type="password"
             value={newPassword}
             onChange={(e) => setNewPassword(e.target.value)}
           />
           <Input
-            label="تأكيد كلمة المرور"
+            label={t("auth.confirmPassword")}
             type="password"
             value={confirm}
             onChange={(e) => setConfirm(e.target.value)}
           />
           {error && <p className="rounded-xl bg-red-50 px-4 py-2 text-sm text-red-600">{error}</p>}
           <Button type="submit" fullWidth disabled={loading}>
-            {loading ? "جاري الحفظ..." : "تغيير كلمة المرور"}
+            {loading ? t("common.saving") : t("auth.changePassword")}
           </Button>
         </form>
       )}

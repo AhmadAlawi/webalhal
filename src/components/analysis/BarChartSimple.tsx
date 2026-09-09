@@ -1,4 +1,7 @@
+"use client";
+
 import { formatNumber } from "@/lib/format";
+import { useI18n } from "@/context/I18nContext";
 
 export interface BarItem {
   label: string;
@@ -16,8 +19,10 @@ export function BarChartSimple({
   valueFormatter?: (n: number) => string;
   horizontal?: boolean;
 }) {
+  const { t } = useI18n();
+
   if (!items.length) {
-    return <p className="py-8 text-center text-sm text-slate-400">لا توجد بيانات</p>;
+    return <p className="py-8 text-center text-sm text-slate-400">{t("analysis.noData")}</p>;
   }
 
   const max = Math.max(...items.map((i) => i.value), 1);

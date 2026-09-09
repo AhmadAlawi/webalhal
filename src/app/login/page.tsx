@@ -3,17 +3,19 @@
 import { useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
+import { AuthCard } from "@/components/ui/AuthCard";
+import { Button } from "@/components/ui/Button";
+import { Input } from "@/components/ui/Input";
 import { useAuth } from "@/context/AuthContext";
+import { useI18n } from "@/context/I18nContext";
 import {
   parseRegistrationProgress,
   registerResumePath,
 } from "@/lib/registration-progress";
-import { Button } from "@/components/ui/Button";
-import { Input } from "@/components/ui/Input";
-import { AuthCard } from "@/components/ui/AuthCard";
 
 export default function LoginPage() {
   const { login } = useAuth();
+  const { t } = useI18n();
   const router = useRouter();
   const [emailOrPhone, setEmailOrPhone] = useState("");
   const [password, setPassword] = useState("");
@@ -35,7 +37,7 @@ export default function LoginPage() {
         router.push(registerResumePath(parseRegistrationProgress(ex)));
         return;
       }
-      setError(ex.message || "فشل تسجيل الدخول");
+      setError(ex.message || t("auth.loginFailed"));
     } finally {
       setLoading(false);
     }
@@ -43,19 +45,19 @@ export default function LoginPage() {
 
   return (
     <AuthCard
-      title="تسجيل الدخول"
-      subtitle="مرحباً بعودتك إلى رزق — سوق الهال"
+      title={t("auth.loginTitle")}
+      subtitle={t("auth.loginSubtitle")}
       footer={
         <>
           <p className="mt-6 text-center text-sm">
             <Link href="/forgot-password" className="font-medium text-emerald-600 hover:underline">
-              نسيت كلمة المرور؟
+              {t("auth.forgotPassword")}
             </Link>
           </p>
           <p className="mt-3 text-center text-sm text-slate-600">
-            ليس لديك حساب؟{" "}
+            {t("auth.noAccount")}{" "}
             <Link href="/register" className="font-semibold text-emerald-600 hover:underline">
-              إنشاء حساب
+              {t("actions.createAccount")}
             </Link>
           </p>
         </>
@@ -63,7 +65,7 @@ export default function LoginPage() {
     >
       <form onSubmit={handleSubmit} className="space-y-4">
         <Input
-          label="البريد أو الهاتف"
+          label={t("auth.emailOrPhone")}
           type="text"
           value={emailOrPhone}
           onChange={(e) => setEmailOrPhone(e.target.value)}
@@ -71,7 +73,7 @@ export default function LoginPage() {
           autoComplete="username"
         />
         <Input
-          label="كلمة المرور"
+          label={t("auth.password")}
           type="password"
           value={password}
           onChange={(e) => setPassword(e.target.value)}
@@ -82,7 +84,7 @@ export default function LoginPage() {
           <p className="rounded-xl bg-red-50 px-4 py-2.5 text-sm text-red-600">{error}</p>
         )}
         <Button type="submit" fullWidth disabled={loading}>
-          {loading ? "جاري الدخول..." : "دخول"}
+          {loading ? t("auth.loggingIn") : t("actions.login")}
         </Button>
       </form>
     </AuthCard>

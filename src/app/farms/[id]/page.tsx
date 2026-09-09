@@ -9,9 +9,12 @@ import { PageContainer } from "@/components/layout/PageContainer";
 import { Button } from "@/components/ui/Button";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { LocationCascadeSelect } from "@/components/forms/LocationCascadeSelect";
-import { cropStatusLabel, isCropSelectable } from "@/lib/crop-status";
+import { cropStatusLabel, isCropSelectable, normalizeCropStatusKey } from "@/lib/crop-status";
 import { getFarm, getCropsByFarm, updateFarm } from "@/services/farms";
 import { useAuth } from "@/context/AuthContext";
+import { useI18n } from "@/context/I18nContext";
+import type { LocalizableRecord } from "@/lib/localized-value";
+import { useLocalizedLabel } from "@/hooks/useLocalizedLabel";
 import type { Crop, Farm } from "@/types/farm";
 import type { LocationSelection } from "@/types/location";
 
@@ -27,6 +30,8 @@ function farmToLocation(farm: Farm): LocationSelection {
 }
 
 export default function FarmDetailPage() {
+  const { t } = useI18n();
+  const { localized } = useLocalizedLabel();
   const { id } = useParams();
   const farmId = Number(id);
   const { user } = useAuth();
@@ -43,6 +48,12 @@ export default function FarmDetailPage() {
   const [lng, setLng] = useState("");
   const [savingLoc, setSavingLoc] = useState(false);
   const [locError, setLocError] = useState("");
+
+  function getCropStatus(status?: string | null): string | null {
+    const key = normalizeCropStatusKey(status);
+    if (!key || key === "available" || key === "active") return null;
+    return t(`farms.cropStatus.${key}`, cropStatusLabel(status) ?? status ?? "");
+  }
 
   function reload() {
     if (!farmId) return;
@@ -69,12 +80,12 @@ export default function FarmDetailPage() {
   async function saveLocation() {
     if (!user?.userId || !farm) return;
     if (!location.governorateId || !location.cityId || !location.areaId) {
-      setLocError("اختر المحافظة والمدينة والمقاطعة");
+      setLocError(t("farms.selectLocation"));
       return;
     }
     const farmName = farm.name?.trim() || farm.nameAr?.trim();
     if (!farmName) {
-      setLocError("اسم المزرعة مطلوب");
+      setLocError(t("farms.detail.farmNameRequired"));
       return;
     }
     setSavingLoc(true);
@@ -95,7 +106,7 @@ export default function FarmDetailPage() {
       setEditingLocation(false);
       reload();
     } catch (e) {
-      setLocError(e instanceof Error ? e.message : "فشل حفظ الموقع");
+      setLocError(e instanceof Error ? e.message : t("farms.detail.saveLocationFailed"));
     } finally {
       setSavingLoc(false);
     }
@@ -106,8 +117,10 @@ export default function FarmDetailPage() {
   if (loading) {
     return (
       <>
-        <PageHeader title="المزرعة" backHref="/farms" />
-        <PageContainer className="py-16 text-center text-slate-500">جاري التحميل...</PageContainer>
+        <PageHeader title={t("farms.detail.title")} backHref="/farms" />
+        <PageContainer className="py-16 text-center text-slate-500">
+          {t("common.loadingEllipsis")}
+        </PageContainer>
       </>
     );
   }
@@ -115,7 +128,10 @@ export default function FarmDetailPage() {
   return (
     <>
       <PageHeader
-        title={farm?.nameAr || farm?.name || `مزرعة #${farmId}`}
+        title={
+          localized(farm as unknown as LocalizableRecord) ||
+          t("farms.farmFallback", undefined, { id: farmId })
+        }
         backHref="/farms"
       />
       <PageContainer className="py-8">
@@ -123,20 +139,23 @@ export default function FarmDetailPage() {
           <div className="mb-8 space-y-4 rounded-2xl border border-gray-100 bg-white p-6 shadow-sm">
             <div className="flex items-start justify-between gap-3">
               <div>
-                <p className="text-sm text-slate-500">الموقع</p>
+                <p className="text-sm text-slate-500">{t("farms.detail.location")}</p>
                 <p className="font-medium text-slate-800">
                   {[farm.governorateName, farm.cityName, farm.area, farm.village, farm.location]
                     .filter(Boolean)
-                    .join(" — ") || "غير محدد — أضف الموقع"}
+                    .join(" — ") || t("farms.detail.unspecified")}
                 </p>
                 {(farm.latitude != null || farm.longitude != null) && (
                   <p className="mt-1 text-xs text-slate-500">
-                    إحداثيات: {farm.latitude ?? "—"} ، {farm.longitude ?? "—"}
+                    {t("farms.detail.coordinates", undefined, {
+                      lat: farm.latitude ?? "—",
+                      lng: farm.longitude ?? "—",
+                    })}
                   </p>
                 )}
               </div>
               <Button size="sm" variant="outline" onClick={() => setEditingLocation((v) => !v)}>
-                {editingLocation ? "إلغاء" : "تعديل الموقع"}
+                {editingLocation ? t("common.cancel") : t("farms.detail.editLocation")}
               </Button>
             </div>
 
@@ -145,7 +164,7 @@ export default function FarmDetailPage() {
                 <LocationCascadeSelect value={location} onChange={setLocation} />
                 <div className="grid grid-cols-2 gap-3">
                   <label className="text-sm">
-                    <span className="text-slate-600">خط العرض</span>
+                    <span className="text-slate-600">{t("farms.latitude")}</span>
                     <input
                       className="mt-1 w-full rounded-lg border px-3 py-2 text-sm"
                       type="number"
@@ -155,7 +174,7 @@ export default function FarmDetailPage() {
                     />
                   </label>
                   <label className="text-sm">
-                    <span className="text-slate-600">خط الطول</span>
+                    <span className="text-slate-600">{t("farms.longitude")}</span>
                     <input
                       className="mt-1 w-full rounded-lg border px-3 py-2 text-sm"
                       type="number"
@@ -167,7 +186,7 @@ export default function FarmDetailPage() {
                 </div>
                 {locError && <p className="text-sm text-red-600">{locError}</p>}
                 <Button size="sm" onClick={saveLocation} disabled={savingLoc}>
-                  {savingLoc ? "جاري الحفظ..." : "حفظ الموقع"}
+                  {savingLoc ? t("common.saving") : t("farms.detail.saveLocation")}
                 </Button>
               </div>
             )}
@@ -175,11 +194,11 @@ export default function FarmDetailPage() {
         )}
 
         <div className="mb-4 flex items-center justify-between gap-3">
-          <h2 className="text-lg font-bold text-slate-900">المحاصيل</h2>
+          <h2 className="text-lg font-bold text-slate-900">{t("farms.detail.crops")}</h2>
           <Link href={`/farms/${farmId}/crops/new`}>
             <Button size="sm">
               <Plus className="h-4 w-4" />
-              إضافة محصول
+              {t("farms.detail.addCrop")}
             </Button>
           </Link>
         </div>
@@ -187,18 +206,18 @@ export default function FarmDetailPage() {
         {crops.length === 0 ? (
           <EmptyState
             icon={Sprout}
-            title="لا توجد محاصيل"
-            description="أضف محصولاً لهذه المزرعة لاستخدامه في المزادات والبيع المباشر"
+            title={t("farms.detail.noCrops")}
+            description={t("farms.detail.noCropsDesc")}
             action={
               <Link href={`/farms/${farmId}/crops/new`}>
-                <Button size="sm">إضافة محصول</Button>
+                <Button size="sm">{t("farms.detail.addCrop")}</Button>
               </Link>
             }
           />
         ) : (
           <ul className="grid gap-3 sm:grid-cols-2">
             {crops.map((c) => {
-              const status = cropStatusLabel(c.status);
+              const status = getCropStatus(c.status);
               const selectable = isCropSelectable(c);
               return (
                 <li
@@ -210,7 +229,7 @@ export default function FarmDetailPage() {
                   <div className="flex items-start justify-between gap-2">
                     <div>
                       <p className="font-semibold text-slate-900">
-                        {c.nameAr || c.cropName || c.name || `#${c.cropId}`}
+                        {localized(c as unknown as LocalizableRecord) || `#${c.cropId}`}
                       </p>
                       <p className="mt-1 text-xs text-slate-500">
                         {c.quantity != null ? `${c.quantity} ` : ""}
@@ -229,14 +248,14 @@ export default function FarmDetailPage() {
                           className="inline-flex items-center gap-1 text-xs font-semibold text-emerald-700 hover:underline"
                         >
                           <Gavel className="h-3.5 w-3.5" />
-                          مزاد
+                          {t("farms.detail.auction")}
                         </Link>
                         <Link
                           href={`/direct/new?cropId=${c.cropId}`}
                           className="inline-flex items-center gap-1 text-xs font-semibold text-blue-700 hover:underline"
                         >
                           <ShoppingBag className="h-3.5 w-3.5" />
-                          بيع مباشر
+                          {t("farms.detail.directSale")}
                         </Link>
                       </div>
                     )}
@@ -249,7 +268,10 @@ export default function FarmDetailPage() {
 
         {availableCrops.length > 0 && (
           <p className="mt-4 text-center text-sm text-slate-500">
-            {availableCrops.length} محصول متاح من أصل {crops.length}
+            {t("farms.detail.cropsAvailable", undefined, {
+              available: availableCrops.length,
+              total: crops.length,
+            })}
           </p>
         )}
       </PageContainer>

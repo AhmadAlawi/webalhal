@@ -9,9 +9,11 @@ import { getJoinedTenders } from "@/services/tenders";
 import { getTenderMainImage } from "@/lib/media";
 import { getTenderLocation } from "@/lib/marketplace";
 import { useAuth } from "@/context/AuthContext";
+import { useI18n } from "@/context/I18nContext";
 import type { Tender } from "@/types";
 
 export default function JoinedTendersPage() {
+  const { t } = useI18n();
   const { user, requireAuth } = useAuth();
   const [items, setItems] = useState<Tender[]>([]);
   const [loading, setLoading] = useState(true);
@@ -26,34 +28,34 @@ export default function JoinedTendersPage() {
 
   return (
     <>
-      <PageHeader title="مناقصاتي — مشاركاتي" backHref="/account" />
+      <PageHeader title={t("tenders.joinedTitle")} backHref="/account" />
       <PageContainer className="py-8">
         {loading ? (
           <div className="flex justify-center py-16">
             <div className="h-8 w-8 animate-spin rounded-full border-4 border-emerald-600 border-t-transparent" />
           </div>
         ) : items.length === 0 ? (
-          <p className="py-16 text-center text-slate-500">لم تقدّم عروضاً على مناقصات بعد</p>
+          <p className="py-16 text-center text-slate-500">{t("tenders.joinedEmpty")}</p>
         ) : (
           <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
-            {items.map((t) => (
+            {items.map((tender) => (
               <ListingCard
-                key={t.tenderId}
-                href={`/tenders/${t.tenderId}`}
-                title={t.title || t.cropName || `مناقصة #${t.tenderId}`}
-                imageUrl={getTenderMainImage(t)}
-                price={t.maxBudget}
-                priceLabel="الميزانية"
-                location={getTenderLocation(t)}
-                endTime={t.endTime}
-                badge="مناقصة"
+                key={tender.tenderId}
+                href={`/tenders/${tender.tenderId}`}
+                title={tender.title || tender.cropName || t("tenders.tenderFallback", undefined, { id: tender.tenderId })}
+                imageUrl={getTenderMainImage(tender)}
+                price={tender.maxBudget}
+                priceLabel={t("tenders.budget")}
+                location={getTenderLocation(tender)}
+                endTime={tender.endTime}
+                badge={t("tenders.badge")}
               />
             ))}
           </div>
         )}
         <p className="mt-8 text-center text-sm">
           <Link href="/tenders" className="text-emerald-600 hover:underline">
-            تصفح كل المناقصات
+            {t("tenders.browseAll")}
           </Link>
         </p>
       </PageContainer>

@@ -19,20 +19,48 @@ import {
   getAuctionSellerId,
   isAuctionOpen,
   parseAuctionPricing,
+  type AuctionEndReason,
 } from "@/lib/auctionPricing";
 import { useAuth } from "@/context/AuthContext";
 import { useUserPermissions } from "@/hooks/useUserPermissions";
+import { useI18n } from "@/context/I18nContext";
+import { useLocalizedLabel } from "@/hooks/useLocalizedLabel";
+import type { LocalizableRecord } from "@/lib/localized-value";
 import { UserRole } from "@/types";
 import type { Auction, AuctionPricing, Bid } from "@/types";
 
-function formatDateTime(iso?: string) {
+function formatDateTime(iso: string | undefined, language: "ar" | "en") {
   if (!iso) return "—";
   const d = new Date(iso);
   if (Number.isNaN(d.getTime())) return iso;
-  return d.toLocaleString("ar-SY", {
+  const locale = language === "ar" ? "ar-SY" : "en-US";
+  return d.toLocaleString(locale, {
     dateStyle: "medium",
     timeStyle: "short",
   });
+}
+
+function translateAuctionEndMessage(
+  reason: AuctionEndReason,
+  t: (key: string, fallback?: string, values?: Record<string, string | number | null | undefined>) => string,
+): string {
+  if (reason === "max_price") return t("auctions.endReasonMaxPrice");
+  if (reason === "time") return t("auctions.endReasonTime");
+  return t("auctions.ended");
+}
+
+function formatAuctionPrice(
+  amount: number,
+  t: (key: string) => string,
+  perUnit?: number,
+  unit?: string,
+): string {
+  const currency = t("common.currency");
+  const total = `${formatPrice(amount)} ${currency}`;
+  if (perUnit != null && unit) {
+    return `${total} (${formatPrice(perUnit)} ${currency} / ${unit})`;
+  }
+  return total;
 }
 
 function DetailRow({ label, value }: { label: string; value: ReactNode }) {
@@ -52,92 +80,101 @@ function AuctionBuyerDetails({
   auction: Auction;
   pricing: AuctionPricing | null;
 }) {
+  const { t, language } = useI18n();
+  const { localized } = useLocalizedLabel();
+
   const qty = pricing?.quantity ?? auction.cropQuantity ?? auction.quantity;
-  const unit = pricing?.unit ?? auction.cropUnit ?? auction.unit ?? "كغ";
+  const unit =
+    (pricing?.unit ??
+      auction.cropUnit ??
+      auction.unit ??
+      localized(auction as unknown as LocalizableRecord, "unit")) ||
+    t("literal.كغ");
   const location = [auction.farmGovernorate ?? auction.governorateName, auction.farmCity ?? auction.cityName]
     .filter(Boolean)
     .join(" — ");
 
   const basisLabel =
-    pricing?.bidAmountBasis === "perUnit" ? "سعر للوحدة (يُحسب الإجمالي تلقائياً)" : "مبلغ إجمالي للكمية كاملة";
+    pricing?.bidAmountBasis === "perUnit"
+      ? t("auctions.bidBasisPerUnit")
+      : t("auctions.bidBasisTotal");
+
+  const cropName =
+    localized(auction as unknown as LocalizableRecord, "name") ||
+    auction.cropName ||
+    auction.productNameAr ||
+    auction.auctionTitle;
 
   return (
     <section className="rounded-2xl border border-gray-100 bg-white p-6 shadow-sm">
-      <h3 className="mb-4 text-lg font-semibold text-slate-900">تفاصيل للمشتري</h3>
+      <h3 className="mb-4 text-lg font-semibold text-slate-900">{t("auctions.buyerDetails")}</h3>
 
       {auction.auctionDescription && (
         <p className="mb-4 text-sm leading-relaxed text-slate-600">{auction.auctionDescription}</p>
       )}
 
       <div className="divide-y divide-slate-100">
-        <DetailRow
-          label="المحصول"
-          value={auction.cropName || auction.productNameAr || auction.auctionTitle}
-        />
+        <DetailRow label={t("auctions.crop")} value={cropName} />
         {qty != null && (
-          <DetailRow label="الكمية المعروضة" value={`${formatPrice(qty)} ${unit}`} />
+          <DetailRow label={t("auctions.quantityOffered")} value={`${formatPrice(qty)} ${unit}`} />
         )}
-        <DetailRow label="أساس المزايدة" value={basisLabel} />
+        <DetailRow label={t("auctions.bidBasis")} value={basisLabel} />
         <DetailRow
-          label="سعر البداية"
+          label={t("auctions.startingPrice")}
           value={
             pricing
-              ? `${formatPrice(pricing.startingPriceTotal ?? auction.startingPrice ?? 0)} ل.س` +
-                (pricing.startingPricePerUnit
-                  ? ` (${formatPrice(pricing.startingPricePerUnit)} ل.س / ${unit})`
-                  : "")
+              ? formatAuctionPrice(
+                  pricing.startingPriceTotal ?? auction.startingPrice ?? 0,
+                  t,
+                  pricing.startingPricePerUnit,
+                  unit,
+                )
               : auction.startingPrice != null
-                ? `${formatPrice(auction.startingPrice)} ل.س`
+                ? formatAuctionPrice(auction.startingPrice, t)
                 : null
           }
         />
         <DetailRow
-          label="السعر الحالي"
+          label={t("auctions.currentPrice")}
           value={
             pricing
-              ? `${formatPrice(pricing.currentPriceTotal)} ل.س` +
-                (pricing.currentPricePerUnit
-                  ? ` (${formatPrice(pricing.currentPricePerUnit)} ل.س / ${unit})`
-                  : "")
+              ? formatAuctionPrice(pricing.currentPriceTotal, t, pricing.currentPricePerUnit, unit)
               : auction.currentPrice != null
-                ? `${formatPrice(auction.currentPrice)} ل.س`
+                ? formatAuctionPrice(auction.currentPrice, t)
                 : null
           }
         />
         <DetailRow
-          label="أقل زيادة للمزايدة"
+          label={t("auctions.minIncrement")}
           value={
             pricing
-              ? `${formatPrice(pricing.minIncrementTotal)} ل.س` +
-                (pricing.minIncrementPerUnit
-                  ? ` (${formatPrice(pricing.minIncrementPerUnit)} ل.س / ${unit})`
-                  : "")
+              ? formatAuctionPrice(pricing.minIncrementTotal, t, pricing.minIncrementPerUnit, unit)
               : auction.minIncrement != null
-                ? `${formatPrice(auction.minIncrement)} ل.س`
+                ? formatAuctionPrice(auction.minIncrement, t)
                 : null
           }
         />
         <DetailRow
-          label="السقف الأعلى (حد أقصى)"
+          label={t("auctions.maxPrice")}
           value={
             pricing?.maxPriceTotal != null
-              ? `${formatPrice(pricing.maxPriceTotal)} ل.س` +
-                (pricing.maxPricePerUnit
-                  ? ` (${formatPrice(pricing.maxPricePerUnit)} ل.س / ${unit})`
-                  : "")
+              ? formatAuctionPrice(pricing.maxPriceTotal, t, pricing.maxPricePerUnit ?? undefined, unit)
               : auction.maxPrice != null
-                ? `${formatPrice(auction.maxPrice)} ل.س`
+                ? formatAuctionPrice(auction.maxPrice, t)
                 : null
           }
         />
-        <DetailRow label="بداية المزاد" value={formatDateTime(auction.startTime)} />
-        <DetailRow label="نهاية المزاد" value={formatDateTime(auction.endTime)} />
+        <DetailRow label={t("auctions.auctionStart")} value={formatDateTime(auction.startTime, language)} />
+        <DetailRow label={t("auctions.auctionEnd")} value={formatDateTime(auction.endTime, language)} />
         {auction.secondEndTime && (
-          <DetailRow label="النهاية الثانية (تمديد)" value={formatDateTime(auction.secondEndTime)} />
+          <DetailRow
+            label={t("auctions.secondEnd")}
+            value={formatDateTime(auction.secondEndTime, language)}
+          />
         )}
-        {location && <DetailRow label="الموقع" value={location} />}
+        {location && <DetailRow label={t("auctions.location")} value={location} />}
         {auction.bidsCount != null && (
-          <DetailRow label="عدد المزايدات" value={String(auction.bidsCount)} />
+          <DetailRow label={t("auctions.bidsCount")} value={String(auction.bidsCount)} />
         )}
       </div>
     </section>
@@ -149,6 +186,8 @@ export default function AuctionDetailPage() {
   const router = useRouter();
   const { user, isAuthenticated, requireAuth } = useAuth();
   const { canJoinAuction, roleLabel: accountRoleLabel } = useUserPermissions();
+  const { t, language } = useI18n();
+  const { marketTitle } = useLocalizedLabel();
   const [auction, setAuction] = useState<Auction | null>(null);
   const [bids, setBids] = useState<Bid[]>([]);
   const [suggested, setSuggested] = useState<Auction[]>([]);
@@ -177,8 +216,10 @@ export default function AuctionDetailPage() {
   if (!auction) {
     return (
       <>
-        <PageHeader title="تفاصيل المزاد" backHref="/auctions" />
-        <PageContainer className="py-16 text-center text-slate-500">جاري التحميل...</PageContainer>
+        <PageHeader title={t("auctions.detailTitle")} backHref="/auctions" />
+        <PageContainer className="py-16 text-center text-slate-500">
+          {t("common.loadingEllipsis")}
+        </PageContainer>
       </>
     );
   }
@@ -190,6 +231,9 @@ export default function AuctionDetailPage() {
   const showJoin = open && !isOwner && traderCanJoin;
   const endState = getAuctionEndState(auction, pricing);
   const auctionEnded = endState.ended;
+  const endMessage = auctionEnded
+    ? translateAuctionEndMessage(endState.reason, t)
+    : "";
   const statusLabel = (auction.status ?? auction.lifecycleStatus ?? "").toLowerCase() || undefined;
 
   function goToJoin() {
@@ -200,7 +244,17 @@ export default function AuctionDetailPage() {
   const displayPrice =
     pricing?.currentPriceTotal ?? auction.currentPrice ?? auction.startingPrice ?? 0;
 
-  const pageTitle = auction.auctionTitle || auction.cropName || "مزاد";
+  const fromTitle = marketTitle(auction as unknown as LocalizableRecord, "auction", auctionId);
+  const pageTitle =
+    fromTitle && fromTitle !== String(auctionId)
+      ? fromTitle
+      : t("auctions.auctionFallback", "", { id: auctionId });
+
+  const displayUnit =
+    pricing?.unit ??
+    auction.cropUnit ??
+    auction.unit ??
+    t("literal.كغ");
 
   return (
     <>
@@ -214,45 +268,49 @@ export default function AuctionDetailPage() {
                 <StatusBadge status={statusLabel} />
                 {open && (
                   <span className="rounded-full bg-emerald-50 px-2.5 py-0.5 text-xs font-semibold text-emerald-700">
-                    قابل للمزايدة
+                    {t("auctions.biddable")}
                   </span>
                 )}
                 {isOwner && (
-                  <span className="text-xs font-medium text-amber-700">مزادك</span>
+                  <span className="text-xs font-medium text-amber-700">{t("auctions.yourAuction")}</span>
                 )}
                 {accountRoleLabel && (
-                  <span className="text-xs text-slate-500">حسابك: {accountRoleLabel}</span>
+                  <span className="text-xs text-slate-500">
+                    {t("auctions.yourAccount", "", { role: accountRoleLabel })}
+                  </span>
                 )}
               </div>
-              <h2 className="text-2xl font-bold text-slate-900 lg:text-3xl">
-                {auction.auctionTitle || auction.cropName || auction.productNameAr}
-              </h2>
+              <h2 className="text-2xl font-bold text-slate-900 lg:text-3xl">{pageTitle}</h2>
               <p className="mt-2 text-3xl font-bold text-emerald-600">
-                {formatPrice(displayPrice)} ل.س
+                {formatPrice(displayPrice)} {t("common.currency")}
               </p>
               {pricing && (
                 <p className="mt-1 text-sm text-slate-500">
-                  {formatPrice(pricing.currentPricePerUnit)} ل.س /{" "}
-                  {pricing.unit ?? auction.cropUnit ?? "كغ"}
+                  {t("auctions.pricePerUnit", "", {
+                    price: `${formatPrice(pricing.currentPricePerUnit)} ${t("common.currency")}`,
+                    unit: displayUnit,
+                  })}
                 </p>
               )}
               {auction.endTime && (
-                <p className="mt-2 text-slate-500">ينتهي: {formatDateTime(auction.endTime)}</p>
+                <p className="mt-2 text-slate-500">
+                  {t("auctions.endsAt", "", { date: formatDateTime(auction.endTime, language) })}
+                </p>
               )}
             </div>
 
             {isOwner && (
               <div className="space-y-3 rounded-2xl border border-amber-100 bg-amber-50/50 p-4">
-                <p className="text-center text-sm text-amber-800">أنت صاحب هذا المزاد</p>
+                <p className="text-center text-sm text-amber-800">{t("auctions.ownerNotice")}</p>
                 <Button fullWidth variant="outline" onClick={() => router.push(`/auctions/${auctionId}/edit`)}>
-                  تعديل المزاد
+                  {t("auctions.editAuction")}
                 </Button>
                 <Button
                   fullWidth
                   variant="outline"
                   onClick={() => router.push(`/auctions/${auctionId}/join`)}
                 >
-                  متابعة المزاد (عرض المزايدات)
+                  {t("auctions.monitorAuction")}
                 </Button>
               </div>
             )}
@@ -261,13 +319,11 @@ export default function AuctionDetailPage() {
               <div className="space-y-3 rounded-2xl border border-emerald-100 bg-emerald-50/40 p-5">
                 <h3 className="flex items-center gap-2 font-semibold text-emerald-900">
                   <Gavel className="h-5 w-5" />
-                  انضمام للمزاد
+                  {t("auctions.joinTitle")}
                 </h3>
-                <p className="text-sm text-emerald-800">
-                  للمشاركة في المزايدة اضغط انضمام — سيتم فتح صفحة المزايدة المباشرة.
-                </p>
+                <p className="text-sm text-emerald-800">{t("auctions.joinDescription")}</p>
                 <Button fullWidth size="lg" onClick={goToJoin}>
-                  انضمام للمزاد والمزايدة
+                  {t("auctions.joinAndBid")}
                 </Button>
               </div>
             )}
@@ -277,18 +333,19 @@ export default function AuctionDetailPage() {
                 {isAuthenticated ? (
                   user?.roleId === UserRole.Farmer ? (
                     <p>
-                      المزايدة متاحة لحسابات <strong>التجار</strong>. يمكنك مشاهدة التفاصيل كمزارع
-                      لكن لا يمكنك الانضمام كمشتري على مزادك أو مزادات أخرى بهذا الحساب.
+                      {t("auctions.farmerCannotBidPrefix")}{" "}
+                      <strong>{t("auctions.traders")}</strong>
+                      {t("auctions.farmerCannotBidSuffix")}
                     </p>
                   ) : (
-                    <p>لا تملك صلاحية الانضمام لهذا المزاد بحسابك الحالي.</p>
+                    <p>{t("auctions.noJoinPermission")}</p>
                   )
                 ) : (
                   <p>
                     <Link href="/login" className="font-semibold text-emerald-700 underline">
-                      سجّل الدخول
+                      {t("auctions.loginAsTrader")}
                     </Link>{" "}
-                    بحساب تاجر للانضمام والمزايدة.
+                    {t("auctions.loginAsTraderSuffix")}
                   </p>
                 )}
               </div>
@@ -296,27 +353,25 @@ export default function AuctionDetailPage() {
 
             {auctionEnded && (
               <div className="rounded-2xl border border-emerald-200 bg-emerald-50 p-5 shadow-sm">
-                <p className="mb-3 text-center text-sm font-medium text-emerald-900">
-                  {endState.message}
-                </p>
+                <p className="mb-3 text-center text-sm font-medium text-emerald-900">{endMessage}</p>
                 <AuctionWinnerChatButton
                   auction={auction}
                   bids={bids}
                   userId={user?.userId}
-                  sublabel="مبروك! فزت بهذا المزاد"
+                  sublabel={t("auctions.winnerCongrats")}
                 />
               </div>
             )}
 
             {!open && !isOwner && !auctionEnded && (
               <p className="rounded-xl bg-slate-100 px-4 py-3 text-center text-sm text-slate-600">
-                هذا المزاد غير مفتوح للمزايدة حالياً.
+                {t("auctions.notOpenForBidding")}
               </p>
             )}
 
             {!isAuthenticated && open && (
               <Button fullWidth size="lg" onClick={() => requireAuth()}>
-                سجّل الدخول للانضمام
+                {t("auctions.loginToJoin")}
               </Button>
             )}
 

@@ -6,6 +6,7 @@ import Link from "next/link";
 import { MapPin, Clock } from "lucide-react";
 import { formatPrice } from "@/lib/auctionPricing";
 import { formatDateAr } from "@/lib/format";
+import { useI18n } from "@/context/I18nContext";
 
 interface ListingCardProps {
   href: string;
@@ -25,12 +26,16 @@ export const ListingCard = memo(function ListingCard({
   title,
   imageUrl,
   price,
-  priceLabel = "السعر",
+  priceLabel,
   location,
   endTime,
   badge,
   meta,
 }: ListingCardProps) {
+  const { t } = useI18n();
+  const resolvedPriceLabel = priceLabel ?? t("market.price");
+  const currency = t("common.currency");
+
   return (
     <Link
       href={href}
@@ -55,7 +60,7 @@ export const ListingCard = memo(function ListingCard({
         {meta && <p className="mt-1 text-xs text-slate-500">{meta}</p>}
         {price != null && (
           <p className="mt-1 font-bold text-emerald-600">
-            {priceLabel}: {formatPrice(price)} ل.س
+            {resolvedPriceLabel}: {formatPrice(price)} {currency}
           </p>
         )}
         <div className="mt-2 flex flex-wrap gap-3 text-xs text-slate-500">

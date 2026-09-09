@@ -1,6 +1,9 @@
+"use client";
+
 import Link from "next/link";
-import { ChevronRight } from "lucide-react";
+import { ChevronLeft, ChevronRight } from "lucide-react";
 import { PageContainer } from "@/components/layout/PageContainer";
+import { useI18n } from "@/context/I18nContext";
 
 export function PageHeader({
   title,
@@ -13,6 +16,9 @@ export function PageHeader({
   backHref?: string;
   actions?: React.ReactNode;
 }) {
+  const { isRtl, t } = useI18n();
+  const BackIcon = isRtl ? ChevronRight : ChevronLeft;
+
   return (
     <div className="border-b border-slate-200/80 bg-white/90 backdrop-blur-md">
       <PageContainer className="flex flex-wrap items-center gap-4 py-5 sm:py-6">
@@ -20,9 +26,9 @@ export function PageHeader({
           <Link
             href={backHref}
             className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-slate-200 bg-slate-50 text-slate-600 transition-colors hover:border-emerald-200 hover:bg-emerald-50 hover:text-emerald-700"
-            aria-label="رجوع"
+            aria-label={t("common.back")}
           >
-            <ChevronRight className="h-5 w-5" />
+            <BackIcon className="h-5 w-5" />
           </Link>
         )}
         <div className="min-w-0 flex-1">

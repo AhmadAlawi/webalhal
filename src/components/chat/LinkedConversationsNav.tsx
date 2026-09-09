@@ -2,10 +2,8 @@
 
 import Link from "next/link";
 import { MessageCircle, Package, Truck } from "lucide-react";
-import {
-  linkedConversationLabel,
-  type LinkedConversation,
-} from "@/services/chat";
+import { type LinkedConversation } from "@/services/chat";
+import { useI18n } from "@/context/I18nContext";
 
 function relationIcon(relation?: string, contextType?: string) {
   const r = relation ?? "";
@@ -26,12 +24,24 @@ export function LinkedConversationsNav({
   links: LinkedConversation[];
   currentConversationId: number;
 }) {
+  const { t } = useI18n();
   const others = links.filter((l) => l.conversationId !== currentConversationId);
   if (!others.length) return null;
 
+  function linkLabel(link: LinkedConversation): string {
+    if (link.relation) {
+      const key = `chat.linkedRelations.${link.relation}`;
+      const translated = t(key);
+      if (translated !== key) return translated;
+    }
+    return t("chat.conversationFallback", undefined, { id: link.conversationId });
+  }
+
   return (
     <section className="border-b border-emerald-100 bg-emerald-50/40 px-4 py-4">
-      <p className="mb-3 text-sm font-semibold text-emerald-900">محادثات مرتبطة بالصفقة</p>
+      <p className="mb-3 text-sm font-semibold text-emerald-900">
+        {t("chat.linkedConversations")}
+      </p>
       <ul className="flex flex-col gap-2 sm:flex-row sm:flex-wrap">
         {others.map((link) => (
           <li key={link.conversationId}>
@@ -40,7 +50,7 @@ export function LinkedConversationsNav({
               className="flex items-center gap-2 rounded-xl border border-emerald-200 bg-white px-4 py-2.5 text-sm font-medium text-slate-800 shadow-sm transition-colors hover:border-emerald-400 hover:bg-emerald-50"
             >
               {relationIcon(link.relation, link.contextType)}
-              {linkedConversationLabel(link)}
+              {linkLabel(link)}
             </Link>
           </li>
         ))}

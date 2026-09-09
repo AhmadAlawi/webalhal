@@ -1,8 +1,10 @@
 import { apiGet } from "@/lib/api";
+import { dedupeProductsByProductId, normalizeProductId } from "@/lib/product-id";
 import type {
   AnalysisFiltersAvailable,
   ChartSlice,
   DashboardSummaryData,
+  MarketAnalysisProductFilter,
   MarketAnalysisFilters,
   PriceTrendsChartData,
   TopProductSales,
@@ -63,16 +65,20 @@ function normalizeGovernorateFilter(
 
 function normalizeProductFilter(
   value: unknown,
-): { id: number; name?: string; nameAr?: string; categoryId?: number } | null {
+): MarketAnalysisProductFilter | null {
   const p = asObject(value);
   if (!p) return null;
-  const id = pickNumber(p.id, p.productId, p.ProductId);
-  if (!id) return null;
+  const productId = pickNumber(p.productId, p.ProductId);
+  if (!productId) return null;
   return {
-    id,
+    productId: normalizeProductId(productId),
     nameAr: pickString(p.nameAr, p.NameAr, p.productNameAr),
     name: pickString(p.name, p.Name, p.productName, p.ProductName),
+    nameEn: pickString(p.nameEn, p.NameEn, p.productNameEn, p.ProductNameEn),
     categoryId: pickNumber(p.categoryId, p.CategoryId),
+    category: pickString(p.category, p.Category),
+    categoryNameAr: pickString(p.categoryNameAr, p.CategoryNameAr),
+    categoryNameEn: pickString(p.categoryNameEn, p.CategoryNameEn),
   };
 }
 
@@ -96,7 +102,9 @@ function buildQuery(params: MarketAnalysisFilters & Record<string, string | numb
     sp.set("governorate", String(params.governorateId));
     sp.set("Governorate", String(params.governorateId));
   }
-  if (params.productId != null) sp.set("ProductId", String(params.productId));
+  if (params.productId != null) {
+    sp.set("ProductId", String(normalizeProductId(params.productId)));
+  }
   if (params.days != null) sp.set("days", String(params.days));
   if (params.startDate) {
     sp.set("startDate", params.startDate);
@@ -129,7 +137,11 @@ export async function getAnalysisFiltersAvailable(): Promise<AnalysisFiltersAvai
     governoratesRaw.map(normalizeGovernorateFilter).filter((g): g is NonNullable<typeof g> => Boolean(g));
 
   const products: NonNullable<AnalysisFiltersAvailable["products"]> =
-    productsRaw.map(normalizeProductFilter).filter((p): p is NonNullable<typeof p> => Boolean(p));
+    dedupeProductsByProductId(
+      productsRaw
+        .map(normalizeProductFilter)
+        .filter((p): p is NonNullable<typeof p> => Boolean(p)),
+    );
 
   const categories: NonNullable<AnalysisFiltersAvailable["categories"]> =
     categoriesRaw
@@ -146,11 +158,12 @@ export async function getAnalysisFiltersAvailable(): Promise<AnalysisFiltersAvai
     )
       .map(normalizeGovernorateFilter)
       .filter((g): g is NonNullable<typeof g> => Boolean(g));
-    const fp: NonNullable<AnalysisFiltersAvailable["products"]> = extractArray<unknown>(
-      fallbackProducts,
-    )
-      .map(normalizeProductFilter)
-      .filter((p): p is NonNullable<typeof p> => Boolean(p));
+    const fp: NonNullable<AnalysisFiltersAvailable["products"]> =
+      dedupeProductsByProductId(
+        extractArray<unknown>(fallbackProducts)
+          .map(normalizeProductFilter)
+          .filter((p): p is NonNullable<typeof p> => Boolean(p)),
+      );
     return {
       governorates: governorates.length ? governorates : fg,
       products: products.length ? products : fp,
@@ -165,6 +178,39 @@ export async function getAnalysisFiltersAvailable(): Promise<AnalysisFiltersAvai
     categories,
     transactionTypes: extractArray<string>(root.transactionTypes ?? root.TransactionTypes),
   };
+}
+
+export async function fetchMarketAnalysisFilterProducts(
+  filters: {
+    categoryId?: number;
+    subCategoryId?: number;
+    category?: string;
+    governorate?: number;
+    governorateId?: number;
+  } = {},
+): Promise<MarketAnalysisProductFilter[]> {
+  const sp = new URLSearchParams();
+  if (filters.categoryId != null && filters.categoryId > 0) {
+    sp.set("categoryId", String(filters.categoryId));
+  }
+  if (filters.subCategoryId != null && filters.subCategoryId > 0) {
+    sp.set("subCategoryId", String(filters.subCategoryId));
+  }
+  if (filters.category?.trim()) {
+    sp.set("category", filters.category.trim());
+  }
+  const governorate = filters.governorate ?? filters.governorateId;
+  if (governorate != null && governorate > 0) {
+    sp.set("governorate", String(governorate));
+  }
+
+  const qs = sp.toString() ? `?${sp.toString()}` : "";
+  const data = await apiGet<unknown>(`/api/MarketAnalysis/filters/products${qs}`);
+  return dedupeProductsByProductId(
+    extractArray<unknown>(data)
+      .map(normalizeProductFilter)
+      .filter((p): p is MarketAnalysisProductFilter => Boolean(p)),
+  );
 }
 
 export async function getDashboardSummary(filters: MarketAnalysisFilters = {}) {

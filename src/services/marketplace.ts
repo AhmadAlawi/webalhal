@@ -16,9 +16,12 @@ function normalizeListing(raw: unknown): MarketplaceListing | null {
 
   return {
     listingId,
+    cropId: Number(r.cropId ?? r.CropId) || undefined,
+    productId: Number(r.productId ?? r.ProductId) || undefined,
     title: (r.title ?? r.Title) as string | undefined,
     cropName: (r.cropName ?? r.CropName) as string | undefined,
     productNameAr: (r.productNameAr ?? r.ProductNameAr) as string | undefined,
+    productNameEn: (r.productNameEn ?? r.ProductNameEn) as string | undefined,
     unitPrice:
       Number(r.unitPrice ?? r.UnitPrice ?? r.price ?? r.Price) || undefined,
     availableQty:
@@ -44,6 +47,8 @@ function normalizeListing(raw: unknown): MarketplaceListing | null {
     sellerUserId: Number(r.sellerUserId ?? r.SellerUserId) || undefined,
     categoryId: Number(r.categoryId ?? r.CategoryId) || undefined,
     categoryNameAr: (r.categoryNameAr ?? r.CategoryNameAr) as string | undefined,
+    categoryNameEn: (r.categoryNameEn ?? r.CategoryNameEn) as string | undefined,
+    sellerName: (r.sellerName ?? r.SellerName) as string | undefined,
   };
 }
 
@@ -63,7 +68,9 @@ export async function getMarketplaceBrowse(
   return {
     auctions: Array.isArray(data.auctions) ? data.auctions : [],
     tenders: Array.isArray(data.tenders) ? data.tenders : [],
-    direct: Array.isArray(data.direct) ? data.direct : [],
+    direct: Array.isArray(data.direct)
+      ? data.direct.map((item) => normalizeListing(item) ?? item)
+      : [],
   };
 }
 
@@ -79,7 +86,8 @@ export async function getFilteredDirectListings(params?: Record<string, string>)
   const data = await apiGet<MarketplaceListing[] | { items?: MarketplaceListing[] }>(
     `${API.direct.listingsFiltered}${qs}`,
   );
-  return Array.isArray(data) ? data : data?.items ?? [];
+  const list = Array.isArray(data) ? data : data?.items ?? [];
+  return list.map((item) => normalizeListing(item) ?? item);
 }
 
 export async function getListing(id: number) {

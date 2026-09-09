@@ -14,6 +14,9 @@ import {
 } from "@/services/transport-prices";
 import { getGovernorates } from "@/services/locations";
 import { useCities } from "@/hooks/useCities";
+import { useI18n } from "@/context/I18nContext";
+import type { LocalizableRecord } from "@/lib/localized-value";
+import { useLocalizedLabel } from "@/hooks/useLocalizedLabel";
 import { formatCurrency } from "@/lib/format";
 import type { Governorate } from "@/types/location";
 
@@ -21,10 +24,12 @@ function PriceResultCard({
   title,
   result,
   loading,
+  t,
 }: {
   title: string;
   result: TransportPriceResult | null;
   loading: boolean;
+  t: ReturnType<typeof useI18n>["t"];
 }) {
   return (
     <Card padding="md" className="min-h-[120px]">
@@ -32,34 +37,33 @@ function PriceResultCard({
       {loading ? (
         <div className="mt-4 flex items-center gap-2 text-slate-500">
           <Loader2 className="h-5 w-5 animate-spin" />
-          جاري الحساب...
+          {t("transport.prices.calculating")}
         </div>
       ) : result ? (
         <div className="mt-3">
           {result.price != null ? (
             <p className="text-2xl font-bold text-emerald-600">{formatCurrency(result.price)}</p>
           ) : (
-            <p className="text-slate-600">{result.message || "لا يوجد سعر متاح"}</p>
+            <p className="text-slate-600">{result.message || t("transport.prices.noPrice")}</p>
           )}
           {(result.fromRegion || result.toRegion) && (
             <p className="mt-2 text-sm text-slate-500">
               {result.fromRegion} → {result.toRegion}
-              {result.distanceKm != null && ` · ${result.distanceKm} كم`}
+              {result.distanceKm != null &&
+                ` · ${t("transport.prices.km", undefined, { km: result.distanceKm })}`}
             </p>
           )}
         </div>
       ) : (
-        <p className="mt-3 text-sm text-slate-400">اضغط «احسب» لعرض النتيجة</p>
+        <p className="mt-3 text-sm text-slate-400">{t("transport.prices.clickCalculate")}</p>
       )}
     </Card>
   );
 }
 
-function governorateLabel(g: Governorate): string {
-  return g.nameAr || g.name || `#${g.governorateId}`;
-}
-
 export default function TransportPricesPage() {
+  const { t } = useI18n();
+  const { localized, locationLabel, language } = useLocalizedLabel();
   const { data: cities = [] } = useCities();
   const [governorates, setGovernorates] = useState<Governorate[]>([]);
   const [fromGovernorateId, setFromGovernorateId] = useState<number | "">("");
@@ -95,11 +99,11 @@ export default function TransportPricesPage() {
   function regionName(govId: number | "", cityId: number | ""): string | undefined {
     if (cityId) {
       const city = cities.find((c) => c.cityId === cityId);
-      if (city?.nameAr || city?.name) return city.nameAr || city.name;
+      if (city) return localized(city as unknown as LocalizableRecord);
     }
     if (govId) {
       const gov = governorates.find((g) => g.governorateId === govId);
-      if (gov) return governorateLabel(gov);
+      if (gov) return locationLabel(gov as unknown as LocalizableRecord);
     }
     return undefined;
   }
@@ -115,7 +119,7 @@ export default function TransportPricesPage() {
 
   function validate(): boolean {
     if (!fromGovernorateId || !toGovernorateId) {
-      setError("اختر محافظة الانطلاق والوصول");
+      setError(t("transport.prices.selectGovernorates"));
       return false;
     }
     setError("");
@@ -129,7 +133,7 @@ export default function TransportPricesPage() {
     try {
       setOfficial(await getOfficialTransportPrice(buildDto()));
     } catch (e) {
-      setError(e instanceof Error ? e.message : "فشل حساب السعر الرسمي");
+      setError(e instanceof Error ? e.message : t("transport.prices.calcOfficialFailed"));
     } finally {
       setLoadingOfficial(false);
     }
@@ -142,7 +146,7 @@ export default function TransportPricesPage() {
     try {
       setCheapest(await getCheapestTransportPrice(buildDto()));
     } catch (e) {
-      setError(e instanceof Error ? e.message : "فشل حساب أرخص سعر");
+      setError(e instanceof Error ? e.message : t("transport.prices.calcCheapestFailed"));
     } finally {
       setLoadingCheapest(false);
     }
@@ -151,8 +155,8 @@ export default function TransportPricesPage() {
   return (
     <>
       <PageHeader
-        title="حاسبة أسعار النقل"
-        subtitle="تقدير السعر الرسمي وأرخص عرض بين المحافظات والمدن"
+        title={t("transport.prices.title")}
+        subtitle={t("transport.prices.subtitle")}
         backHref="/account"
       />
       <PageContainer className="py-8">
@@ -161,14 +165,12 @@ export default function TransportPricesPage() {
             <span className="flex h-11 w-11 items-center justify-center rounded-xl bg-emerald-100 text-emerald-700">
               <Calculator className="h-6 w-6" />
             </span>
-            <p className="text-sm text-slate-600">
-              اختر المحافظة والمدينة أو أدخل المسافة بالكيلومتر — كما في تطبيق الموبايل
-            </p>
+            <p className="text-sm text-slate-600">{t("transport.prices.intro")}</p>
           </div>
 
           <div className="grid gap-4 sm:grid-cols-2">
             <label className="block text-sm font-medium text-slate-700">
-              من — المحافظة
+              {t("transport.prices.fromGov")}
               <select
                 value={fromGovernorateId === "" ? "" : String(fromGovernorateId)}
                 onChange={(e) => {
@@ -177,16 +179,16 @@ export default function TransportPricesPage() {
                 }}
                 className="input-field mt-1"
               >
-                <option value="">— اختر —</option>
+                <option value="">{t("transport.prices.select")}</option>
                 {governorates.map((g) => (
                   <option key={g.governorateId} value={g.governorateId}>
-                    {governorateLabel(g)}
+                    {locationLabel(g as unknown as LocalizableRecord)}
                   </option>
                 ))}
               </select>
             </label>
             <label className="block text-sm font-medium text-slate-700">
-              إلى — المحافظة
+              {t("transport.prices.toGov")}
               <select
                 value={toGovernorateId === "" ? "" : String(toGovernorateId)}
                 onChange={(e) => {
@@ -195,42 +197,42 @@ export default function TransportPricesPage() {
                 }}
                 className="input-field mt-1"
               >
-                <option value="">— اختر —</option>
+                <option value="">{t("transport.prices.select")}</option>
                 {governorates.map((g) => (
                   <option key={g.governorateId} value={g.governorateId}>
-                    {governorateLabel(g)}
+                    {locationLabel(g as unknown as LocalizableRecord)}
                   </option>
                 ))}
               </select>
             </label>
             <label className="block text-sm font-medium text-slate-700">
-              من — المدينة (اختياري)
+              {t("transport.prices.fromCity")}
               <select
                 value={fromCityId === "" ? "" : String(fromCityId)}
                 onChange={(e) => setFromCityId(e.target.value ? Number(e.target.value) : "")}
                 className="input-field mt-1"
                 disabled={!fromGovernorateId}
               >
-                <option value="">— الكل —</option>
+                <option value="">{t("transport.prices.all")}</option>
                 {fromCities.map((c) => (
                   <option key={c.cityId} value={c.cityId}>
-                    {c.nameAr || c.name}
+                    {localized(c as unknown as LocalizableRecord)}
                   </option>
                 ))}
               </select>
             </label>
             <label className="block text-sm font-medium text-slate-700">
-              إلى — المدينة (اختياري)
+              {t("transport.prices.toCity")}
               <select
                 value={toCityId === "" ? "" : String(toCityId)}
                 onChange={(e) => setToCityId(e.target.value ? Number(e.target.value) : "")}
                 className="input-field mt-1"
                 disabled={!toGovernorateId}
               >
-                <option value="">— الكل —</option>
+                <option value="">{t("transport.prices.all")}</option>
                 {toCities.map((c) => (
                   <option key={c.cityId} value={c.cityId}>
-                    {c.nameAr || c.name}
+                    {localized(c as unknown as LocalizableRecord)}
                   </option>
                 ))}
               </select>
@@ -239,12 +241,12 @@ export default function TransportPricesPage() {
 
           <div className="mt-4">
             <Input
-              label="المسافة (كم) — اختياري"
+              label={t("transport.prices.distanceKm")}
               type="number"
               min={0}
               value={distanceKm}
               onChange={(e) => setDistanceKm(e.target.value)}
-              placeholder="مثال: 120"
+              placeholder={t("transport.prices.distancePlaceholder")}
             />
           </div>
 
@@ -254,17 +256,27 @@ export default function TransportPricesPage() {
 
           <div className="mt-6 flex flex-wrap gap-3">
             <Button type="button" onClick={calcOfficial} disabled={loadingOfficial}>
-              السعر الرسمي
+              {t("transport.prices.officialPrice")}
             </Button>
             <Button type="button" variant="outline" onClick={calcCheapest} disabled={loadingCheapest}>
-              أرخص سعر
+              {t("transport.prices.cheapestPrice")}
             </Button>
           </div>
         </Card>
 
         <div className="grid gap-6 sm:grid-cols-2">
-          <PriceResultCard title="السعر الرسمي" result={official} loading={loadingOfficial} />
-          <PriceResultCard title="أرخص عرض" result={cheapest} loading={loadingCheapest} />
+          <PriceResultCard
+            title={t("transport.prices.officialPrice")}
+            result={official}
+            loading={loadingOfficial}
+            t={t}
+          />
+          <PriceResultCard
+            title={t("transport.prices.cheapestPrice")}
+            result={cheapest}
+            loading={loadingCheapest}
+            t={t}
+          />
         </div>
       </PageContainer>
     </>

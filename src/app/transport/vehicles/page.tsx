@@ -14,10 +14,12 @@ import {
   type TransportVehicle,
 } from "@/services/transport";
 import { useAuth } from "@/context/AuthContext";
+import { useI18n } from "@/context/I18nContext";
 import { UserRole } from "@/types";
 import { Plus, Trash2 } from "lucide-react";
 
 export default function TransportVehiclesPage() {
+  const { t } = useI18n();
   const { user, requireAuth } = useAuth();
   const [providerId, setProviderId] = useState<number | null>(null);
   const [vehicles, setVehicles] = useState<TransportVehicle[]>([]);
@@ -49,7 +51,7 @@ export default function TransportVehiclesPage() {
   async function handleAdd(e: React.FormEvent) {
     e.preventDefault();
     if (!providerId || !vehicleType.trim() || !model.trim()) {
-      setError("أدخل نوع المركبة والموديل");
+      setError(t("transport.vehicles.enterTypeModel"));
       return;
     }
     setError("");
@@ -67,37 +69,41 @@ export default function TransportVehiclesPage() {
       setPricePerKm("");
       await load(providerId);
     } catch (err) {
-      setError(err instanceof Error ? err.message : "فشل الإضافة");
+      setError(err instanceof Error ? err.message : t("transport.vehicles.addFailed"));
     }
   }
 
   async function handleDelete(v: TransportVehicle) {
     if (!providerId) return;
     const vid = v.vehicleId ?? v.transportVehicleId;
-    if (!vid || !confirm("حذف هذه المركبة؟")) return;
+    if (!vid || !confirm(t("transport.vehicles.deleteConfirm"))) return;
     try {
       await deleteProviderVehicle(providerId, vid);
       await load(providerId);
     } catch {
-      setError("فشل الحذف");
+      setError(t("transport.vehicles.deleteFailed"));
     }
   }
 
   if (user?.roleId !== UserRole.Transport) {
-    return <PageContainer className="py-16 text-center text-red-600">للناقلين فقط</PageContainer>;
+    return (
+      <PageContainer className="py-16 text-center text-red-600">
+        {t("transport.transportersOnly")}
+      </PageContainer>
+    );
   }
 
   return (
     <>
-      <PageHeader title="مركباتي" backHref="/transport/hub" />
+      <PageHeader title={t("transport.vehicles.title")} backHref="/transport/hub" />
       <PageContainer className="py-8">
         {loading ? (
-          <p className="text-center text-slate-500">جاري التحميل...</p>
+          <p className="text-center text-slate-500">{t("common.loadingEllipsis")}</p>
         ) : !providerId ? (
           <div className="text-center">
-            <p className="mb-4 text-slate-600">سجّل كمزود نقل أولاً</p>
+            <p className="mb-4 text-slate-600">{t("transport.vehicles.registerFirst")}</p>
             <Link href="/transport/register">
-              <Button>تسجيل ناقل</Button>
+              <Button>{t("transport.vehicles.register")}</Button>
             </Link>
           </div>
         ) : (
@@ -105,7 +111,7 @@ export default function TransportVehiclesPage() {
             <div className="mb-6 flex justify-end">
               <Button size="sm" onClick={() => setShowForm((s) => !s)}>
                 <Plus className="h-4 w-4" />
-                مركبة جديدة
+                {t("transport.vehicles.newVehicle")}
               </Button>
             </div>
 
@@ -114,18 +120,30 @@ export default function TransportVehiclesPage() {
                 onSubmit={handleAdd}
                 className="mb-8 space-y-4 rounded-2xl border bg-white p-6 shadow-sm"
               >
-                <Input label="نوع المركبة" value={vehicleType} onChange={(e) => setVehicleType(e.target.value)} />
-                <Input label="الموديل" value={model} onChange={(e) => setModel(e.target.value)} />
-                <Input label="السعة" value={capacity} onChange={(e) => setCapacity(e.target.value)} />
                 <Input
-                  label="سعر/كم"
+                  label={t("transport.vehicles.vehicleType")}
+                  value={vehicleType}
+                  onChange={(e) => setVehicleType(e.target.value)}
+                />
+                <Input
+                  label={t("transport.vehicles.model")}
+                  value={model}
+                  onChange={(e) => setModel(e.target.value)}
+                />
+                <Input
+                  label={t("transport.vehicles.capacity")}
+                  value={capacity}
+                  onChange={(e) => setCapacity(e.target.value)}
+                />
+                <Input
+                  label={t("transport.vehicles.pricePerKm")}
                   type="number"
                   value={pricePerKm}
                   onChange={(e) => setPricePerKm(e.target.value)}
                 />
                 {error && <p className="text-sm text-red-600">{error}</p>}
                 <Button type="submit" fullWidth>
-                  حفظ المركبة
+                  {t("transport.vehicles.saveVehicle")}
                 </Button>
               </form>
             )}
@@ -137,7 +155,7 @@ export default function TransportVehiclesPage() {
                   className="flex items-center justify-between rounded-xl border bg-white px-5 py-4"
                 >
                   <div>
-                    <p className="font-medium">{v.vehicleType || "مركبة"}</p>
+                    <p className="font-medium">{v.vehicleType || t("transport.vehicles.vehicle")}</p>
                     <p className="text-sm text-slate-500">
                       {v.model}
                       {v.capacity ? ` · ${v.capacity}` : ""}
@@ -153,7 +171,9 @@ export default function TransportVehiclesPage() {
                 </li>
               ))}
               {vehicles.length === 0 && (
-                <li className="py-12 text-center text-slate-500">لا مركبات مسجّلة</li>
+                <li className="py-12 text-center text-slate-500">
+                  {t("transport.vehicles.noVehicles")}
+                </li>
               )}
             </ul>
           </>

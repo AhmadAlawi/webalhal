@@ -10,20 +10,26 @@ import { ProductSelect } from "@/components/forms/ProductSelect";
 import { LocationCascadeSelect } from "@/components/forms/LocationCascadeSelect";
 import { ImageUploadField } from "@/components/forms/ImageUploadField";
 import { useAuth } from "@/context/AuthContext";
+import { useI18n } from "@/context/I18nContext";
+import type { LocalizableRecord } from "@/lib/localized-value";
+import { normalizeProductId } from "@/lib/product-id";
+import { useLocalizedLabel } from "@/hooks/useLocalizedLabel";
 import { canCreateTender } from "@/lib/permissions";
 import { createTender } from "@/services/tenders";
 import type { Product } from "@/types/farm";
 import type { LocationSelection } from "@/types/location";
 
-function toIso(local: string): string {
+function toIso(local: string, t: ReturnType<typeof useI18n>["t"]): string {
   const d = new Date(local);
-  if (Number.isNaN(d.getTime())) throw new Error("تاريخ غير صالح");
+  if (Number.isNaN(d.getTime())) throw new Error(t("tenders.create.invalidDate"));
   return d.toISOString();
 }
 
 type DeliveryMode = "with_transport" | "without_transport";
 
 export default function CreateTenderPage() {
+  const { t } = useI18n();
+  const { localized } = useLocalizedLabel();
   const { user, requireAuth } = useAuth();
   const router = useRouter();
   const [step, setStep] = useState(1);
@@ -50,7 +56,7 @@ export default function CreateTenderPage() {
   if (!canCreateTender(user?.roleId)) {
     return (
       <PageContainer className="py-16 text-center text-red-600">
-        ليس لديك صلاحية إنشاء مناقصة
+        {t("tenders.create.noPermission")}
       </PageContainer>
     );
   }
@@ -70,23 +76,24 @@ export default function CreateTenderPage() {
     const end = new Date(endTime);
     const dFrom = new Date(deliveryFrom);
     const dTo = new Date(deliveryTo);
-    if (end <= start) return "نهاية المناقصة يجب أن تكون بعد بدايتها";
-    if (dTo <= dFrom) return "نهاية التسليم يجب أن تكون بعد بدايته";
+    if (end <= start) return t("tenders.create.endAfterStart");
+    if (dTo <= dFrom) return t("tenders.create.deliveryEndAfterStart");
     return null;
   }
 
   async function submit() {
-    if (!user?.userId || !productId) return;
+    const normalizedProductId = normalizeProductId(productId);
+    if (!user?.userId || !normalizedProductId) return;
     if (!title.trim()) {
-      setError("أدخل عنوان المناقصة");
+      setError(t("tenders.create.enterTitle"));
       return;
     }
     if (!locationReady()) {
-      setError("اختر المحافظة والمدينة والمقاطعة لموقع التسليم");
+      setError(t("tenders.create.selectDeliveryLocation"));
       return;
     }
     if (!quantity || !deliveryFrom || !deliveryTo || !startTime || !endTime) {
-      setError("أكمل جميع الحقول المطلوبة");
+      setError(t("tenders.create.fillRequired"));
       return;
     }
     const dateErr = validateDates();
@@ -95,14 +102,13 @@ export default function CreateTenderPage() {
       return;
     }
 
-    const cropName =
-      selectedProduct?.nameAr || selectedProduct?.name || title.trim();
+    const cropName = localized(selectedProduct as unknown as LocalizableRecord) || title.trim();
 
     setSubmitting(true);
     setError("");
     try {
       await createTender(user.userId, {
-        productId: Number(productId),
+        productId: normalizedProductId,
         title: title.trim(),
         cropName,
         deliveryLocation: deliveryLocationLabel(),
@@ -112,17 +118,17 @@ export default function CreateTenderPage() {
         requiresTransport: deliveryMode === "with_transport",
         withTransport: deliveryMode === "with_transport",
         quantity: Number(quantity),
-        deliveryFrom: toIso(deliveryFrom),
-        deliveryTo: toIso(deliveryTo),
-        startTime: toIso(startTime),
-        endTime: toIso(endTime),
+        deliveryFrom: toIso(deliveryFrom, t),
+        deliveryTo: toIso(deliveryTo, t),
+        startTime: toIso(startTime, t),
+        endTime: toIso(endTime, t),
         maxBudget: maxBudget ? Number(maxBudget) : undefined,
-        unit: "كغ",
+        unit: t("forms.units.kg"),
         imageUrls: imageUrls.length ? imageUrls : undefined,
       });
       router.push("/tenders");
     } catch (e) {
-      setError(e instanceof Error ? e.message : "فشل إنشاء المناقصة");
+      setError(e instanceof Error ? e.message : t("tenders.create.failed"));
     } finally {
       setSubmitting(false);
     }
@@ -130,7 +136,7 @@ export default function CreateTenderPage() {
 
   return (
     <>
-      <PageHeader title="إنشاء مناقصة" backHref="/tenders" />
+      <PageHeader title={t("tenders.create.title")} backHref="/tenders" />
       <PageContainer narrow className="py-8">
         <div className="mb-6 flex gap-2">
           {[1, 2, 3].map((s) => (
@@ -144,32 +150,41 @@ export default function CreateTenderPage() {
           {step === 1 && (
             <>
               <ProductSelect
-                productId={productId}
+                productId={normalizeProductId(productId)}
                 onChange={(id, product) => {
-                  setProductId(id || "");
+                  setProductId(id);
                   setSelectedProduct(product);
-                  if (product?.nameAr && !title) setTitle(`مناقصة ${product.nameAr}`);
+                  const productName = product
+                    ? localized(product as unknown as LocalizableRecord)
+                    : "";
+                  if (productName && !title) {
+                    setTitle(t("tenders.create.titleWithProduct", undefined, { product: productName }));
+                  }
                 }}
               />
               <Input
-                label="الكمية المطلوبة"
+                label={t("tenders.create.requiredQuantity")}
                 type="number"
                 value={quantity}
                 onChange={(e) => setQuantity(e.target.value)}
                 required
               />
               <Input
-                label="عنوان المناقصة"
+                label={t("tenders.create.tenderTitle")}
                 value={title}
                 onChange={(e) => setTitle(e.target.value)}
                 required
               />
               <div>
-                <p className="mb-2 text-sm font-medium text-slate-700">موقع التسليم</p>
+                <p className="mb-2 text-sm font-medium text-slate-700">
+                  {t("tenders.create.deliveryLocation")}
+                </p>
                 <LocationCascadeSelect value={location} onChange={setLocation} />
               </div>
               <fieldset className="space-y-2">
-                <legend className="text-sm font-medium text-slate-700">خيار النقل</legend>
+                <legend className="text-sm font-medium text-slate-700">
+                  {t("tenders.create.transportOption")}
+                </legend>
                 <label className="flex cursor-pointer items-center gap-3 rounded-xl border p-3">
                   <input
                     type="radio"
@@ -178,7 +193,7 @@ export default function CreateTenderPage() {
                     onChange={() => setDeliveryMode("with_transport")}
                     className="accent-emerald-600"
                   />
-                  <span className="text-sm">مع نقل (يشمل التوصيل)</span>
+                  <span className="text-sm">{t("tenders.create.withTransport")}</span>
                 </label>
                 <label className="flex cursor-pointer items-center gap-3 rounded-xl border p-3">
                   <input
@@ -188,7 +203,7 @@ export default function CreateTenderPage() {
                     onChange={() => setDeliveryMode("without_transport")}
                     className="accent-emerald-600"
                   />
-                  <span className="text-sm">بدون نقل (استلام من الموقع)</span>
+                  <span className="text-sm">{t("tenders.create.withoutTransport")}</span>
                 </label>
               </fieldset>
               <Button
@@ -196,27 +211,27 @@ export default function CreateTenderPage() {
                 disabled={!productId || !title.trim() || !quantity || !locationReady()}
                 onClick={() => setStep(2)}
               >
-                التالي
+                {t("common.next")}
               </Button>
             </>
           )}
           {step === 2 && (
             <>
               <Input
-                label="الميزانية القصوى (اختياري)"
+                label={t("tenders.create.maxBudget")}
                 type="number"
                 value={maxBudget}
                 onChange={(e) => setMaxBudget(e.target.value)}
               />
               <Input
-                label="التسليم من"
+                label={t("tenders.create.deliveryFrom")}
                 type="datetime-local"
                 value={deliveryFrom}
                 onChange={(e) => setDeliveryFrom(e.target.value)}
                 required
               />
               <Input
-                label="التسليم إلى"
+                label={t("tenders.create.deliveryTo")}
                 type="datetime-local"
                 value={deliveryTo}
                 onChange={(e) => setDeliveryTo(e.target.value)}
@@ -225,10 +240,10 @@ export default function CreateTenderPage() {
               <ImageUploadField value={imageUrls} onChange={setImageUrls} folder="tenders" />
               <div className="flex gap-2">
                 <Button variant="outline" fullWidth onClick={() => setStep(1)}>
-                  رجوع
+                  {t("common.back")}
                 </Button>
                 <Button fullWidth onClick={() => setStep(3)}>
-                  التالي
+                  {t("common.next")}
                 </Button>
               </div>
             </>
@@ -236,30 +251,35 @@ export default function CreateTenderPage() {
           {step === 3 && (
             <>
               <Input
-                label="بداية المناقصة"
+                label={t("tenders.create.tenderStart")}
                 type="datetime-local"
                 value={startTime}
                 onChange={(e) => setStartTime(e.target.value)}
                 required
               />
               <Input
-                label="نهاية المناقصة"
+                label={t("tenders.create.tenderEnd")}
                 type="datetime-local"
                 value={endTime}
                 onChange={(e) => setEndTime(e.target.value)}
                 required
               />
               <p className="text-xs text-slate-500">
-                الموقع: {deliveryLocationLabel()} ·{" "}
-                {deliveryMode === "with_transport" ? "مع نقل" : "بدون نقل"}
+                {t("tenders.create.summary", undefined, {
+                  location: deliveryLocationLabel(),
+                  transport:
+                    deliveryMode === "with_transport"
+                      ? t("tenders.create.withTransportShort")
+                      : t("tenders.create.withoutTransportShort"),
+                })}
               </p>
               {error && <p className="text-sm text-red-600">{error}</p>}
               <div className="flex gap-2">
                 <Button variant="outline" fullWidth onClick={() => setStep(2)}>
-                  رجوع
+                  {t("common.back")}
                 </Button>
                 <Button fullWidth onClick={submit} disabled={submitting}>
-                  {submitting ? "جاري النشر..." : "نشر المناقصة"}
+                  {submitting ? t("tenders.create.publishing") : t("tenders.create.publish")}
                 </Button>
               </div>
             </>

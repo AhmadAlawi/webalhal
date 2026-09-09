@@ -13,6 +13,7 @@ import {
 import type { ChartGroupBy, FilterGovernorate, FilterProduct } from "@/types/market-chart";
 import Link from "next/link";
 import { FadeIn } from "@/components/motion/FadeIn";
+import { useI18n } from "@/context/I18nContext";
 
 const CandleVolumeChart = dynamic(
   () =>
@@ -23,13 +24,14 @@ const CandleVolumeChart = dynamic(
 function ChartSkeleton({ height }: { height: number }) {
   return (
     <div
-      className="animate-pulse rounded-lg bg-[#2a2e39]"
+      className="skeleton-shimmer animate-pulse rounded-xl"
       style={{ height }}
     />
   );
 }
 
 export default function MarketChartPage() {
+  const { t, direction } = useI18n();
   const [products, setProducts] = useState<FilterProduct[]>([]);
   const [governorates, setGovernorates] = useState<FilterGovernorate[]>([]);
   const [productId, setProductId] = useState<number | undefined>();
@@ -46,7 +48,7 @@ export default function MarketChartPage() {
         setGovernorates(govs);
         setProducts(prods);
         if (prods.length > 0 && !productId) {
-          setProductId(prods[0].id);
+          setProductId(prods[0].productId);
         }
       })
       .catch(() => {});
@@ -87,7 +89,7 @@ export default function MarketChartPage() {
   const empty = !loading && data && data.candles.length === 0;
 
   return (
-    <div className="min-h-screen bg-[#131722]" dir="rtl">
+    <div className="min-h-screen" dir={direction}>
       <MarketChartHeader
         products={products}
         governorates={governorates}
@@ -114,18 +116,18 @@ export default function MarketChartPage() {
 
       <main className="mx-auto max-w-7xl px-4 py-4 lg:px-6">
         {!productId && (
-          <p className="py-16 text-center text-slate-400">اختر منتجاً لعرض المخطط</p>
+          <p className="py-16 text-center text-slate-400">{t("marketChart.selectProductPrompt")}</p>
         )}
 
         {error && (
-          <div className="mb-4 flex flex-wrap items-center justify-between gap-3 rounded-lg border border-red-900/50 bg-red-950/40 px-4 py-3 text-red-300">
+          <div className="mb-4 flex flex-wrap items-center justify-between gap-3 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-red-700">
             <span>{error}</span>
             <button
               type="button"
               onClick={retry}
-              className="rounded-lg bg-red-800/60 px-4 py-2 text-sm hover:bg-red-800"
+              className="rounded-lg bg-red-600 px-4 py-2 text-sm text-white hover:bg-red-700"
             >
-              إعادة المحاولة
+              {t("marketChart.retry")}
             </button>
           </div>
         )}
@@ -135,32 +137,27 @@ export default function MarketChartPage() {
         )}
 
         {productId && !loading && empty && (
-          <div className="rounded-xl border border-[#2a2e39] bg-[#1e222d] px-6 py-16 text-center">
-            <p className="text-lg text-slate-300">لا توجد صفقات في هذه الفترة</p>
-            <p className="mt-2 text-sm text-slate-500">
-              جرّب توسيع الفترة أو تغيير المحافظة. إن كان السوق جديداً، قد يحتاج المسؤول لتشغيل
-              تعبئة تاريخية للبيانات على الخادم.
-            </p>
+          <div className="rounded-xl border border-gray-200 bg-white px-6 py-16 text-center shadow-sm">
+            <p className="text-lg font-medium text-slate-900">{t("marketChart.noTradesInPeriod")}</p>
+            <p className="mt-2 text-sm text-slate-500">{t("marketChart.emptyPeriodHint")}</p>
             <Link
               href="/market-analysis/overview"
-              className="mt-4 inline-block text-sm text-emerald-400 hover:underline"
+              className="mt-4 inline-block text-sm font-medium text-emerald-600 hover:underline"
             >
-              العودة لنظرة عامة
+              {t("marketChart.backToOverview")}
             </Link>
           </div>
         )}
 
         {productId && !loading && data && data.candles.length > 0 && (
           <FadeIn>
-            <section className="mb-2 overflow-hidden rounded-xl border border-[#2a2e39] bg-[#1e222d]">
+            <section className="mb-2 overflow-hidden rounded-xl border border-gray-200 bg-white shadow-sm">
               <CandleVolumeChart candles={data.candles} volume={data.volume} height={400} />
             </section>
-            <p className="mb-4 text-center text-xs text-slate-500">
-              الحجم (كغ) — أخضر: إغلاق ≥ افتتاح · أحمر: إغلاق &lt; افتتاح
-            </p>
-            <section className="rounded-xl border border-[#2a2e39] bg-[#1e222d] p-4">
-              <h2 className="mb-3 text-sm font-semibold text-slate-300">
-                نشاط السوق — عرض (بيع) مقابل طلب (شراء)
+            <p className="mb-4 text-center text-xs text-slate-500">{t("marketChart.volumeLegend")}</p>
+            <section className="rounded-xl border border-gray-200 bg-white p-4 shadow-sm">
+              <h2 className="mb-3 text-sm font-semibold text-slate-700">
+                {t("marketChart.supplyDemandTitle")}
               </h2>
               <SupplyDemandStrip data={data.supplyDemand} />
             </section>

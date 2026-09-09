@@ -1,4 +1,5 @@
 import { apiGet } from "@/lib/api";
+import { dedupeProductsByProductId, normalizeProductId } from "@/lib/product-id";
 import type {
   ChartGroupBy,
   DateRangeFilter,
@@ -9,6 +10,13 @@ import type {
   PriceVolatilityChartData,
 } from "@/types/market-chart";
 
+type ProductFilterPayload = FilterProduct & {
+  ProductId?: number;
+  Name?: string;
+  NameAr?: string;
+  CategoryId?: number;
+};
+
 function govParam(governorate: number) {
   return governorate > 0 ? String(governorate) : "0";
 }
@@ -18,10 +26,23 @@ export async function getChartProducts(category?: string, governorate?: number) 
   if (category) sp.set("category", category);
   if (governorate != null && governorate > 0) sp.set("governorate", String(governorate));
   const qs = sp.toString() ? `?${sp}` : "";
-  const data = await apiGet<FilterProduct[] | { items?: FilterProduct[] }>(
+  const data = await apiGet<ProductFilterPayload[] | { items?: ProductFilterPayload[] }>(
     `/api/MarketAnalysis/filters/products${qs}`,
   );
-  return Array.isArray(data) ? data : data?.items ?? [];
+  const products = Array.isArray(data) ? data : data?.items ?? [];
+  const normalizedProducts = products
+    .map((p): FilterProduct | null => {
+      const rawProductId = Number(p.productId ?? p.ProductId);
+      if (!Number.isFinite(rawProductId) || rawProductId <= 0) return null;
+      return {
+        productId: normalizeProductId(rawProductId),
+        name: p.name ?? p.Name,
+        nameAr: p.nameAr ?? p.NameAr,
+        categoryId: p.categoryId ?? p.CategoryId,
+      };
+    })
+    .filter((p): p is FilterProduct => p != null);
+  return dedupeProductsByProductId(normalizedProducts);
 }
 
 export async function getChartGovernorates() {
@@ -33,7 +54,7 @@ export async function getChartGovernorates() {
 
 export async function getChartDateRange(productId: number, governorate: number) {
   const sp = new URLSearchParams({
-    ProductId: String(productId),
+    ProductId: String(normalizeProductId(productId)),
     governorate: govParam(governorate),
   });
   return apiGet<DateRangeFilter>(`/api/MarketAnalysis/filters/date-range?${sp}`);
@@ -47,7 +68,7 @@ export async function getPriceVolatility(
   endDate?: string,
 ) {
   const sp = new URLSearchParams({
-    ProductId: String(productId),
+    ProductId: String(normalizeProductId(productId)),
     governorate: govParam(governorate),
     groupBy,
   });
@@ -60,7 +81,7 @@ export async function getPriceVolatility(
 
 export async function getMarketTrends(productId: number, governorate: number, days: number) {
   const sp = new URLSearchParams({
-    ProductId: String(productId),
+    ProductId: String(normalizeProductId(productId)),
     governorate: govParam(governorate),
     days: String(Math.max(7, days)),
   });
@@ -73,7 +94,7 @@ export async function getSupplyDemandTrends(
   days: number,
 ) {
   const sp = new URLSearchParams({
-    ProductId: String(productId),
+    ProductId: String(normalizeProductId(productId)),
     governorate: govParam(governorate),
     days: String(Math.max(7, days)),
   });

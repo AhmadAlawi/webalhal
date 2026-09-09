@@ -7,8 +7,10 @@ import { PageHeader } from "@/components/ui/PageHeader";
 import { PageContainer } from "@/components/layout/PageContainer";
 import { getConversations } from "@/services/chat";
 import { useAuth } from "@/context/AuthContext";
+import { useI18n } from "@/context/I18nContext";
 
 export default function ChatListPage() {
+  const { t } = useI18n();
   const { user, isAuthenticated, requireAuth } = useAuth();
 
   useEffect(() => {
@@ -23,7 +25,7 @@ export default function ChatListPage() {
 
   return (
     <>
-      <PageHeader title="المحادثات" backHref="/" />
+      <PageHeader title={t("chat.title")} backHref="/" />
       <PageContainer className="py-8">
         {isLoading ? (
           <div className="flex justify-center py-16">
@@ -39,7 +41,7 @@ export default function ChatListPage() {
                 >
                   <span>
                     <p className="font-medium text-slate-900">
-                      {c.title || `محادثة #${c.conversationId}`}
+                      {c.title || t("chat.conversationFallback", undefined, { id: c.conversationId })}
                     </p>
                     <p className="line-clamp-1 text-sm text-slate-500">{c.lastMessage}</p>
                   </span>
@@ -53,7 +55,7 @@ export default function ChatListPage() {
             ))}
             {conversations.length === 0 && (
               <li className="py-16 text-center text-slate-500">
-                {chatError ? "تعذّر تحميل المحادثات" : "لا توجد محادثات"}
+                {chatError ? t("chat.loadError") : t("chat.empty")}
               </li>
             )}
           </ul>

@@ -11,19 +11,20 @@ import { resolveMediaUrl } from "@/lib/media";
 import { trackAdClick, trackAdView } from "@/services/catalog";
 import type { Advertisement } from "@/types";
 import { useAuth } from "@/context/AuthContext";
-
-const DEFAULT_CTA = "اعرف المزيد";
+import { useI18n } from "@/context/I18nContext";
 
 function AdCta({
   ad,
   href,
   onNavigate,
+  defaultCta,
 }: {
   ad: Advertisement;
   href: string;
   onNavigate: () => void;
+  defaultCta: string;
 }) {
-  const label = ad.buttonLabel?.trim() || DEFAULT_CTA;
+  const label = ad.buttonLabel?.trim() || defaultCta;
   const style = {
     backgroundColor: ad.ctaBackgroundColor ?? "#047857",
     color: ad.ctaTextColor ?? "#ffffff",
@@ -62,17 +63,21 @@ export function BannerCarousel({
   loading?: boolean;
 }) {
   const { user } = useAuth();
+  const { t } = useI18n();
   const [index, setIndex] = useState(0);
+  const [prevAds, setPrevAds] = useState(ads);
+  const defaultCta = t("home.banner.defaultCta");
+
+  if (prevAds !== ads) {
+    setPrevAds(ads);
+    setIndex(0);
+  }
 
   useEffect(() => {
     if (ads.length <= 1) return;
-    const t = setInterval(() => setIndex((i) => (i + 1) % ads.length), 6000);
-    return () => clearInterval(t);
+    const timer = setInterval(() => setIndex((i) => (i + 1) % ads.length), 6000);
+    return () => clearInterval(timer);
   }, [ads.length]);
-
-  useEffect(() => {
-    setIndex(0);
-  }, [ads]);
 
   useEffect(() => {
     const ad = ads[index];
@@ -106,7 +111,7 @@ export function BannerCarousel({
   const image = (
     <Image
       src={resolveMediaUrl(ad.imageUrl)}
-      alt={ad.title ?? "إعلان"}
+      alt={ad.title ?? t("home.banner.adAlt")}
       fill
       className="object-cover"
       priority
@@ -163,7 +168,7 @@ export function BannerCarousel({
                   {ad.description}
                 </p>
               )}
-              {href && <AdCta ad={ad} href={href} onNavigate={handleClick} />}
+              {href && <AdCta ad={ad} href={href} onNavigate={handleClick} defaultCta={defaultCta} />}
             </div>
           </div>
         )}
@@ -174,7 +179,7 @@ export function BannerCarousel({
             <button
               key={i}
               type="button"
-              aria-label={`شريحة ${i + 1}`}
+              aria-label={t("home.banner.slideAria", "", { n: i + 1 })}
               onClick={() => setIndex(i)}
               className={`h-2 rounded-full transition-all duration-300 ${
                 i === index ? "w-8 bg-white" : "w-2 bg-white/40 hover:bg-white/70"

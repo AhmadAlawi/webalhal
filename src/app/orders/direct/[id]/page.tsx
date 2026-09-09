@@ -15,14 +15,10 @@ import {
 } from "@/services/direct";
 import { openConversation, parseConversationIdFromOpen } from "@/services/chat";
 import { useAuth } from "@/context/AuthContext";
-
-const NEXT_STATUS: Record<string, { label: string; status: string }> = {
-  open: { label: "بدء التفاوض", status: "negotiating" },
-  negotiating: { label: "تعيين / تأكيد", status: "assigned" },
-  assigned: { label: "إغلاق الطلب (مكتمل)", status: "completed" },
-};
+import { useI18n } from "@/context/I18nContext";
 
 export default function DirectOrderDetailPage() {
+  const { t } = useI18n();
   const { id } = useParams();
   const router = useRouter();
   const { user, requireAuth } = useAuth();
@@ -31,6 +27,12 @@ export default function DirectOrderDetailPage() {
   const [error, setError] = useState("");
   const [openingChat, setOpeningChat] = useState(false);
   const [updating, setUpdating] = useState(false);
+
+  const NEXT_STATUS: Record<string, { labelKey: string; status: string }> = {
+    open: { labelKey: "orders.direct.advance.startNegotiation", status: "negotiating" },
+    negotiating: { labelKey: "orders.direct.advance.assignConfirm", status: "assigned" },
+    assigned: { labelKey: "orders.direct.advance.closeComplete", status: "completed" },
+  };
 
   async function reload() {
     if (!orderId) return;
@@ -66,9 +68,9 @@ export default function DirectOrderDetailPage() {
       const cid = parseConversationIdFromOpen(res);
       if (cid) router.push(`/chat/${cid}`);
       else if (order.chatId) router.push(`/chat/${order.chatId}`);
-      else setError("تعذّر فتح المحادثة");
+      else setError(t("orders.direct.openChatFailed"));
     } catch (e) {
-      setError(e instanceof Error ? e.message : "فشل فتح المحادثة");
+      setError(e instanceof Error ? e.message : t("orders.direct.openChatFailed"));
     } finally {
       setOpeningChat(false);
     }
@@ -83,21 +85,21 @@ export default function DirectOrderDetailPage() {
       await updateDirectOrderStatus(orderId, next.status);
       await reload();
     } catch (e) {
-      setError(e instanceof Error ? e.message : "فشل تحديث الحالة");
+      setError(e instanceof Error ? e.message : t("orders.direct.updateFailed"));
     } finally {
       setUpdating(false);
     }
   }
 
   async function cancelOrder() {
-    if (!orderId || !confirm("إلغاء هذا الطلب؟")) return;
+    if (!orderId || !confirm(t("orders.direct.cancelConfirm"))) return;
     setUpdating(true);
     setError("");
     try {
       await cancelDirectOrder(orderId);
       await reload();
     } catch (e) {
-      setError(e instanceof Error ? e.message : "فشل الإلغاء");
+      setError(e instanceof Error ? e.message : t("orders.direct.cancelFailed"));
     } finally {
       setUpdating(false);
     }
@@ -106,8 +108,10 @@ export default function DirectOrderDetailPage() {
   if (!order) {
     return (
       <>
-        <PageHeader title="تفاصيل الطلب" backHref="/orders/direct" />
-        <PageContainer className="py-16 text-center text-slate-500">جاري التحميل...</PageContainer>
+        <PageHeader title={t("orders.direct.detailTitle")} backHref="/orders/direct" />
+        <PageContainer className="py-16 text-center text-slate-500">
+          {t("common.loadingEllipsis")}
+        </PageContainer>
       </>
     );
   }
@@ -115,7 +119,11 @@ export default function DirectOrderDetailPage() {
   return (
     <>
       <PageHeader
-        title={order.listingTitle || order.cropName || `طلب #${orderId}`}
+        title={
+          order.listingTitle ||
+          order.cropName ||
+          t("orders.direct.orderFallback", undefined, { id: orderId })
+        }
         backHref="/orders/direct"
       />
       <PageContainer narrow className="py-8">
@@ -131,8 +139,9 @@ export default function DirectOrderDetailPage() {
 
           {order.qty != null && (
             <p>
-              <span className="text-slate-500">الكمية: </span>
-              <span className="font-medium">{order.qty}</span>
+              <span className="text-slate-500">
+                {t("orders.direct.quantity", undefined, { qty: order.qty })}
+              </span>
             </p>
           )}
           {order.totalPrice != null && (
@@ -142,29 +151,29 @@ export default function DirectOrderDetailPage() {
           )}
           {order.deliveryAddress && (
             <p>
-              <span className="text-slate-500">العنوان: </span>
+              <span className="text-slate-500">{t("orders.direct.address")}: </span>
               {order.deliveryAddress}
             </p>
           )}
 
           <p className="text-sm text-slate-600">
-            {isSeller ? "أنت البائع في هذا الطلب" : "أنت المشتري في هذا الطلب"}
+            {isSeller ? t("orders.direct.youAreSeller") : t("orders.direct.youAreBuyer")}
           </p>
 
           {error && <p className="rounded-xl bg-red-50 px-4 py-2 text-sm text-red-600">{error}</p>}
 
           <div className="flex flex-col gap-3">
             <Button fullWidth disabled={openingChat} onClick={openChat}>
-              {openingChat ? "جاري الفتح..." : "فتح المحادثة"}
+              {openingChat ? t("orders.direct.openingChat") : t("orders.direct.openConversation")}
             </Button>
             {canAdvance && (
               <Button fullWidth disabled={updating} onClick={advanceStatus}>
-                {updating ? "جاري التحديث..." : canAdvance.label}
+                {updating ? t("orders.direct.updating") : t(canAdvance.labelKey)}
               </Button>
             )}
             {canCancel && (
               <Button fullWidth variant="outline" disabled={updating} onClick={cancelOrder}>
-                إلغاء الطلب
+                {t("orders.direct.cancelOrder")}
               </Button>
             )}
           </div>

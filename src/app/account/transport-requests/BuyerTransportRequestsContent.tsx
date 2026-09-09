@@ -8,19 +8,24 @@ import { EmptyState } from "@/components/ui/EmptyState";
 import { formatCurrency, formatDateAr } from "@/lib/format";
 import { getBuyerRequests } from "@/services/transport";
 import { useAuth } from "@/context/AuthContext";
+import { useI18n } from "@/context/I18nContext";
+import { useLocalizedLabel } from "@/hooks/useLocalizedLabel";
+import type { LocalizableRecord } from "@/lib/localized-value";
 import type { TransportRequest } from "@/types";
 import { Truck } from "lucide-react";
 
-const FILTERS: { key: string; label: string }[] = [
-  { key: "", label: "الكل" },
-  { key: "open", label: "مفتوحة" },
-  { key: "negotiating", label: "تفاوض" },
-  { key: "assigned", label: "مُعيَّنة" },
-  { key: "completed", label: "مكتملة" },
+const FILTERS: { key: string; labelKey: string }[] = [
+  { key: "", labelKey: "common.all" },
+  { key: "open", labelKey: "status.open" },
+  { key: "negotiating", labelKey: "status.negotiating" },
+  { key: "assigned", labelKey: "status.assigned" },
+  { key: "completed", labelKey: "status.completed" },
 ];
 
 export function BuyerTransportRequestsContent() {
   const { requireAuth, isAuthenticated, isLoading: authLoading } = useAuth();
+  const { t, language } = useI18n();
+  const { localized } = useLocalizedLabel();
   const [requests, setRequests] = useState<TransportRequest[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
@@ -39,10 +44,10 @@ export function BuyerTransportRequestsContent() {
       .then(setRequests)
       .catch((e) => {
         setRequests([]);
-        setError(e instanceof Error ? e.message : "تعذّر تحميل طلبات النقل");
+        setError(e instanceof Error ? e.message : t("account.transportLoadFailed"));
       })
       .finally(() => setLoading(false));
-  }, [authLoading, isAuthenticated, requireAuth, statusFilter]);
+  }, [authLoading, isAuthenticated, requireAuth, statusFilter, t]);
 
   return (
     <PageContainer className="py-8">
@@ -58,7 +63,7 @@ export function BuyerTransportRequestsContent() {
                 : "bg-slate-100 text-slate-600 hover:bg-slate-200"
             }`}
           >
-            {f.label}
+            {t(f.labelKey)}
           </button>
         ))}
       </div>
@@ -76,11 +81,11 @@ export function BuyerTransportRequestsContent() {
       ) : requests.length === 0 ? (
         <EmptyState
           icon={Truck}
-          title="لا توجد طلبات نقل"
-          description="بعد إتمام صفقة، افتح محادثة الصفقة وعيّن ناقلاً أو انتظر عروض النقل"
+          title={t("account.noTransportRequests")}
+          description={t("account.noTransportRequestsDesc")}
           action={
             <Link href="/direct" className="font-semibold text-emerald-600 hover:underline">
-              تصفح البيع المباشر
+              {t("account.browseDirect")}
             </Link>
           }
         />
@@ -95,23 +100,39 @@ export function BuyerTransportRequestsContent() {
                 <div className="flex items-start justify-between gap-3">
                   <div>
                     <p className="font-medium text-slate-900">
-                      {r.productType || "طلب نقل"} · #{r.requestId}
+                      {localized(r as unknown as LocalizableRecord, "productType", r.productType || t("account.transportRequestFallback"))} · #
+                      {r.requestId}
                     </p>
                     <p className="mt-1 text-sm text-slate-500">
-                      {r.fromRegion || "—"} → {r.toRegion || "—"}
+                      {localized(r as unknown as LocalizableRecord, "fromRegion", r.fromRegion || t("common.notAvailable"))} →{" "}
+                      {localized(r as unknown as LocalizableRecord, "toRegion", r.toRegion || t("common.notAvailable"))}
                     </p>
                     <p className="mt-2 flex flex-wrap gap-x-4 gap-y-1 text-xs text-slate-500">
-                      {r.createdAt && <span>تاريخ الطلب: {formatDateAr(r.createdAt)}</span>}
+                      {r.createdAt && (
+                        <span>
+                          {t("account.requestDate", "", { date: formatDateAr(r.createdAt) })}
+                        </span>
+                      )}
                       {r.weightKg != null && r.weightKg > 0 && (
-                        <span>الوزن: {r.weightKg} كغ</span>
+                        <span>{t("account.weight", "", { weight: r.weightKg })}</span>
                       )}
                       {typeof r.offersCount === "number" && (
                         <span className="font-medium text-emerald-700">
-                          {r.offersCount} عرض{r.offersCount === 1 ? "" : "اً"}
+                          {t(
+                            r.offersCount === 1
+                              ? "account.offersCountOne"
+                              : "account.offersCountOther",
+                            "",
+                            { count: r.offersCount },
+                          )}
                         </span>
                       )}
                       {r.agreedPrice != null && r.agreedPrice > 0 && (
-                        <span>السعر: {formatCurrency(r.agreedPrice)}</span>
+                        <span>
+                          {t("account.agreedPrice", "", {
+                            price: formatCurrency(r.agreedPrice, language),
+                          })}
+                        </span>
                       )}
                     </p>
                   </div>

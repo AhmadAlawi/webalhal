@@ -3,17 +3,20 @@
 import { useState } from "react";
 import { SlidersHorizontal, ChevronDown, ChevronUp } from "lucide-react";
 import { useCategories } from "@/hooks/useCategories";
+import { useLocalizedLabel } from "@/hooks/useLocalizedLabel";
+import type { LocalizableRecord } from "@/lib/localized-value";
+import { useI18n } from "@/context/I18nContext";
 import {
   DEFAULT_PAGE_SIZE,
   type MarketListFilterState,
 } from "@/lib/market-list-filters";
 
 const SORT_OPTIONS = [
-  { value: "", label: "افتراضي" },
-  { value: "endTime", label: "تاريخ الانتهاء" },
-  { value: "startingPrice", label: "السعر" },
-  { value: "createdAt", label: "الأحدث" },
-];
+  { value: "", labelKey: "market.filters.sortDefault" },
+  { value: "endTime", labelKey: "market.filters.sortEndTime" },
+  { value: "startingPrice", labelKey: "market.filters.sortPrice" },
+  { value: "createdAt", labelKey: "market.filters.sortCreatedAt" },
+] as const;
 
 export function MarketListFilters({
   kind,
@@ -28,11 +31,25 @@ export function MarketListFilters({
   filters: MarketListFilterState;
   onFiltersChange: (f: MarketListFilterState) => void;
 }) {
+  const { t } = useI18n();
+  const { localized } = useLocalizedLabel();
   const [open, setOpen] = useState(false);
   const { data: categories = [] } = useCategories();
+  const currency = t("common.currency");
 
   const priceLabel =
-    kind === "auctions" ? "سعر البداية (ل.س)" : kind === "tenders" ? "الميزانية (ل.س)" : "سعر الوحدة (ل.س)";
+    kind === "auctions"
+      ? `${t("market.filters.startingPrice")} (${currency})`
+      : kind === "tenders"
+        ? `${t("market.filters.budget")} (${currency})`
+        : `${t("market.filters.unitPrice")} (${currency})`;
+
+  const searchPlaceholder =
+    kind === "auctions"
+      ? t("market.filters.searchAuctions")
+      : kind === "tenders"
+        ? t("market.filters.searchTenders")
+        : t("market.filters.searchDirect");
 
   function patch(partial: Partial<MarketListFilterState>) {
     onFiltersChange({ ...filters, page: 1, ...partial });
@@ -43,13 +60,7 @@ export function MarketListFilters({
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
         <input
           type="search"
-          placeholder={
-            kind === "auctions"
-              ? "بحث في المزادات..."
-              : kind === "tenders"
-                ? "بحث في المناقصات..."
-                : "بحث في العروض..."
-          }
+          placeholder={searchPlaceholder}
           value={search}
           onChange={(e) => onSearchChange(e.target.value)}
           className="w-full flex-1 rounded-xl border border-gray-200 px-4 py-3 focus:border-emerald-500 focus:outline-none focus:ring-2 focus:ring-emerald-500/20"
@@ -60,7 +71,7 @@ export function MarketListFilters({
           className="inline-flex items-center justify-center gap-2 rounded-xl border border-gray-200 px-4 py-3 text-sm font-medium text-slate-700 hover:border-emerald-300 hover:bg-emerald-50/50"
         >
           <SlidersHorizontal className="h-4 w-4" />
-          فلاتر متقدمة
+          {t("market.filters.advanced")}
           {open ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
         </button>
       </div>
@@ -68,7 +79,7 @@ export function MarketListFilters({
       {open && (
         <div className="grid gap-4 rounded-2xl border border-gray-200 bg-white p-5 sm:grid-cols-2 lg:grid-cols-3">
           <label className="flex flex-col gap-1 text-sm">
-            <span className="font-medium text-slate-600">التصنيف</span>
+            <span className="font-medium text-slate-600">{t("market.filters.category")}</span>
             <select
               className="rounded-lg border border-gray-200 px-3 py-2"
               value={filters.categoryId ?? ""}
@@ -78,17 +89,19 @@ export function MarketListFilters({
                 })
               }
             >
-              <option value="">الكل</option>
+              <option value="">{t("common.all")}</option>
               {categories.map((c) => (
                 <option key={c.categoryId} value={c.categoryId}>
-                  {c.nameAr || c.name}
+                  {localized(c as unknown as LocalizableRecord)}
                 </option>
               ))}
             </select>
           </label>
 
           <label className="flex flex-col gap-1 text-sm">
-            <span className="font-medium text-slate-600">{priceLabel} — من</span>
+            <span className="font-medium text-slate-600">
+              {priceLabel} — {t("market.filters.from")}
+            </span>
             <input
               type="number"
               min={0}
@@ -99,7 +112,9 @@ export function MarketListFilters({
           </label>
 
           <label className="flex flex-col gap-1 text-sm">
-            <span className="font-medium text-slate-600">{priceLabel} — إلى</span>
+            <span className="font-medium text-slate-600">
+              {priceLabel} — {t("market.filters.to")}
+            </span>
             <input
               type="number"
               min={0}
@@ -112,7 +127,7 @@ export function MarketListFilters({
           {(kind === "auctions" || kind === "tenders") && (
             <>
               <label className="flex flex-col gap-1 text-sm">
-                <span className="font-medium text-slate-600">يبدأ بعد</span>
+                <span className="font-medium text-slate-600">{t("market.filters.startsAfter")}</span>
                 <input
                   type="datetime-local"
                   className="rounded-lg border border-gray-200 px-3 py-2"
@@ -121,7 +136,7 @@ export function MarketListFilters({
                 />
               </label>
               <label className="flex flex-col gap-1 text-sm">
-                <span className="font-medium text-slate-600">ينتهي قبل</span>
+                <span className="font-medium text-slate-600">{t("market.filters.endsBefore")}</span>
                 <input
                   type="datetime-local"
                   className="rounded-lg border border-gray-200 px-3 py-2"
@@ -133,7 +148,7 @@ export function MarketListFilters({
           )}
 
           <label className="flex flex-col gap-1 text-sm">
-            <span className="font-medium text-slate-600">ترتيب حسب</span>
+            <span className="font-medium text-slate-600">{t("market.filters.sortBy")}</span>
             <select
               className="rounded-lg border border-gray-200 px-3 py-2"
               value={filters.sortBy ?? ""}
@@ -141,14 +156,14 @@ export function MarketListFilters({
             >
               {SORT_OPTIONS.map((o) => (
                 <option key={o.value || "default"} value={o.value}>
-                  {o.label}
+                  {t(o.labelKey)}
                 </option>
               ))}
             </select>
           </label>
 
           <label className="flex flex-col gap-1 text-sm">
-            <span className="font-medium text-slate-600">اتجاه الترتيب</span>
+            <span className="font-medium text-slate-600">{t("market.filters.sortOrder")}</span>
             <select
               className="rounded-lg border border-gray-200 px-3 py-2"
               value={filters.sortOrder ?? "desc"}
@@ -156,13 +171,13 @@ export function MarketListFilters({
                 patch({ sortOrder: (e.target.value as "asc" | "desc") || "desc" })
               }
             >
-              <option value="desc">تنازلي</option>
-              <option value="asc">تصاعدي</option>
+              <option value="desc">{t("market.filters.sortDesc")}</option>
+              <option value="asc">{t("market.filters.sortAsc")}</option>
             </select>
           </label>
 
           <label className="flex flex-col gap-1 text-sm">
-            <span className="font-medium text-slate-600">عدد النتائج</span>
+            <span className="font-medium text-slate-600">{t("market.filters.resultCount")}</span>
             <select
               className="rounded-lg border border-gray-200 px-3 py-2"
               value={filters.pageSize ?? DEFAULT_PAGE_SIZE}
@@ -184,7 +199,7 @@ export function MarketListFilters({
                 onFiltersChange({ page: 1, pageSize: DEFAULT_PAGE_SIZE, sortOrder: "desc" })
               }
             >
-              إعادة تعيين
+              {t("market.filters.reset")}
             </button>
             {filters.page != null && filters.page > 1 && (
               <button
@@ -192,7 +207,7 @@ export function MarketListFilters({
                 className="rounded-lg border border-gray-200 px-4 py-2 text-sm"
                 onClick={() => patch({ page: (filters.page ?? 2) - 1 })}
               >
-                السابق
+                {t("common.previous")}
               </button>
             )}
             <button
@@ -200,7 +215,7 @@ export function MarketListFilters({
               className="rounded-lg bg-emerald-600 px-4 py-2 text-sm font-medium text-white hover:bg-emerald-700"
               onClick={() => patch({ page: (filters.page ?? 1) + 1 })}
             >
-              الصفحة التالية
+              {t("market.filters.nextPage")}
             </button>
           </div>
         </div>

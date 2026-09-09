@@ -12,9 +12,14 @@ import { parseOrderFromCreate } from "@/services/direct";
 import { getDirectMainImage } from "@/lib/media";
 import { formatPrice } from "@/lib/auctionPricing";
 import { useAuth } from "@/context/AuthContext";
+import { useI18n } from "@/context/I18nContext";
+import type { LocalizableRecord } from "@/lib/localized-value";
+import { useLocalizedLabel } from "@/hooks/useLocalizedLabel";
 import type { MarketplaceListing } from "@/types";
 
 export default function BuyDirectPage() {
+  const { t } = useI18n();
+  const { localized } = useLocalizedLabel();
   const { id } = useParams();
   const router = useRouter();
   const { user, requireAuth } = useAuth();
@@ -43,23 +48,24 @@ export default function BuyDirectPage() {
   const total = unitPrice > 0 && orderQty > 0 ? unitPrice * orderQty : 0;
   const isActive =
     String(listing?.status ?? "").toLowerCase() === "active" && availQty > 0;
+  const unit = listing?.unit || t("forms.units.kg");
 
   async function buy() {
     if (!requireAuth() || !user?.userId || !listing) return;
     if (!address.trim()) {
-      setError("أدخل عنوان التسليم");
+      setError(t("direct.buy.enterAddress"));
       return;
     }
     if (!orderQty || orderQty < minQty) {
-      setError(`أقل كمية للطلب: ${minQty}`);
+      setError(t("direct.buy.minQty", undefined, { qty: minQty }));
       return;
     }
     if (orderQty > availQty) {
-      setError(`الكمية المتاحة: ${availQty}`);
+      setError(t("direct.buy.availableQty", undefined, { qty: availQty }));
       return;
     }
     if (!isActive) {
-      setError("هذا العرض غير متاح للشراء حالياً");
+      setError(t("direct.buy.notAvailable"));
       return;
     }
     setLoading(true);
@@ -84,7 +90,7 @@ export default function BuyDirectPage() {
         router.push("/orders/direct");
       }
     } catch (e) {
-      setError(e instanceof Error ? e.message : "فشل إنشاء الطلب");
+      setError(e instanceof Error ? e.message : t("direct.buy.createFailed"));
     } finally {
       setLoading(false);
     }
@@ -93,15 +99,20 @@ export default function BuyDirectPage() {
   if (!listing) {
     return (
       <>
-        <PageHeader title="شراء" backHref="/direct" />
-        <PageContainer className="py-16 text-center text-slate-500">جاري التحميل...</PageContainer>
+        <PageHeader title={t("direct.buy.title")} backHref="/direct" />
+        <PageContainer className="py-16 text-center text-slate-500">
+          {t("common.loadingEllipsis")}
+        </PageContainer>
       </>
     );
   }
 
+  const listingTitle =
+    localized(listing as unknown as LocalizableRecord) || listing.title || listing.cropName;
+
   return (
     <>
-      <PageHeader title="شراء" backHref="/direct" />
+      <PageHeader title={t("direct.buy.title")} backHref="/direct" />
       <PageContainer narrow className="py-8">
         <div className="space-y-6 rounded-2xl border border-gray-100 bg-white p-6 shadow-sm">
           <figure className="relative aspect-video overflow-hidden rounded-2xl bg-slate-100">
@@ -114,27 +125,25 @@ export default function BuyDirectPage() {
             />
           </figure>
           <div>
-            <h2 className="text-xl font-bold text-slate-900">
-              {listing.title || listing.cropName}
-            </h2>
+            <h2 className="text-xl font-bold text-slate-900">{listingTitle}</h2>
             {unitPrice > 0 ? (
               <p className="mt-2 text-lg font-bold text-emerald-600">
-                {formatPrice(unitPrice)} ل.س / {listing.unit || "كغ"}
+                {formatPrice(unitPrice)} {t("common.currency")} / {unit}
               </p>
             ) : (
-              <p className="mt-2 text-sm text-amber-700">السعر غير متوفر — تواصل مع البائع</p>
+              <p className="mt-2 text-sm text-amber-700">{t("direct.buy.priceUnavailable")}</p>
             )}
             {availQty > 0 ? (
               <p className="mt-1 text-sm text-slate-500">
-                متاح: {formatPrice(availQty)} {listing.unit || "كغ"}
+                {t("direct.buy.available", undefined, { qty: formatPrice(availQty), unit })}
               </p>
             ) : (
-              <p className="mt-2 text-sm text-amber-700">الكمية غير متاحة حالياً</p>
+              <p className="mt-2 text-sm text-amber-700">{t("direct.buy.qtyUnavailable")}</p>
             )}
           </div>
           {isActive && availQty > 0 && (
             <Input
-              label={`الكمية (${listing.unit || "كغ"})`}
+              label={t("direct.buy.quantity", undefined, { unit })}
               type="number"
               min={minQty}
               max={maxQty}
@@ -144,21 +153,23 @@ export default function BuyDirectPage() {
             />
           )}
           <Input
-            label="عنوان التسليم"
+            label={t("direct.buy.deliveryAddress")}
             value={address}
             onChange={(e) => setAddress(e.target.value)}
-            placeholder="المدينة، الحي، تفاصيل الوصول..."
+            placeholder={t("direct.buy.addressPlaceholder")}
             required
           />
           {total > 0 && isActive && (
             <p className="text-center text-sm text-slate-600">
-              الإجمالي{" "}
-              <span className="font-bold text-slate-900">{formatPrice(total)} ل.س</span>
+              {t("direct.buy.total")}{" "}
+              <span className="font-bold text-slate-900">
+                {formatPrice(total)} {t("common.currency")}
+              </span>
             </p>
           )}
           {error && <p className="text-sm text-red-600">{error}</p>}
           <Button fullWidth onClick={buy} disabled={loading || !isActive}>
-            {loading ? "جاري التأكيد..." : "تأكيد الطلب"}
+            {loading ? t("direct.buy.confirming") : t("direct.buy.confirmOrder")}
           </Button>
         </div>
       </PageContainer>

@@ -3,10 +3,11 @@
 import { useRef, useState } from "react";
 import Image from "next/image";
 import { ImagePlus, Loader2, X } from "lucide-react";
+import { useI18n } from "@/context/I18nContext";
 import { uploadImages } from "@/services/images";
 
 export function ImageUploadField({
-  label = "صور المحصول",
+  label,
   value,
   onChange,
   maxFiles = 5,
@@ -18,6 +19,8 @@ export function ImageUploadField({
   maxFiles?: number;
   folder?: string;
 }) {
+  const { t } = useI18n();
+  const displayLabel = label ?? t("forms.image.label");
   const inputRef = useRef<HTMLInputElement>(null);
   const [uploading, setUploading] = useState(false);
   const [error, setError] = useState("");
@@ -26,7 +29,7 @@ export function ImageUploadField({
     if (!files?.length) return;
     const remaining = maxFiles - value.length;
     if (remaining <= 0) {
-      setError(`الحد الأقصى ${maxFiles} صور`);
+      setError(t("common.maxImages", "Maximum {{count}} images", { count: maxFiles }));
       return;
     }
     const batch = Array.from(files).slice(0, remaining);
@@ -36,7 +39,7 @@ export function ImageUploadField({
       const urls = await uploadImages(batch, folder);
       onChange([...value, ...urls]);
     } catch (e) {
-      setError(e instanceof Error ? e.message : "فشل رفع الصورة");
+      setError(e instanceof Error ? e.message : t("forms.image.uploadFailed"));
     } finally {
       setUploading(false);
       if (inputRef.current) inputRef.current.value = "";
@@ -49,7 +52,7 @@ export function ImageUploadField({
 
   return (
     <div className="space-y-2">
-      <span className="text-sm font-medium text-slate-700">{label}</span>
+      <span className="text-sm font-medium text-slate-700">{displayLabel}</span>
       {value.length > 0 && (
         <ul className="flex flex-wrap gap-2">
           {value.map((url, i) => (
@@ -57,9 +60,9 @@ export function ImageUploadField({
               <Image src={url} alt="" fill className="object-cover" sizes="80px" unoptimized />
               <button
                 type="button"
-                className="absolute top-0.5 end-0.5 rounded-full bg-black/60 p-0.5 text-white"
+                className="absolute end-0.5 top-0.5 rounded-full bg-black/60 p-0.5 text-white"
                 onClick={() => removeAt(i)}
-                aria-label="حذف الصورة"
+                aria-label={t("forms.image.delete")}
               >
                 <X className="h-3.5 w-3.5" />
               </button>
@@ -79,7 +82,7 @@ export function ImageUploadField({
           ) : (
             <ImagePlus className="h-5 w-5" />
           )}
-          {uploading ? "جاري الرفع..." : "إضافة أو رفع صور"}
+          {uploading ? t("forms.image.uploading") : t("forms.image.addOrUpload")}
         </button>
       )}
       <input
