@@ -7,6 +7,7 @@ import {
   clearAuthSession,
 } from "./auth-storage";
 import { unwrapEnvelopeData } from "./api-envelope";
+import { camelizeKeysDeep } from "./camelize";
 import { formatApiErrorMessage } from "./api-errors";
 import type { ApiEnvelope, ApiError } from "@/types";
 
@@ -117,7 +118,10 @@ export async function apiRequest<T>(
   let body: unknown = null;
   if (text) {
     try {
-      body = JSON.parse(text);
+      // Backend responds in PascalCase; the app expects camelCase everywhere.
+      // Envelope keys (success/data/message/error/traceId) are already
+      // lowercase so they pass through untouched.
+      body = camelizeKeysDeep(JSON.parse(text));
     } catch {
       body = text;
     }
