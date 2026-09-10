@@ -1,7 +1,7 @@
 import { apiGet, apiPost } from "@/lib/api";
 import type { Tender } from "@/types";
 
-function normalizeTender(raw: unknown): Tender {
+export function normalizeTender(raw: unknown): Tender {
   if (!raw || typeof raw !== "object") return raw as Tender;
   const r = raw as Record<string, unknown>;
   const tenderId = Number(r.tenderId ?? r.TenderId ?? r.id ?? r.Id);

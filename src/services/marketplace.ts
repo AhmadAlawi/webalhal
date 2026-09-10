@@ -1,6 +1,8 @@
 import { apiGet, apiPost } from "@/lib/api";
 import { API } from "@/lib/api-endpoints";
 import type { MarketplaceBrowseData, MarketplaceListing } from "@/types";
+import { normalizeAuction } from "./auctions";
+import { normalizeTender } from "./tenders";
 
 function normalizeListing(raw: unknown): MarketplaceListing | null {
   if (!raw || typeof raw !== "object") return null;
@@ -61,15 +63,19 @@ export async function getMarketplaceBrowse(
   params?: Record<string, string>,
 ): Promise<MarketplaceBrowseData> {
   const qs = params ? `?${new URLSearchParams(params)}` : "";
-  const data = await apiGet<MarketplaceBrowseData | null>(`${API.marketplace.browse}${qs}`);
+  const data = await apiGet<Record<string, unknown> | null>(`${API.marketplace.browse}${qs}`);
 
   if (!data || typeof data !== "object") return emptyBrowse();
 
+  const auctionsRaw = data.auctions ?? data.Auctions;
+  const tendersRaw = data.tenders ?? data.Tenders;
+  const directRaw = data.direct ?? data.Direct;
+
   return {
-    auctions: Array.isArray(data.auctions) ? data.auctions : [],
-    tenders: Array.isArray(data.tenders) ? data.tenders : [],
-    direct: Array.isArray(data.direct)
-      ? data.direct.map((item) => normalizeListing(item) ?? item)
+    auctions: Array.isArray(auctionsRaw) ? auctionsRaw.map(normalizeAuction) : [],
+    tenders: Array.isArray(tendersRaw) ? tendersRaw.map(normalizeTender) : [],
+    direct: Array.isArray(directRaw)
+      ? directRaw.map((item) => normalizeListing(item) ?? item)
       : [],
   };
 }

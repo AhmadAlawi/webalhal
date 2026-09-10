@@ -10,7 +10,7 @@ function urlsFromCrop(raw: unknown): string[] {
   return [];
 }
 
-function normalizeAuction(raw: unknown): Auction {
+export function normalizeAuction(raw: unknown): Auction {
   if (!raw || typeof raw !== "object") {
     return raw as Auction;
   }
