@@ -25,7 +25,14 @@ function normalizeListing(raw: unknown): MarketplaceListing | null {
     productNameAr: (r.productNameAr ?? r.ProductNameAr) as string | undefined,
     productNameEn: (r.productNameEn ?? r.ProductNameEn) as string | undefined,
     unitPrice:
-      Number(r.unitPrice ?? r.UnitPrice ?? r.price ?? r.Price) || undefined,
+      Number(
+        r.unitPrice ??
+          r.UnitPrice ??
+          r.pricePerUnit ??
+          r.PricePerUnit ??
+          r.price ??
+          r.Price,
+      ) || undefined,
     availableQty:
       Number(
         r.availableQty ??
