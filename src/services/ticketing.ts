@@ -19,15 +19,17 @@ export async function getTicket(ticketId: number) {
 }
 
 export async function createTicket(body: {
+  createdByUserId: number;
   subject: string;
   description?: string;
   category?: string;
   priority?: string;
 }) {
   return apiPost<SupportTicket>("/api/ticketing/tickets", {
+    createdByUserId: body.createdByUserId,
     title: body.subject,
     subject: body.subject,
-    description: body.description,
+    description: body.description ?? "",
     category: body.category ?? "general",
     priority: body.priority ?? "normal",
   });
@@ -44,6 +46,15 @@ export async function getTicketMessages(ticketId: number) {
   }
 }
 
-export async function sendTicketMessage(ticketId: number, content: string) {
-  return apiPost(`/api/ticketing/tickets/${ticketId}/messages`, { content });
+export async function sendTicketMessage(
+  ticketId: number,
+  content: string,
+  senderUserId: number,
+) {
+  return apiPost(`/api/ticketing/tickets/${ticketId}/messages`, {
+    ticketId,
+    senderUserId,
+    body: content,
+    isInternal: false,
+  });
 }

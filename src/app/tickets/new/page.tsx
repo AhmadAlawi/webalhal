@@ -14,7 +14,7 @@ const TICKET_CATEGORIES = ["general", "technical", "payment", "transport", "auct
 
 export default function NewTicketPage() {
   const { t } = useI18n();
-  const { requireAuth } = useAuth();
+  const { requireAuth, user } = useAuth();
   const router = useRouter();
   const [subject, setSubject] = useState("");
   const [description, setDescription] = useState("");
@@ -29,10 +29,15 @@ export default function NewTicketPage() {
       setError(t("tickets.new.enterSubject"));
       return;
     }
+    if (!user?.userId) {
+      setError(t("tickets.new.createFailed"));
+      return;
+    }
     setSaving(true);
     setError("");
     try {
       const ticket = await createTicket({
+        createdByUserId: user.userId,
         subject: subject.trim(),
         description: description.trim(),
         category,

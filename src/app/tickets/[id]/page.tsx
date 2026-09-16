@@ -35,10 +35,10 @@ export default function TicketDetailPage() {
 
   async function handleSend(e: React.FormEvent) {
     e.preventDefault();
-    if (!text.trim()) return;
+    if (!text.trim() || !user?.userId) return;
     setSending(true);
     try {
-      await sendTicketMessage(ticketId, text.trim());
+      await sendTicketMessage(ticketId, text.trim(), user.userId);
       setText("");
       load();
     } finally {
