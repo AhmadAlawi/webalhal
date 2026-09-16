@@ -10,6 +10,8 @@ import { PageHeader } from "@/components/ui/PageHeader";
 import { Button } from "@/components/ui/Button";
 import { TransportAssignPanel } from "@/components/transport/TransportAssignPanel";
 import { TransportHandoffBar } from "@/components/chat/TransportHandoffBar";
+import { DealHandoffBar } from "@/components/chat/DealHandoffBar";
+import { PendingRatingCard } from "@/components/chat/PendingRatingCard";
 import { LinkedConversationsNav } from "@/components/chat/LinkedConversationsNav";
 import { ReportConversationDialog } from "@/components/chat/ReportConversationDialog";
 import {
@@ -258,6 +260,17 @@ export default function ChatConversationPage() {
             <TransportHandoffBar
               conversationId={convId}
               transportStatus={conversation?.transportStatus}
+            />
+          )}
+
+          {dealContext && !transportActive && !showHandoff && (
+            <DealHandoffBar conversationId={convId} status={conversation?.status} />
+          )}
+
+          {dealContext && (
+            <PendingRatingCard
+              contextType={dealContext.orderType}
+              contextId={dealContext.orderId}
             />
           )}
 

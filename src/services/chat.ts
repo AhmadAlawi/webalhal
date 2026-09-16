@@ -300,6 +300,15 @@ export async function transportReceived(conversationId: number) {
   return apiPost(API.chat.transportReceived(conversationId), {});
 }
 
+/** No-transport deal completion: seller confirms handoff before the buyer confirms receipt. */
+export async function markDelivered(conversationId: number) {
+  return apiPost(API.chat.markDelivered(conversationId), {});
+}
+
+export async function markReceived(conversationId: number) {
+  return apiPost(API.chat.markReceived(conversationId), {});
+}
+
 export function parseConversationIdFromOpen(res: unknown): number | undefined {
   const r = res as Record<string, unknown>;
   const inner = (r?.data as Record<string, unknown>)?.data ?? r?.data ?? r;

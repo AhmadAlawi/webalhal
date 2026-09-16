@@ -81,6 +81,14 @@ export const API = {
       `/api/Chat/conversations/${id}/transport-deliver`,
     transportReceived: (id: number) =>
       `/api/Chat/conversations/${id}/transport-received`,
+    markDelivered: (id: number) =>
+      `/api/Chat/conversations/${id}/mark-delivered`,
+    markReceived: (id: number) =>
+      `/api/Chat/conversations/${id}/mark-received`,
+  },
+  ratings: {
+    pending: "/api/ratings/pending",
+    submit: "/api/ratings",
   },
   notifications: {
     list: "/api/notifications",

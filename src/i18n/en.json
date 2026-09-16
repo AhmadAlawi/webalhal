@@ -667,6 +667,15 @@
       "InappropriateContent": "Inappropriate content",
       "FalseInformation": "False information",
       "Other": "Other"
+    },
+    "dealHandoff": {
+      "confirm": "Confirm the deal was delivered or received"
+    },
+    "rating": {
+      "prompt": "Deal completed — rate the other party",
+      "commentPlaceholder": "Comment (optional)",
+      "submit": "Submit rating",
+      "submitFailed": "Failed to submit rating"
     }
   },
   "transport": {

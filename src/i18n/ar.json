@@ -667,6 +667,15 @@
       "InappropriateContent": "محتوى غير لائق",
       "FalseInformation": "معلومات كاذبة",
       "Other": "أخرى"
+    },
+    "dealHandoff": {
+      "confirm": "أكّد تسليم الصفقة أو استلامها"
+    },
+    "rating": {
+      "prompt": "الصفقة اكتملت — قيّم الطرف الآخر",
+      "commentPlaceholder": "تعليق (اختياري)",
+      "submit": "إرسال التقييم",
+      "submitFailed": "فشل إرسال التقييم"
     }
   },
   "transport": {
