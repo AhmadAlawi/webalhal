@@ -1,4 +1,5 @@
 import { apiGet } from "@/lib/api";
+import { camelizeKeysDeep } from "@/lib/camelize";
 import { unwrapEnvelopeData } from "@/lib/api-envelope";
 import { formatApiErrorMessage } from "@/lib/api-errors";
 import {
@@ -182,7 +183,8 @@ export async function login(
     body: JSON.stringify({ emailOrPhone, password }),
   });
 
-  const body = await res.json();
+  const rawBody = await res.json();
+  const body = camelizeKeysDeep(rawBody);
 
   if (res.status === 409) {
     const payload = unwrapEnvelopeData(body) as Record<string, unknown>;
@@ -249,7 +251,8 @@ export async function refreshAccessToken(refreshToken: string) {
     body: JSON.stringify({ refreshToken }),
   });
 
-  const body = await res.json();
+  const rawBody = await res.json();
+  const body = camelizeKeysDeep(rawBody);
   if (!res.ok) {
     throw new Error("انتهت الجلسة — سجّل الدخول مجدداً");
   }
