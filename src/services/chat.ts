@@ -30,6 +30,8 @@ export interface ConversationDetail extends Conversation {
   currentUserRole?: string;
   status?: string;
   linkedConversations?: LinkedConversation[];
+  deliveredAt?: string;
+  receivedAt?: string;
 }
 
 const CONTEXT_LABELS: Record<string, string> = {
@@ -263,6 +265,8 @@ export async function getConversation(conversationId: number) {
     farmGovernorate: (r.farmGovernorate ?? r.FarmGovernorate) as string | undefined,
     currentUserRole: (r.currentUserRole ?? r.CurrentUserRole) as string | undefined,
     status: (r.status ?? r.Status) as string | undefined,
+    deliveredAt: (r.deliveredAt ?? r.DeliveredAt) as string | undefined,
+    receivedAt: (r.receivedAt ?? r.ReceivedAt) as string | undefined,
     linkedConversations: linked,
   } as ConversationDetail;
 }

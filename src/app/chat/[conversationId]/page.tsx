@@ -264,7 +264,13 @@ export default function ChatConversationPage() {
           )}
 
           {dealContext && !transportActive && !showHandoff && (
-            <DealHandoffBar conversationId={convId} status={conversation?.status} />
+            <DealHandoffBar
+              conversationId={convId}
+              status={conversation?.status}
+              userRole={userRole}
+              deliveredAt={conversation?.deliveredAt}
+              receivedAt={conversation?.receivedAt}
+            />
           )}
 
           {dealContext && (
